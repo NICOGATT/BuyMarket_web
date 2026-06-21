@@ -1,13 +1,20 @@
 import { api } from "./api";
 import type { CreateProductPayload, Product, ProductMedia } from "../types/Product";
 import { getUserFromToken } from "../utils/auth";
+
 export async function getProducts() {
-    const response = await api.get<Product[]>("/products"); 
-    return response.data;
+  const response = await api.get<Product[]>("/products");
+  return response.data;
 }
 
 export async function getProductById(id: string): Promise<Product> {
   const response = await api.get<Product>(`/products/${id}`);
+
+  return response.data;
+}
+
+export async function getMyProducts(): Promise<Product[]> {
+  const response = await api.get<Product[]>("/products/my-products");
 
   return response.data;
 }
@@ -27,6 +34,7 @@ export async function createProduct(
     subCategoryId,
     mediaIds: payload.mediaIds ?? [],
     attributes: payload.attributes ?? [],
+    horarioDisponible: payload.horarioDisponible,
     ...(payload.pickupAddressId
       ? { pickupAddressId: payload.pickupAddressId }
       : {}),

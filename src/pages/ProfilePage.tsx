@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
-import { MapPin, Star, Trash2 } from "lucide-react";
+import { MapPin, Package, ShoppingBag, Star, Trash2 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   getMyWallet,
   getMyWalletBalance,
   getMyWithdrawals,
+  requestWithdrawal,
 } from "../shared/services/wallet.service";
+import { getMyProducts } from "../shared/services/product.service";
 import {
   createUserAddress,
   deleteUserAddress,
   getMyAddresses,
   setDefaultUserAddress,
 } from "../shared/services/userAddress.service";
+import type { Product } from "../shared/types/Product";
 import type { CreateUserAddressPayload, UserAddress } from "../shared/types/UserAddress";
 import type { Wallet, Withdrawal } from "../shared/types/Wallet";
 import { getUserFromToken } from "../shared/utils/auth";
+import { getProductFirstImage } from "../shared/utils/productImages";
 import { formatUserAddress } from "../shared/utils/userAddress";
 
 type ProfileLoadState = {
@@ -22,6 +26,7 @@ type ProfileLoadState = {
   balance: number;
   withdrawals: Withdrawal[];
   addresses: UserAddress[];
+  products: Product[];
 };
 
 const emptyAddressForm: CreateUserAddressPayload = {
@@ -35,6 +40,28 @@ const emptyAddressForm: CreateUserAddressPayload = {
   postalCode: "",
   reference: "",
   isDefault: false,
+};
+
+const emptyWithdrawalForm = {
+  amount: "",
+  alias: "",
+  cbu: "",
+};
+
+const withdrawalStatusLabels: Record<string, string> = {
+  pending: "Pendiente",
+  approved: "Aprobado",
+  paid: "Pagado",
+  rejected: "Rechazado",
+  cancelled: "Cancelado",
+};
+
+const withdrawalStatusClasses: Record<string, string> = {
+  pending: "bg-amber-100 text-amber-700",
+  approved: "bg-blue-100 text-blue-700",
+  paid: "bg-green-100 text-green-700",
+  rejected: "bg-red-100 text-red-700",
+  cancelled: "bg-slate-200 text-slate-600",
 };
 
 function formatDate(value?: string) {
@@ -55,13 +82,20 @@ function ProfilePage() {
     balance: 0,
     withdrawals: [],
     addresses: [],
+    products: [],
   });
   const [addressForm, setAddressForm] =
     useState<CreateUserAddressPayload>(emptyAddressForm);
   const [isLoading, setIsLoading] = useState(true);
   const [walletError, setWalletError] = useState("");
   const [addressError, setAddressError] = useState("");
+  const [productsError, setProductsError] = useState("");
   const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [isWithdrawalFormOpen, setIsWithdrawalFormOpen] = useState(false);
+  const [withdrawalForm, setWithdrawalForm] = useState(emptyWithdrawalForm);
+  const [withdrawalError, setWithdrawalError] = useState("");
+  const [withdrawalSuccess, setWithdrawalSuccess] = useState("");
+  const [isRequestingWithdrawal, setIsRequestingWithdrawal] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -72,13 +106,21 @@ function ProfilePage() {
     async function loadProfile() {
       setIsLoading(true);
       setWalletError("");
+      setProductsError("");
 
-      const [walletResult, balanceResult, withdrawalsResult, addressesResult] =
+      const [
+        walletResult,
+        balanceResult,
+        withdrawalsResult,
+        addressesResult,
+        productsResult,
+      ] =
         await Promise.allSettled([
           getMyWallet(),
           getMyWalletBalance(),
           getMyWithdrawals(),
           getMyAddresses(),
+          getMyProducts(),
         ]);
 
       setProfileData({
@@ -88,6 +130,8 @@ function ProfilePage() {
           withdrawalsResult.status === "fulfilled" ? withdrawalsResult.value : [],
         addresses:
           addressesResult.status === "fulfilled" ? addressesResult.value : [],
+        products:
+          productsResult.status === "fulfilled" ? productsResult.value : [],
       });
 
       if (
@@ -100,6 +144,10 @@ function ProfilePage() {
 
       if (addressesResult.status === "rejected") {
         setAddressError("No se pudieron cargar tus direcciones.");
+      }
+
+      if (productsResult.status === "rejected") {
+        setProductsError("No se pudieron cargar tus productos.");
       }
 
       setIsLoading(false);
@@ -178,11 +226,81 @@ function ProfilePage() {
     }
   }
 
+  function handleWithdrawalChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value } = event.target;
+
+    setWithdrawalForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
+
+  async function handleRequestWithdrawal(event: React.FormEvent) {
+    event.preventDefault();
+    setWithdrawalError("");
+    setWithdrawalSuccess("");
+
+    const amount = Number(withdrawalForm.amount);
+    const alias = withdrawalForm.alias.trim();
+    const cbu = withdrawalForm.cbu.trim();
+
+    if (!amount || amount <= 0) {
+      setWithdrawalError("Ingresa un monto mayor a 0.");
+      return;
+    }
+
+    if (amount > profileData.balance) {
+      setWithdrawalError("El monto no puede superar tu saldo disponible.");
+      return;
+    }
+
+    if (!alias && !cbu) {
+      setWithdrawalError("Ingresa un alias o CBU destino.");
+      return;
+    }
+
+    try {
+      setIsRequestingWithdrawal(true);
+      await requestWithdrawal({
+        amount,
+        alias: alias || undefined,
+        cbu: cbu || undefined,
+      });
+
+      const [walletResult, balanceResult, withdrawalsResult] =
+        await Promise.allSettled([
+          getMyWallet(),
+          getMyWalletBalance(),
+          getMyWithdrawals(),
+        ]);
+
+      setProfileData((prev) => ({
+        ...prev,
+        wallet: walletResult.status === "fulfilled" ? walletResult.value : prev.wallet,
+        balance:
+          balanceResult.status === "fulfilled" ? balanceResult.value : prev.balance,
+        withdrawals:
+          withdrawalsResult.status === "fulfilled"
+            ? withdrawalsResult.value
+            : prev.withdrawals,
+      }));
+
+      setWithdrawalForm(emptyWithdrawalForm);
+      setWithdrawalSuccess("Solicitud de retiro enviada. La vas a ver como pendiente.");
+      setIsWithdrawalFormOpen(false);
+    } catch {
+      setWithdrawalError("No se pudo solicitar el retiro.");
+    } finally {
+      setIsRequestingWithdrawal(false);
+    }
+  }
+
   if (!user) return null;
 
   const userName = user.name ?? "Usuario BuyMarket";
   const userId = user.id ?? user.sub ?? "Sin id";
   const walletStatus = profileData.wallet?.isActive === false ? "Inactiva" : "Activa";
+  const pendingBalance = Number(profileData.wallet?.pendingBalance ?? 0);
 
   return (
     <section className="space-y-6">
@@ -240,6 +358,122 @@ function ProfilePage() {
                 </p>
               </div>
             </div>
+          </section>
+
+          <NavLink
+            to="/profile/orders"
+            className="flex items-center justify-between gap-4 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:bg-blue-50"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-xl font-black text-slate-950">
+                  Mis compras
+                </span>
+                <span className="text-sm font-semibold text-slate-500">
+                  Ver pedidos realizados y estado del pago
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white">
+              Ver compras
+            </span>
+          </NavLink>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                <h2 className="m-0 text-xl font-black text-slate-950">
+                  Mis productos
+                </h2>
+              </div>
+
+              <NavLink
+                to="/products/create"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-bold text-white transition hover:bg-blue-700"
+              >
+                Publicar
+              </NavLink>
+            </div>
+
+            {productsError && (
+              <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 font-semibold text-red-700">
+                {productsError}
+              </p>
+            )}
+
+            {isLoading ? (
+              <p className="mt-5 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
+                Cargando productos...
+              </p>
+            ) : profileData.products.length === 0 ? (
+              <div className="mt-5 rounded-xl bg-slate-50 p-5">
+                <p className="font-semibold text-slate-500">
+                  Todavia no publicaste productos.
+                </p>
+                <NavLink
+                  to="/products/create"
+                  className="mt-4 inline-flex rounded-xl bg-blue-600 px-4 py-2 font-bold text-white transition hover:bg-blue-700"
+                >
+                  Publicar mi primer producto
+                </NavLink>
+              </div>
+            ) : (
+              <div className="mt-5 grid gap-3">
+                {profileData.products.map((product) => {
+                  const image = getProductFirstImage(product);
+
+                  return (
+                    <article
+                      key={product.id}
+                      className="flex flex-col gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-center"
+                    >
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white text-blue-600">
+                        {image ? (
+                          <img
+                            src={image}
+                            alt={product.title}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <Package size={24} />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-lg font-black text-slate-950">
+                          {product.title}
+                        </h3>
+                        <p className="line-clamp-2 text-sm font-semibold text-slate-500">
+                          {product.description}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span className="rounded-full bg-white px-3 py-1 text-sm font-black text-blue-600">
+                            ${Number(product.price).toLocaleString("es-AR")}
+                          </span>
+                          <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600">
+                            Stock: {product.stock}
+                          </span>
+                          <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600">
+                            {product.isActive ? "Activo" : "Inactivo"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <NavLink
+                        to={`/products/${product.id}`}
+                        className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-blue-200 hover:text-blue-600"
+                      >
+                        Ver
+                      </NavLink>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -438,20 +672,38 @@ function ProfilePage() {
                 {profileData.withdrawals.map((withdrawal) => (
                   <article
                     key={withdrawal.id}
-                    className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="rounded-xl border border-slate-100 bg-slate-50 p-4"
                   >
-                    <div>
-                      <p className="font-black text-slate-950">
-                        $
-                        {(withdrawal.amount ?? 0).toLocaleString("es-AR")}
-                      </p>
-                      <p className="text-sm font-semibold text-slate-500">
-                        {formatDate(withdrawal.createdAt)}
-                      </p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="font-black text-slate-950">
+                          ${(withdrawal.amount ?? 0).toLocaleString("es-AR")}
+                        </p>
+                        <p className="text-sm font-semibold text-slate-500">
+                          {formatDate(withdrawal.createdAt)}
+                        </p>
+                        {(withdrawal.alias || withdrawal.cbu) && (
+                          <p className="mt-1 text-sm font-semibold text-slate-500">
+                            Destino: {withdrawal.alias || withdrawal.cbu}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`w-fit rounded-full px-3 py-1 text-sm font-black uppercase ${
+                          withdrawalStatusClasses[withdrawal.status ?? "pending"] ??
+                          "bg-white text-slate-600"
+                        }`}
+                      >
+                        {withdrawalStatusLabels[withdrawal.status ?? "pending"] ??
+                          withdrawal.status ??
+                          "Pendiente"}
+                      </span>
                     </div>
-                    <span className="w-fit rounded-full bg-white px-3 py-1 text-sm font-black uppercase text-slate-600">
-                      {withdrawal.status ?? "pendiente"}
-                    </span>
+                    {withdrawal.adminNote && (
+                      <p className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-600">
+                        Nota admin: {withdrawal.adminNote}
+                      </p>
+                    )}
                   </article>
                 ))}
               </div>
@@ -470,6 +722,11 @@ function ProfilePage() {
             <strong className="mt-1 block text-4xl font-black">
               ${profileData.balance.toLocaleString("es-AR")}
             </strong>
+            {pendingBalance > 0 && (
+              <p className="mt-2 text-sm font-semibold text-amber-200">
+                ${pendingBalance.toLocaleString("es-AR")} pendiente de retiro
+              </p>
+            )}
 
             <div className="mt-6 space-y-3 border-t border-white/10 pt-5">
               <div className="flex items-center justify-between gap-4">
@@ -486,7 +743,77 @@ function ProfilePage() {
                 </p>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setWithdrawalError("");
+                setWithdrawalSuccess("");
+                setIsWithdrawalFormOpen((prev) => !prev);
+              }}
+              disabled={profileData.balance <= 0}
+              className="mt-6 w-full rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-600"
+            >
+              Retirar dinero
+            </button>
           </section>
+
+          {isWithdrawalFormOpen && (
+            <form
+              onSubmit={handleRequestWithdrawal}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <h2 className="m-0 text-xl font-black text-slate-950">
+                Solicitar retiro
+              </h2>
+              <div className="mt-4 space-y-3">
+                <input
+                  name="amount"
+                  type="number"
+                  min="1"
+                  max={profileData.balance}
+                  step="1"
+                  value={withdrawalForm.amount}
+                  onChange={handleWithdrawalChange}
+                  placeholder="Monto a retirar"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                />
+                <input
+                  name="alias"
+                  value={withdrawalForm.alias}
+                  onChange={handleWithdrawalChange}
+                  placeholder="Alias destino"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                />
+                <input
+                  name="cbu"
+                  value={withdrawalForm.cbu}
+                  onChange={handleWithdrawalChange}
+                  placeholder="CBU destino"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                />
+              </div>
+
+              {withdrawalError && (
+                <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 font-semibold text-red-700">
+                  {withdrawalError}
+                </p>
+              )}
+
+              <button
+                disabled={isRequestingWithdrawal}
+                className="mt-4 w-full rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+              >
+                {isRequestingWithdrawal ? "Enviando..." : "Solicitar retiro"}
+              </button>
+            </form>
+          )}
+
+          {withdrawalSuccess && (
+            <p className="rounded-2xl border border-green-200 bg-green-50 p-4 font-semibold text-green-700">
+              {withdrawalSuccess}
+            </p>
+          )}
 
           {walletError && (
             <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 font-semibold text-amber-700">

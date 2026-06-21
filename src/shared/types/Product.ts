@@ -1,5 +1,7 @@
 import type { Category } from "./Category";
 import type { SubCategory } from "./SubCategory";
+import type { SubCategoryAttribute } from "./SubCategoryAttribute";
+import type { User } from "./User";
 import type { UserAddress } from "./UserAddress";
 
 export type ProductMedia = {
@@ -13,6 +15,16 @@ export type ProductMedia = {
 };
 
 export type ProductImage = string | ProductMedia;
+
+export type ProductAttributeValue = {
+  id?: string;
+  name?: string;
+  value?: string;
+  attribute?: SubCategoryAttribute;
+  subCategoryAttribute?: SubCategoryAttribute;
+};
+
+export type ProductPublisher = string | User;
 
 export type Product = {
   id: string;
@@ -29,8 +41,23 @@ export type Product = {
   productMedia?: ProductImage[];
   media?: ProductImage[];
   isActive: boolean;
-  owner?: string;
+  owner?: ProductPublisher;
+  ownerId?: string;
+  seller?: ProductPublisher;
+  sellerId?: string;
+  user?: ProductPublisher;
+  userId?: string;
+  createdBy?: ProductPublisher;
+  createdById?: string;
+  publishedBy?: ProductPublisher;
+  publishedById?: string;
+  direccionRetiro?: string;
+  horarioDisponible?: string;
   pickupAddress?: UserAddress | null;
+  attributes?: ProductAttributeValue[];
+  attributeValues?: ProductAttributeValue[];
+  productAttributes?: ProductAttributeValue[];
+  productAttributeValues?: ProductAttributeValue[];
   createdAt?: string;
   updatedAt?: string;
 };

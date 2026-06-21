@@ -1,9 +1,82 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, MapPin, User, X } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { getProductById } from "../shared/services/product.service";
-import type { Product } from "../shared/types/Product";
+import type {
+  Product,
+  ProductAttributeValue,
+  ProductPublisher,
+} from "../shared/types/Product";
 import { getProductImageUrls } from "../shared/utils/productImages";
+import { formatUserAddress } from "../shared/utils/userAddress";
+
+function getTextValue(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getPublisherLabel(publisher: ProductPublisher) {
+  if (typeof publisher === "string") return publisher;
+
+  const fullName = [publisher.firstName, publisher.lastName]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(" ");
+
+  return fullName || publisher.email || "";
+}
+
+function getPublisherName(product: Product) {
+  const publisher =
+    product.seller ??
+    product.owner ??
+    product.user ??
+    product.createdBy ??
+    product.publishedBy;
+
+  if (publisher) return getPublisherLabel(publisher);
+
+  return (
+    getTextValue(product.sellerId) ||
+    getTextValue(product.ownerId) ||
+    getTextValue(product.userId) ||
+    getTextValue(product.createdById) ||
+    getTextValue(product.publishedById)
+  );
+}
+
+function getProductAddress(product: Product) {
+  const address = getTextValue(product.direccionRetiro);
+
+  if (address) return address;
+  if (product.pickupAddress) return formatUserAddress(product.pickupAddress);
+
+  return "";
+}
+
+function getProductFeatures(product: Product) {
+  const attributes =
+    product.attributes ??
+    product.attributeValues ??
+    product.productAttributes ??
+    product.productAttributeValues ??
+    [];
+
+  return attributes
+    .map((attribute: ProductAttributeValue) => {
+      const name =
+        attribute.attribute?.name ??
+        attribute.subCategoryAttribute?.name ??
+        attribute.name ??
+        "";
+      const value = getTextValue(attribute.value);
+
+      return {
+        name: name.trim(),
+        value: value === "true" ? "Si" : value === "false" ? "No" : value,
+      };
+    })
+    .filter((feature) => feature.name && feature.value);
+}
 
 function ProductDetailPage() {
   const { id } = useParams();
@@ -30,6 +103,10 @@ function ProductDetailPage() {
   const imageUrls = getProductImageUrls(product);
   const selectedImage = imageUrls[selectedImageIndex];
   const hasMultipleImages = imageUrls.length > 1;
+  const features = getProductFeatures(product);
+  const publisherName = getPublisherName(product);
+  const productAddress = getProductAddress(product);
+  const availableSchedule = getTextValue(product.horarioDisponible);
 
   function showPreviousImage() {
     setSelectedImageIndex((currentIndex) =>
@@ -117,6 +194,78 @@ function ProductDetailPage() {
             ))}
           </div>
         )}
+
+        <div className="mt-8 space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm w-230">
+          <h2 className="m-0 text-xl font-black text-slate-950">
+            Datos de la publicacion
+          </h2>
+
+          <div className="grid gap-3">
+            <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+              <User className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
+              <div>
+                <p className="m-0 text-sm font-black uppercase text-slate-500">
+                  Publicado por
+                </p>
+                <p className="m-0 mt-1 font-bold text-slate-900">
+                  {publisherName || "No informado"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
+              <div>
+                <p className="m-0 text-sm font-black uppercase text-slate-500">
+                  Direccion
+                </p>
+                <p className="m-0 mt-1 font-bold text-slate-900">
+                  {productAddress || "No informada"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
+              <div>
+                <p className="m-0 text-sm font-black uppercase text-slate-500">
+                  Horario
+                </p>
+                <p className="m-0 mt-1 font-bold text-slate-900">
+                  {availableSchedule || "No informado"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm w-230">
+          <h2 className="m-0 text-xl font-black text-slate-950">
+            Caracteristicas
+          </h2>
+
+          {features.length > 0 ? (
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+              {features.map((feature) => (
+                <div
+                  key={`${feature.name}-${feature.value}`}
+                  className="rounded-2xl bg-slate-50 p-4"
+                >
+                  <dt className="text-sm font-black uppercase text-slate-500">
+                    {feature.name}
+                  </dt>
+                  <dd className="m-0 mt-1 font-bold text-slate-900">
+                    {feature.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="mt-4 rounded-2xl bg-slate-50 p-4 font-semibold text-slate-500">
+              Este producto no tiene caracteristicas significativas.
+            </p>
+          )}
+        </div>
       </div>
 
       <div>

@@ -1,4 +1,4 @@
-import { Menu, Search, ShoppingCart, User, X } from "lucide-react";
+import { Menu, Search, ShoppingBag, ShoppingCart, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { CART_CHANGE_EVENT, getCart } from "../features/cart/store/cartStore";
@@ -241,6 +241,15 @@ function MainLayout() {
                           Mi perfil
                         </NavLink>
 
+                        <NavLink
+                          to="/profile/orders"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-slate-700 hover:bg-slate-50"
+                        >
+                          <ShoppingBag size={18} />
+                          Mis compras
+                        </NavLink>
+
                         <button
                           onClick={handleLogout}
                           className="w-full rounded-xl px-3 py-2 text-left font-bold text-red-600 hover:bg-red-50"
@@ -309,6 +318,13 @@ function MainLayout() {
                   </p>
                   <NavLink to="/profile" onClick={closeMenu} className={navLinkClass}>
                     Mi perfil
+                  </NavLink>
+                  <NavLink
+                    to="/profile/orders"
+                    onClick={closeMenu}
+                    className={navLinkClass}
+                  >
+                    Mis compras
                   </NavLink>
                   <button
                     type="button"

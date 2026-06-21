@@ -6,7 +6,10 @@ import {
   isAuthRequiredError,
 } from "../features/cart/store/cartStore";
 import { checkoutOrder } from "../shared/services/order.service";
-import { createMercadoPagoPreference } from "../shared/services/payment.service";
+import {
+  createMercadoPagoPreference,
+  notifyTransferPayment,
+} from "../shared/services/payment.service";
 import { getMyAddresses } from "../shared/services/userAddress.service";
 import type { CartItem } from "../shared/types/Cart";
 import type { Order } from "../shared/types/Order";
@@ -18,6 +21,12 @@ type CheckoutForm = {
   deliveryAddress: string;
   paymentMethod: "cash" | "transfer" | "mercado_pago";
   notes: string;
+};
+
+const transferAccount = {
+  alias: import.meta.env.VITE_TRANSFER_ALIAS ?? "",
+  cbu: import.meta.env.VITE_TRANSFER_CBU ?? "",
+  holder: import.meta.env.VITE_TRANSFER_ACCOUNT_HOLDER ?? "",
 };
 
 function CheckoutPage() {
@@ -32,6 +41,9 @@ function CheckoutPage() {
   });
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [mercadoPagoOrder, setMercadoPagoOrder] = useState<Order | null>(null);
+  const [transferOrder, setTransferOrder] = useState<Order | null>(null);
+  const [transferAlias, setTransferAlias] = useState("");
+  const [isTransferNotified, setIsTransferNotified] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -122,6 +134,28 @@ function CheckoutPage() {
     }
   }
 
+  async function handleNotifyTransfer(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (!transferOrder) return;
+
+    if (!transferAlias.trim()) {
+      setError("Ingresa el alias desde el que hiciste la transferencia.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError("");
+      await notifyTransferPayment(transferOrder.id, transferAlias.trim());
+      setIsTransferNotified(true);
+    } catch {
+      setError("No se pudo informar la transferencia. Intentalo nuevamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
@@ -134,6 +168,8 @@ function CheckoutPage() {
       setIsSubmitting(true);
       setError("");
       setMercadoPagoOrder(null);
+      setTransferOrder(null);
+      setIsTransferNotified(false);
       const order = await checkoutOrder({
         deliveryAddress: form.deliveryAddress.trim(),
         paymentMethod: form.paymentMethod,
@@ -146,6 +182,11 @@ function CheckoutPage() {
       if (form.paymentMethod === "mercado_pago") {
         setMercadoPagoOrder(order);
         await redirectToMercadoPago(order);
+        return;
+      }
+
+      if (form.paymentMethod === "transfer") {
+        setTransferOrder(order);
         return;
       }
 
@@ -214,6 +255,103 @@ function CheckoutPage() {
         >
           {isSubmitting ? "Abriendo Mercado Pago..." : "Pagar con Mercado Pago"}
         </button>
+      </section>
+    );
+  }
+
+  if (transferOrder) {
+    return (
+      <section className="mx-auto max-w-2xl rounded-3xl border border-amber-200 bg-amber-50 p-8">
+        <h1 className="m-0 text-3xl font-black text-amber-950">
+          Transferencia pendiente
+        </h1>
+        <p className="mt-2 font-semibold text-amber-800">
+          Orden #{transferOrder.id.slice(0, 8)} creada correctamente. Transferi
+          ${transferOrder.total.toLocaleString("es-AR")} y avisanos el alias de
+          origen para que podamos confirmar el pago.
+        </p>
+
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-white p-5">
+          <h2 className="m-0 text-lg font-black text-slate-950">
+            Datos para transferir
+          </h2>
+
+          <div className="mt-4 space-y-3">
+            <p className="rounded-xl bg-slate-50 p-3">
+              <span className="block text-sm font-bold text-slate-500">
+                Alias
+              </span>
+              <strong className="text-slate-950">
+                {transferAccount.alias || "Configurar VITE_TRANSFER_ALIAS"}
+              </strong>
+            </p>
+
+            <p className="rounded-xl bg-slate-50 p-3">
+              <span className="block text-sm font-bold text-slate-500">
+                CBU
+              </span>
+              <strong className="text-slate-950">
+                {transferAccount.cbu || "Configurar VITE_TRANSFER_CBU"}
+              </strong>
+            </p>
+
+            {transferAccount.holder && (
+              <p className="rounded-xl bg-slate-50 p-3">
+                <span className="block text-sm font-bold text-slate-500">
+                  Titular
+                </span>
+                <strong className="text-slate-950">
+                  {transferAccount.holder}
+                </strong>
+              </p>
+            )}
+          </div>
+        </div>
+
+        {isTransferNotified ? (
+          <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
+            <h2 className="m-0 text-xl font-black text-green-900">
+              Transferencia informada
+            </h2>
+            <p className="mt-2 font-semibold text-green-700">
+              Tu pago quedo pendiente de aprobacion. Cuando el sistema lo
+              confirme, avanzaremos con la asignacion del repartidor.
+            </p>
+            <Link
+              to="/products"
+              className="mt-5 inline-flex rounded-xl bg-green-700 px-5 py-3 font-bold text-white transition hover:bg-green-800"
+            >
+              Seguir comprando
+            </Link>
+          </div>
+        ) : (
+          <form onSubmit={handleNotifyTransfer} className="mt-6">
+            <label className="block">
+              <span className="mb-2 block font-bold text-amber-900">
+                Alias desde el que transferiste
+              </span>
+              <input
+                value={transferAlias}
+                onChange={(event) => setTransferAlias(event.target.value)}
+                placeholder="tu.alias"
+                className="w-full rounded-xl border border-amber-300 px-4 py-3 outline-none focus:border-amber-600"
+              />
+            </label>
+
+            {error && (
+              <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 font-semibold text-red-700">
+                {error}
+              </p>
+            )}
+
+            <button
+              disabled={isSubmitting}
+              className="mt-6 w-full rounded-xl bg-amber-700 px-6 py-4 font-bold text-white transition hover:bg-amber-800 disabled:cursor-not-allowed disabled:bg-amber-300"
+            >
+              {isSubmitting ? "Informando transferencia..." : "Informar transferencia"}
+            </button>
+          </form>
+        )}
       </section>
     );
   }

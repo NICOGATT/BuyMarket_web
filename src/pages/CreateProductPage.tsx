@@ -626,7 +626,7 @@ function CreateProductPage() {
 
           <div className="mt-8">
             <h3 className="m-0 text-xl font-black text-slate-950">
-              Atributos de {selectedSubCategory?.name}
+              Caracteristicas del producto
             </h3>
 
             {isLoadingAttributes ? (

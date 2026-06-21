@@ -13,6 +13,12 @@ export async function getAdminOrders(): Promise<Order[]> {
   return response.data;
 }
 
+export async function getMyOrders(): Promise<Order[]> {
+  const response = await api.get<Order[]>("/orders/my-orders");
+
+  return response.data;
+}
+
 export async function checkoutOrder(
   payload: CheckoutOrderPayload
 ): Promise<Order> {

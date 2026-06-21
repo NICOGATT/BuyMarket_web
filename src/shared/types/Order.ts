@@ -6,14 +6,30 @@ export type OrderStatus =
   | "accepted"
   | "preparing"
   | "on_the_way"
+  | "paid"
   | "delivered"
   | "cancelled"
+  | "rejected"
   | "review";
 
 export type OrderItem = {
   product: Product;
   quantity: number;
   unitPrice: number;
+};
+
+export type PaymentStatus = "PENDING" | "COMPLETED" | "REJECTED";
+
+export type OrderPayment = {
+  id: string;
+  status: PaymentStatus;
+  method?: string;
+  amount?: number;
+  senderAlias?: string;
+  senderCbu?: string;
+  adminNote?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Order = {
@@ -23,6 +39,8 @@ export type Order = {
   total: number;
   status: OrderStatus;
   paymentMethod?: string;
+  paymentStatus?: string;
+  payment?: OrderPayment;
   notes?: string;
   createdAt?: string;
 };

@@ -2,6 +2,7 @@ import type { Wallet } from "./Wallet";
 
 export type User = {
   id: string;
+  name?: string;
   firstName?: string;
   lastName? : string;
   email: string;

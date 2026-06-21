@@ -11,6 +11,7 @@ import CartPage from "../../pages/CartPage";
 import CheckoutPage from "../../pages/CheckoutPage";
 import CheckoutReturnPage from "../../pages/CheckoutReturnPage";
 import ProfilePage from "../../pages/ProfilePage";
+import MyOrdersPage from "../../pages/MyOrdersPage";
 import AdminLayout from "../../layouts/AdminLayout";
 import AdminDashboardPage from "../../pages/admin/AdminDashboardPage";
 import AdminProductsPage from "../../pages/admin/AdminProductsPage";
@@ -22,6 +23,7 @@ import AdminRoute from "../../shared/routes/AdminRoute";
 import AdminCreateCategoryPage from "../../pages/admin/AdminCreateCategoriesPage";
 import AdminSubCategoriesAttributesPage from "../../pages/admin/AdminSubCategoriesAttributesPage";
 import AdminPlansPage from "../../pages/admin/AdminPlansPage";
+import AdminWithdrawalsPage from "../../pages/admin/AdminWithdrawalsPage";
 const router = createBrowserRouter([
     {
         path : "/",
@@ -103,6 +105,14 @@ const router = createBrowserRouter([
                     </ProtectedRoute>
                 )
             },
+            {
+                path : "profile/orders",
+                element : (
+                    <ProtectedRoute>
+                        <MyOrdersPage/>
+                    </ProtectedRoute>
+                )
+            },
         ], 
     }, 
     {
@@ -140,6 +150,10 @@ const router = createBrowserRouter([
             {
             path: "orders",
             element: <AdminOrdersPage />,
+            },
+            {
+            path: "withdrawals",
+            element: <AdminWithdrawalsPage />,
             },
             {
             path: "plans",
