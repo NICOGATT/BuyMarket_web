@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
-import { MapPin, Package, ShoppingBag, Star, Trash2 } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import {
+  BadgeCheck,
+  CheckCircle2,
+  MailCheck,
+  MapPin,
+  Package,
+  ShieldCheck,
+  ShoppingBag,
+  Star,
+  Trash2,
+} from "lucide-react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { getCurrentAuthUser, sendVerificationCode } from "../shared/services/auth.service";
 import {
   getMyWallet,
   getMyWalletBalance,
@@ -15,9 +26,14 @@ import {
   setDefaultUserAddress,
 } from "../shared/services/userAddress.service";
 import type { Product } from "../shared/types/Product";
+import type { AuthUser } from "../shared/types/Auth";
 import type { CreateUserAddressPayload, UserAddress } from "../shared/types/UserAddress";
 import type { Wallet, Withdrawal } from "../shared/types/Wallet";
-import { getUserFromToken } from "../shared/utils/auth";
+import {
+  getUserFromToken,
+  isEmailVerifiedFromUser,
+  isEmailVerifiedLocally,
+} from "../shared/utils/auth";
 import { getProductFirstImage } from "../shared/utils/productImages";
 import { formatUserAddress } from "../shared/utils/userAddress";
 
@@ -31,6 +47,8 @@ type ProfileLoadState = {
 
 const emptyAddressForm: CreateUserAddressPayload = {
   label: "",
+  receiverName: "",
+  phone: "",
   street: "",
   number: "",
   floor: "",
@@ -74,8 +92,45 @@ function formatDate(value?: string) {
   }).format(new Date(value));
 }
 
+function buildAddressPayload(
+  form: CreateUserAddressPayload,
+  defaultReceiverName: string
+): CreateUserAddressPayload | string {
+  const receiverName = form.receiverName?.trim() || defaultReceiverName.trim();
+  const payload: CreateUserAddressPayload = {
+    label: form.label.trim(),
+    receiverName,
+    phone: form.phone.trim(),
+    street: form.street.trim(),
+    number: form.number.trim(),
+    city: form.city.trim(),
+    province: form.province.trim(),
+    postalCode: form.postalCode.trim(),
+    isDefault: Boolean(form.isDefault),
+  };
+
+  if (!payload.label) return "Ingresa una etiqueta para la direccion.";
+  if (!payload.phone) return "Ingresa un telefono de contacto.";
+  if (!payload.street) return "Ingresa la calle.";
+  if (!payload.number) return "Ingresa el numero.";
+  if (!payload.city) return "Ingresa la ciudad o localidad.";
+  if (!payload.province) return "Ingresa la provincia.";
+  if (!payload.postalCode) return "Ingresa el codigo postal.";
+
+  const floor = form.floor?.trim();
+  const apartment = form.apartment?.trim();
+  const reference = form.reference?.trim();
+
+  if (floor) payload.floor = floor;
+  if (apartment) payload.apartment = apartment;
+  if (reference) payload.reference = reference;
+
+  return payload;
+}
+
 function ProfilePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user] = useState(() => getUserFromToken());
   const [profileData, setProfileData] = useState<ProfileLoadState>({
     wallet: null,
@@ -96,6 +151,10 @@ function ProfilePage() {
   const [withdrawalError, setWithdrawalError] = useState("");
   const [withdrawalSuccess, setWithdrawalSuccess] = useState("");
   const [isRequestingWithdrawal, setIsRequestingWithdrawal] = useState(false);
+  const [isSendingVerificationCode, setIsSendingVerificationCode] = useState(false);
+  const [verificationSuccess, setVerificationSuccess] = useState("");
+  const [verificationError, setVerificationError] = useState("");
+  const [accountUser, setAccountUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -114,6 +173,7 @@ function ProfilePage() {
         withdrawalsResult,
         addressesResult,
         productsResult,
+        accountUserResult,
       ] =
         await Promise.allSettled([
           getMyWallet(),
@@ -121,6 +181,7 @@ function ProfilePage() {
           getMyWithdrawals(),
           getMyAddresses(),
           getMyProducts(),
+          getCurrentAuthUser(),
         ]);
 
       setProfileData({
@@ -150,6 +211,10 @@ function ProfilePage() {
         setProductsError("No se pudieron cargar tus productos.");
       }
 
+      if (accountUserResult.status === "fulfilled") {
+        setAccountUser(accountUserResult.value);
+      }
+
       setIsLoading(false);
     }
 
@@ -173,9 +238,16 @@ function ProfilePage() {
     event.preventDefault();
     setAddressError("");
 
+    const payload = buildAddressPayload(addressForm, userName);
+
+    if (typeof payload === "string") {
+      setAddressError(payload);
+      return;
+    }
+
     try {
       setIsSavingAddress(true);
-      const newAddress = await createUserAddress(addressForm);
+      const newAddress = await createUserAddress(payload);
 
       setProfileData((prev) => ({
         ...prev,
@@ -187,8 +259,12 @@ function ProfilePage() {
           : prev.addresses.concat(newAddress),
       }));
       setAddressForm(emptyAddressForm);
-    } catch {
-      setAddressError("No se pudo guardar la direccion.");
+    } catch (createError) {
+      setAddressError(
+        createError instanceof Error
+          ? createError.message
+          : "No se pudo guardar la direccion."
+      );
     } finally {
       setIsSavingAddress(false);
     }
@@ -295,12 +371,37 @@ function ProfilePage() {
     }
   }
 
+  async function handleSendVerificationCode() {
+    setVerificationError("");
+    setVerificationSuccess("");
+
+    try {
+      setIsSendingVerificationCode(true);
+      const response = await sendVerificationCode();
+
+      setVerificationSuccess(
+        response.message || "Te enviamos un código de verificación a tu email."
+      );
+    } catch {
+      setVerificationError("No se pudo enviar el código. Intentá nuevamente.");
+    } finally {
+      setIsSendingVerificationCode(false);
+    }
+  }
+
   if (!user) return null;
 
   const userName = user.name ?? "Usuario BuyMarket";
   const userId = user.id ?? user.sub ?? "Sin id";
   const walletStatus = profileData.wallet?.isActive === false ? "Inactiva" : "Activa";
   const pendingBalance = Number(profileData.wallet?.pendingBalance ?? 0);
+  const emailVerifiedFromNavigation =
+    (location.state as { emailVerified?: boolean } | null)?.emailVerified === true;
+  const isEmailVerified =
+    isEmailVerifiedFromUser(accountUser) ||
+    isEmailVerifiedFromUser(user) ||
+    emailVerifiedFromNavigation ||
+    isEmailVerifiedLocally(user);
 
   return (
     <section className="space-y-6">
@@ -358,6 +459,90 @@ function ProfilePage() {
                 </p>
               </div>
             </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                  <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-sm font-black uppercase text-blue-600">
+                    Seguridad
+                  </p>
+                  <h2 className="m-0 text-xl font-black text-slate-950">
+                    Estado de la cuenta
+                  </h2>
+                  <p className="mt-2 max-w-xl text-sm font-semibold text-slate-500">
+                    Verificá tu email para proteger la cuenta y mantener tus datos
+                    actualizados.
+                  </p>
+                </div>
+              </div>
+
+              <span
+                className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-sm font-black ${
+                  isEmailVerified
+                    ? "bg-green-100 text-green-700"
+                    : "bg-amber-100 text-amber-700"
+                }`}
+              >
+                {isEmailVerified ? (
+                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <BadgeCheck className="h-4 w-4" aria-hidden="true" />
+                )}
+                {isEmailVerified ? "Email verificado" : "Verificación pendiente"}
+              </span>
+            </div>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-sm font-bold text-slate-500">Email de la cuenta</p>
+                <p className="mt-1 truncate text-lg font-black text-slate-950">
+                  {user.email ?? "Sin email"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSendVerificationCode}
+                disabled={isSendingVerificationCode || !user.email || isEmailVerified}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+              >
+                <MailCheck className="h-5 w-5" aria-hidden="true" />
+                {isSendingVerificationCode
+                  ? "Enviando..."
+                  : isEmailVerified
+                    ? "Email verificado"
+                    : "Enviar código de verificación"}
+              </button>
+            </div>
+
+            {verificationSuccess && !isEmailVerified && (
+              <div
+                role="status"
+                className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 font-semibold text-green-700"
+              >
+                <p>{verificationSuccess}</p>
+                <NavLink
+                  to="/profile/verify-email"
+                  className="mt-3 inline-flex h-10 items-center justify-center rounded-xl bg-green-600 px-4 text-sm font-black text-white transition hover:bg-green-700"
+                >
+                  Ingresar código
+                </NavLink>
+              </div>
+            )}
+
+            {verificationError && (
+              <p
+                role="alert"
+                className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 font-semibold text-red-700"
+              >
+                {verificationError}
+              </p>
+            )}
           </section>
 
           <NavLink
@@ -503,6 +688,21 @@ function ProfilePage() {
                 className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
               />
               <input
+                name="receiverName"
+                placeholder="Nombre de quien recibe (opcional)"
+                value={addressForm.receiverName ?? ""}
+                onChange={handleAddressChange}
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+              />
+              <input
+                name="phone"
+                placeholder="Telefono de contacto"
+                value={addressForm.phone}
+                onChange={handleAddressChange}
+                required
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+              />
+              <input
                 name="street"
                 placeholder="Calle"
                 value={addressForm.street}
@@ -613,6 +813,12 @@ function ProfilePage() {
                         <p className="mt-1 font-semibold text-slate-700">
                           {formatUserAddress(address)}
                         </p>
+                        {(address.receiverName || address.phone) && (
+                          <p className="mt-1 text-sm font-semibold text-slate-500">
+                            Recibe: {address.receiverName || "-"}
+                            {address.phone ? ` - ${address.phone}` : ""}
+                          </p>
+                        )}
                         {address.reference && (
                           <p className="mt-1 text-sm font-semibold text-slate-500">
                             {address.reference}

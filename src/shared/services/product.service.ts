@@ -7,6 +7,11 @@ export async function getProducts() {
   return response.data;
 }
 
+export async function getFeaturedProducts() {
+  const response = await api.get<Product[]>("/products/featured");
+  return response.data;
+}
+
 export async function getProductById(id: string): Promise<Product> {
   const response = await api.get<Product>(`/products/${id}`);
 

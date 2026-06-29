@@ -11,6 +11,7 @@ import CartPage from "../../pages/CartPage";
 import CheckoutPage from "../../pages/CheckoutPage";
 import CheckoutReturnPage from "../../pages/CheckoutReturnPage";
 import ProfilePage from "../../pages/ProfilePage";
+import VerifyEmailPage from "../../pages/VerifyEmailPage";
 import MyOrdersPage from "../../pages/MyOrdersPage";
 import AdminLayout from "../../layouts/AdminLayout";
 import AdminDashboardPage from "../../pages/admin/AdminDashboardPage";
@@ -24,6 +25,7 @@ import AdminCreateCategoryPage from "../../pages/admin/AdminCreateCategoriesPage
 import AdminSubCategoriesAttributesPage from "../../pages/admin/AdminSubCategoriesAttributesPage";
 import AdminPlansPage from "../../pages/admin/AdminPlansPage";
 import AdminWithdrawalsPage from "../../pages/admin/AdminWithdrawalsPage";
+import AdminShipmentsPage from "../../pages/admin/AdminShipmentsPage";
 const router = createBrowserRouter([
     {
         path : "/",
@@ -113,6 +115,14 @@ const router = createBrowserRouter([
                     </ProtectedRoute>
                 )
             },
+            {
+                path : "profile/verify-email",
+                element : (
+                    <ProtectedRoute>
+                        <VerifyEmailPage/>
+                    </ProtectedRoute>
+                )
+            },
         ], 
     }, 
     {
@@ -154,6 +164,10 @@ const router = createBrowserRouter([
             {
             path: "withdrawals",
             element: <AdminWithdrawalsPage />,
+            },
+            {
+            path: "shipments",
+            element: <AdminShipmentsPage />,
             },
             {
             path: "plans",

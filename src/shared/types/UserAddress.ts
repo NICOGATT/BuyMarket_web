@@ -1,6 +1,8 @@
 export type UserAddress = {
   id: string;
   label: string;
+  receiverName?: string;
+  phone: string;
   street: string;
   number: string;
   floor?: string;
@@ -16,6 +18,8 @@ export type UserAddress = {
 
 export type CreateUserAddressPayload = {
   label: string;
+  receiverName?: string;
+  phone: string;
   street: string;
   number: string;
   floor?: string;

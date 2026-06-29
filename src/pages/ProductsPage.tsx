@@ -10,11 +10,11 @@ import { getSubCategoriesByCategory } from "../shared/services/subcategory.servi
 import type { Category } from "../shared/types/Category";
 import type { Product } from "../shared/types/Product";
 import type { SubCategory } from "../shared/types/SubCategory";
-import { buildImageUrl } from "../shared/utils/buildImageUrl";
-
-function getProductCategoryId(product: Product) {
-  return product.category?.id ?? "";
-}
+import {
+  getCategoryDisplayImageUrls,
+  getCategoryInitials,
+} from "../shared/utils/categoryImages";
+import { getProductCategoryId } from "../shared/utils/productCategories";
 
 function getProductSubCategoryId(product: Product) {
   return (
@@ -40,6 +40,9 @@ function ProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingSubCategories, setIsLoadingSubCategories] = useState(false);
   const [error, setError] = useState("");
+  const [categoryImageAttempts, setCategoryImageAttempts] = useState<
+    Record<string, number>
+  >({});
   const [searchParams, setSearchParams] = useSearchParams();
 
   const search = searchParams.get("search")?.trim() ?? "";
@@ -132,6 +135,13 @@ function ProductsPage() {
     setSearchParams(nextParams);
   }
 
+  function handleCategoryImageError(categoryId: string) {
+    setCategoryImageAttempts((current) => ({
+      ...current,
+      [categoryId]: (current[categoryId] ?? 0) + 1,
+    }));
+  }
+
   return (
     <section>
       <div className="mb-8">
@@ -180,7 +190,10 @@ function ProductsPage() {
               </button>
 
               {categories.map((category) => {
-                const iconUrl = buildImageUrl(category.icon);
+                const imageUrls = getCategoryDisplayImageUrls(category);
+                const imageAttempt = categoryImageAttempts[category.id] ?? 0;
+                const imageUrl = imageUrls[imageAttempt];
+                const shouldShowImage = Boolean(imageUrl);
                 const isActive = selectedCategoryId === category.id;
 
                 return (
@@ -198,17 +211,19 @@ function ProductsPage() {
                           : "border-slate-200 bg-white text-slate-700 hover:border-blue-200"
                       }`}
                     >
-                      {iconUrl ? (
-                        <img
-                          src={iconUrl}
-                          alt={category.name}
-                          className="h-10 w-10 shrink-0 rounded-xl object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm font-black text-slate-500">
-                          {category.name.slice(0, 2).toUpperCase()}
-                        </span>
-                      )}
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-sm font-black text-slate-500">
+                        {shouldShowImage ? (
+                          <img
+                            key={imageUrl}
+                            src={imageUrl}
+                            alt={category.name}
+                            onError={() => handleCategoryImageError(category.id)}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          getCategoryInitials(category)
+                        )}
+                      </span>
                       <span className="line-clamp-2 flex-1 font-bold">
                         {category.name}
                       </span>
@@ -317,3 +332,4 @@ function ProductsPage() {
 }
 
 export default ProductsPage;
+

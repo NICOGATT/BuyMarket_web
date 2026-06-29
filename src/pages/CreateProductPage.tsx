@@ -519,7 +519,7 @@ function CreateProductPage() {
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-4 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
           >
             <UploadCloud size={20} />
-            {isUploadingMedia ? "Subiendo..." : "Subir y continuar"}
+            {isUploadingMedia ? "Subiendo..." : "Continuar"}
           </button>
         </div>
       )}

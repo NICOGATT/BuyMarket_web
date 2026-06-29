@@ -1,9 +1,10 @@
 import axios from "axios" ; 
 
-export const API_URL = "https://maverick-manned-freebee.ngrok-free.dev";
+export const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export const api = axios.create({
-  baseURL: "https://maverick-manned-freebee.ngrok-free.dev",
+  baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",

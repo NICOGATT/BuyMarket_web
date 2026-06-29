@@ -6,8 +6,12 @@ type TokenPayload = {
   email?: string;
   name?: string;
   role?: "admin" | "user" | "seller";
+  emailVerified?: boolean;
+  isEmailVerified?: boolean;
   exp?: number;
 };
+
+const EMAIL_VERIFIED_PREFIX = "email-verified:";
 
 export function getToken() {
   return localStorage.getItem("token");
@@ -31,6 +35,34 @@ export function getUserFromToken() {
     logout();
     return null;
   }
+}
+
+export function getEmailVerificationKey(user: Pick<TokenPayload, "id" | "sub" | "email">) {
+  const userKey = user.id || user.sub || user.email;
+
+  return userKey ? `${EMAIL_VERIFIED_PREFIX}${userKey}` : null;
+}
+
+export function isEmailVerifiedLocally(
+  user: Pick<TokenPayload, "id" | "sub" | "email">
+) {
+  const key = getEmailVerificationKey(user);
+
+  return key ? localStorage.getItem(key) === "true" : false;
+}
+
+export function markEmailVerifiedLocally(
+  user: Pick<TokenPayload, "id" | "sub" | "email">
+) {
+  const key = getEmailVerificationKey(user);
+
+  if (key) {
+    localStorage.setItem(key, "true");
+  }
+}
+
+export function isEmailVerifiedFromUser(user?: Pick<TokenPayload, "emailVerified" | "isEmailVerified"> | null) {
+  return user?.emailVerified === true || user?.isEmailVerified === true;
 }
 
 export function logout() {

@@ -8,19 +8,57 @@ import {
 import { checkoutOrder } from "../shared/services/order.service";
 import {
   createMercadoPagoPreference,
-  notifyTransferPayment,
+  uploadTransferProof,
 } from "../shared/services/payment.service";
-import { getMyAddresses } from "../shared/services/userAddress.service";
+import { createShipment } from "../shared/services/shipment.service";
+import {
+  createUserAddress,
+  getMyAddresses,
+} from "../shared/services/userAddress.service";
 import type { CartItem } from "../shared/types/Cart";
 import type { Order } from "../shared/types/Order";
-import type { UserAddress } from "../shared/types/UserAddress";
+import type {
+  CreateShipmentPayload,
+} from "../shared/types/Shipment";
+import type {
+  CreateUserAddressPayload,
+  UserAddress,
+} from "../shared/types/UserAddress";
+import { getUserFromToken } from "../shared/utils/auth";
 import { formatUserAddress } from "../shared/utils/userAddress";
 
 type CheckoutForm = {
-  addressId: string;
-  deliveryAddress: string;
   paymentMethod: "cash" | "transfer" | "mercado_pago";
   notes: string;
+};
+
+type AddressMode = "saved" | "manual";
+type CheckoutShipmentType = "local" | "national";
+
+type CheckoutShipmentPayload = Omit<CreateShipmentPayload, "orderId">;
+
+type CheckoutShipmentResult =
+  | {
+      deliveryAddress: string;
+      shipmentPayload: CheckoutShipmentPayload;
+      addressPayload?: CreateUserAddressPayload;
+    }
+  | {
+      error: string;
+    };
+
+type ShippingAddressForm = {
+  receiverName: string;
+  phone: string;
+  addressLine: string;
+  street: string;
+  number: string;
+  floor: string;
+  apartment: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  reference: string;
 };
 
 const transferAccount = {
@@ -29,20 +67,40 @@ const transferAccount = {
   holder: import.meta.env.VITE_TRANSFER_ACCOUNT_HOLDER ?? "",
 };
 
+const transferProofAcceptedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+const emptyShippingAddressForm: ShippingAddressForm = {
+  receiverName: "",
+  phone: "",
+  addressLine: "",
+  street: "",
+  number: "",
+  floor: "",
+  apartment: "",
+  city: "",
+  province: "",
+  postalCode: "",
+  reference: "",
+};
+
 function CheckoutPage() {
   const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [form, setForm] = useState<CheckoutForm>({
-    addressId: "",
-    deliveryAddress: "",
     paymentMethod: "mercado_pago",
     notes: "",
   });
+  const [shipmentType, setShipmentType] =
+    useState<CheckoutShipmentType>("local");
+  const [addressMode, setAddressMode] = useState<AddressMode>("manual");
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [shippingAddressForm, setShippingAddressForm] =
+    useState<ShippingAddressForm>(emptyShippingAddressForm);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [mercadoPagoOrder, setMercadoPagoOrder] = useState<Order | null>(null);
   const [transferOrder, setTransferOrder] = useState<Order | null>(null);
-  const [transferAlias, setTransferAlias] = useState("");
+  const [transferProofFile, setTransferProofFile] = useState<File | null>(null);
   const [isTransferNotified, setIsTransferNotified] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,14 +114,12 @@ function CheckoutPage() {
           getMyAddresses().catch(() => []),
         ]);
         const defaultAddress = addressesData.find((address) => address.isDefault);
+        const selectedAddress = defaultAddress ?? addressesData[0];
 
         setCart(cartData);
         setAddresses(addressesData);
-        setForm((prev) => ({
-          ...prev,
-          addressId: defaultAddress?.id ?? "",
-          deliveryAddress: defaultAddress ? formatUserAddress(defaultAddress) : "",
-        }));
+        setSelectedAddressId(selectedAddress?.id ?? "");
+        setAddressMode(selectedAddress ? "saved" : "manual");
       } catch (loadError) {
         if (isAuthRequiredError(loadError)) {
           navigate("/login");
@@ -91,20 +147,221 @@ function CheckoutPage() {
   ) {
     const { name, value } = event.target;
 
-    if (name === "addressId") {
-      const selectedAddress = addresses.find((address) => address.id === value);
-      setForm((prev) => ({
-        ...prev,
-        addressId: value,
-        deliveryAddress: selectedAddress ? formatUserAddress(selectedAddress) : "",
-      }));
-      return;
-    }
-
     setForm((prev) => ({
       ...prev,
       [name]: value,
     }));
+  }
+
+  function handleShippingAddressChange(
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
+    const { name, value } = event.target;
+
+    setShippingAddressForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
+
+  function getSelectedAddress() {
+    return addresses.find((address) => address.id === selectedAddressId) ?? null;
+  }
+
+  function buildLocalAddressLine(address: UserAddress) {
+    const apartment = [address.floor, address.apartment]
+      .filter(Boolean)
+      .join(" ");
+
+    return `${address.street} ${address.number}${
+      apartment ? `, ${apartment}` : ""
+    }`;
+  }
+
+  function getFallbackReceiverName() {
+    const user = getUserFromToken();
+
+    return user?.name?.trim() || user?.email?.trim() || "Comprador";
+  }
+
+  function buildShipmentNotes(receiverName: string, phone: string, notes?: string) {
+    return [
+      `Telefono: ${phone}`,
+      receiverName ? `Recibe: ${receiverName}` : "",
+      notes ? `Referencia: ${notes}` : "",
+    ]
+      .filter(Boolean)
+      .join(". ");
+  }
+
+  function buildCheckoutShipment(): CheckoutShipmentResult {
+    const selectedAddress = getSelectedAddress();
+    const fallbackReceiverName = getFallbackReceiverName();
+
+    if (addressMode === "saved") {
+      if (!selectedAddress) {
+        return { error: "Selecciona una direccion guardada." };
+      }
+
+      const phone = selectedAddress.phone?.trim();
+      const receiverName =
+        selectedAddress.receiverName?.trim() || fallbackReceiverName;
+
+      if (!phone) {
+        return {
+          error: "La direccion guardada no tiene telefono de contacto.",
+        };
+      }
+
+      if (shipmentType === "local") {
+        const addressLine = buildLocalAddressLine(selectedAddress);
+        const city = selectedAddress.city.trim();
+
+        if (!addressLine.trim() || !city) {
+          return { error: "La direccion guardada no tiene datos suficientes." };
+        }
+
+        return {
+          deliveryAddress: `Envio local - ${addressLine}, ${city}. Telefono: ${phone}${
+            receiverName ? `. Recibe: ${receiverName}` : ""
+          }`,
+          shipmentPayload: {
+            type: "local_delivery",
+            carrier: "buymarket",
+            deliveryAddress: `Envio local - ${addressLine}, ${city}`,
+            notes: buildShipmentNotes(
+              receiverName,
+              phone,
+              selectedAddress.reference?.trim()
+            ),
+          },
+        };
+      }
+
+      const formattedAddress = formatUserAddress(selectedAddress);
+
+      return {
+        deliveryAddress: `Envio nacional - ${formattedAddress}. Telefono: ${phone}${
+          receiverName ? `. Recibe: ${receiverName}` : ""
+        }`,
+        shipmentPayload: {
+          type: "national_shipping",
+          carrier: "buymarket",
+          deliveryAddress: `Envio nacional - ${formattedAddress}`,
+          notes: buildShipmentNotes(
+            receiverName,
+            phone,
+            selectedAddress.reference?.trim()
+          ),
+        },
+      };
+    }
+
+    if (shipmentType === "local") {
+      const receiverName =
+        shippingAddressForm.receiverName.trim() || fallbackReceiverName;
+      const phone = shippingAddressForm.phone.trim();
+      const addressLine = shippingAddressForm.addressLine.trim();
+      const city = shippingAddressForm.city.trim();
+      const reference = shippingAddressForm.reference.trim();
+
+      if (!addressLine || !city || !phone) {
+        return {
+          error: "Ingresa la direccion, localidad y telefono del envio local.",
+        };
+      }
+
+      const deliveryAddress = `Envio local - ${addressLine}, ${city}. Telefono: ${phone}${
+        receiverName ? `. Recibe: ${receiverName}` : ""
+      }${reference ? `. Referencia: ${reference}` : ""}`;
+
+      return {
+        deliveryAddress,
+        shipmentPayload: {
+          type: "local_delivery",
+          carrier: "buymarket",
+          deliveryAddress: `Envio local - ${addressLine}, ${city}`,
+          notes: buildShipmentNotes(receiverName, phone, reference),
+        },
+        addressPayload: {
+          label: "Checkout local",
+          receiverName,
+          phone,
+          street: addressLine,
+          number: "S/N",
+          city,
+          province: city,
+          postalCode: "0000",
+          reference: reference || undefined,
+          isDefault: false,
+        },
+      };
+    }
+
+    const receiverName =
+      shippingAddressForm.receiverName.trim() || fallbackReceiverName;
+    const phone = shippingAddressForm.phone.trim();
+    const nationalAddress = {
+      street: shippingAddressForm.street.trim(),
+      number: shippingAddressForm.number.trim(),
+      city: shippingAddressForm.city.trim(),
+      province: shippingAddressForm.province.trim(),
+      postalCode: shippingAddressForm.postalCode.trim(),
+      phone,
+      receiverName: receiverName || undefined,
+      floor: shippingAddressForm.floor.trim() || undefined,
+      apartment: shippingAddressForm.apartment.trim() || undefined,
+      reference: shippingAddressForm.reference.trim() || undefined,
+    };
+
+    if (
+      !nationalAddress.street ||
+      !nationalAddress.number ||
+      !nationalAddress.city ||
+      !nationalAddress.province ||
+      !nationalAddress.postalCode ||
+      !nationalAddress.phone
+    ) {
+      return {
+        error:
+          "Completa calle, numero, localidad, provincia, codigo postal y telefono.",
+      };
+    }
+
+    const optionalApartment = [nationalAddress.floor, nationalAddress.apartment]
+      .filter(Boolean)
+      .join(" ");
+    const deliveryAddress = `${nationalAddress.street} ${nationalAddress.number}${
+      optionalApartment ? `, ${optionalApartment}` : ""
+    }, ${nationalAddress.city}, ${nationalAddress.province} (${
+      nationalAddress.postalCode
+    })`;
+
+    return {
+      deliveryAddress: `Envio nacional - ${deliveryAddress}. Telefono: ${phone}${
+        receiverName ? `. Recibe: ${receiverName}` : ""
+      }${nationalAddress.reference ? `. Referencia: ${nationalAddress.reference}` : ""}`,
+      shipmentPayload: {
+        type: "national_shipping",
+        carrier: "buymarket",
+        deliveryAddress: `Envio nacional - ${deliveryAddress}`,
+        notes: buildShipmentNotes(receiverName, phone, nationalAddress.reference),
+      },
+      addressPayload: {
+        label: "Checkout nacional",
+        receiverName,
+        phone,
+        street: nationalAddress.street,
+        number: nationalAddress.number,
+        city: nationalAddress.city,
+        province: nationalAddress.province,
+        postalCode: nationalAddress.postalCode,
+        floor: nationalAddress.floor,
+        apartment: nationalAddress.apartment,
+        reference: nationalAddress.reference,
+        isDefault: false,
+      },
+    };
   }
 
   async function redirectToMercadoPago(order: Order) {
@@ -139,18 +396,30 @@ function CheckoutPage() {
 
     if (!transferOrder) return;
 
-    if (!transferAlias.trim()) {
-      setError("Ingresa el alias desde el que hiciste la transferencia.");
+    if (!transferProofFile) {
+      setError("Subi una imagen del comprobante de transferencia.");
+      return;
+    }
+
+    if (!transferProofAcceptedTypes.includes(transferProofFile.type)) {
+      setError("El comprobante debe ser una imagen JPG, PNG o WebP.");
+      return;
+    }
+
+    const paymentId = transferOrder.payment?.id;
+
+    if (!paymentId) {
+      setError("No se encontro el pago asociado a la orden.");
       return;
     }
 
     try {
       setIsSubmitting(true);
       setError("");
-      await notifyTransferPayment(transferOrder.id, transferAlias.trim());
+      await uploadTransferProof(paymentId, transferProofFile);
       setIsTransferNotified(true);
     } catch {
-      setError("No se pudo informar la transferencia. Intentalo nuevamente.");
+      setError("No se pudo enviar el comprobante. Intentalo nuevamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -159,8 +428,10 @@ function CheckoutPage() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
-    if (!form.deliveryAddress.trim()) {
-      setError("Ingresa la direccion de entrega.");
+    const shipmentResult = buildCheckoutShipment();
+
+    if ("error" in shipmentResult) {
+      setError(shipmentResult.error);
       return;
     }
 
@@ -169,27 +440,45 @@ function CheckoutPage() {
       setError("");
       setMercadoPagoOrder(null);
       setTransferOrder(null);
+      setTransferProofFile(null);
       setIsTransferNotified(false);
       const order = await checkoutOrder({
-        deliveryAddress: form.deliveryAddress.trim(),
+        deliveryAddress: shipmentResult.deliveryAddress,
         paymentMethod: form.paymentMethod,
         notes: form.notes.trim() || undefined,
       });
 
-      setCart([]);
-      window.dispatchEvent(new Event(CART_CHANGE_EVENT));
-
       if (form.paymentMethod === "mercado_pago") {
+        setCart([]);
+        window.dispatchEvent(new Event(CART_CHANGE_EVENT));
         setMercadoPagoOrder(order);
         await redirectToMercadoPago(order);
         return;
       }
 
       if (form.paymentMethod === "transfer") {
+        if (shipmentResult.addressPayload) {
+          const createdAddress = await createUserAddress(
+            shipmentResult.addressPayload
+          );
+          setAddresses((prev) => [...prev, createdAddress]);
+          setSelectedAddressId(createdAddress.id);
+          setAddressMode("saved");
+        }
+
+        await createShipment({
+          orderId: order.id,
+          ...shipmentResult.shipmentPayload,
+        });
+
+        setCart([]);
+        window.dispatchEvent(new Event(CART_CHANGE_EVENT));
         setTransferOrder(order);
         return;
       }
 
+      setCart([]);
+      window.dispatchEvent(new Event(CART_CHANGE_EVENT));
       setCreatedOrder(order);
     } catch (submitError) {
       if (isAuthRequiredError(submitError)) {
@@ -200,7 +489,9 @@ function CheckoutPage() {
       setError(
         mercadoPagoOrder
           ? "No se pudo abrir Mercado Pago. Intentalo nuevamente."
-          : "No se pudo confirmar la compra."
+          : submitError instanceof Error
+            ? submitError.message
+            : "No se pudo confirmar la compra."
       );
     } finally {
       setIsSubmitting(false);
@@ -267,8 +558,8 @@ function CheckoutPage() {
         </h1>
         <p className="mt-2 font-semibold text-amber-800">
           Orden #{transferOrder.id.slice(0, 8)} creada correctamente. Transferi
-          ${transferOrder.total.toLocaleString("es-AR")} y avisanos el alias de
-          origen para que podamos confirmar el pago.
+          ${transferOrder.total.toLocaleString("es-AR")} y subi el comprobante
+          para que podamos confirmar el pago.
         </p>
 
         <div className="mt-6 rounded-2xl border border-amber-200 bg-white p-5">
@@ -311,7 +602,7 @@ function CheckoutPage() {
         {isTransferNotified ? (
           <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
             <h2 className="m-0 text-xl font-black text-green-900">
-              Transferencia informada
+              Comprobante enviado
             </h2>
             <p className="mt-2 font-semibold text-green-700">
               Tu pago quedo pendiente de aprobacion. Cuando el sistema lo
@@ -328,14 +619,19 @@ function CheckoutPage() {
           <form onSubmit={handleNotifyTransfer} className="mt-6">
             <label className="block">
               <span className="mb-2 block font-bold text-amber-900">
-                Alias desde el que transferiste
+                Comprobante de transferencia
               </span>
               <input
-                value={transferAlias}
-                onChange={(event) => setTransferAlias(event.target.value)}
-                placeholder="tu.alias"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) =>
+                  setTransferProofFile(event.target.files?.[0] ?? null)
+                }
                 className="w-full rounded-xl border border-amber-300 px-4 py-3 outline-none focus:border-amber-600"
               />
+              <span className="mt-2 block text-sm font-semibold text-amber-800">
+                Formatos permitidos: JPG, PNG o WebP.
+              </span>
             </label>
 
             {error && (
@@ -348,7 +644,7 @@ function CheckoutPage() {
               disabled={isSubmitting}
               className="mt-6 w-full rounded-xl bg-amber-700 px-6 py-4 font-bold text-white transition hover:bg-amber-800 disabled:cursor-not-allowed disabled:bg-amber-300"
             >
-              {isSubmitting ? "Informando transferencia..." : "Informar transferencia"}
+              {isSubmitting ? "Enviando comprobante..." : "Enviar comprobante"}
             </button>
           </form>
         )}
@@ -389,42 +685,252 @@ function CheckoutPage() {
         )}
 
         <div className="mt-6 space-y-4">
-          <label className="block">
-            <span className="mb-2 block font-bold text-slate-700">
-              Direccion guardada
-            </span>
-            <select
-              name="addressId"
-              value={form.addressId}
-              onChange={handleChange}
-              disabled={addresses.length === 0}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600 disabled:bg-slate-100 disabled:text-slate-500"
-            >
-              <option value="">
-                {addresses.length === 0
-                  ? "No tenes direcciones guardadas"
-                  : "Seleccionar direccion"}
-              </option>
-              {addresses.map((address) => (
-                <option key={address.id} value={address.id}>
-                  {address.label} - {formatUserAddress(address)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <h2 className="m-0 text-xl font-black text-slate-950">
+              Tipo de envio
+            </h2>
 
-          <label className="block">
-            <span className="mb-2 block font-bold text-slate-700">
-              Direccion de entrega
-            </span>
-            <input
-              name="deliveryAddress"
-              value={form.deliveryAddress}
-              onChange={handleChange}
-              placeholder="Calle, numero, ciudad"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
-            />
-          </label>
+            <label className="mt-4 block">
+              <span className="mb-2 block font-bold text-slate-700">
+                Metodo de envio
+              </span>
+              <select
+                value={shipmentType}
+                onChange={(event) =>
+                  setShipmentType(event.target.value as CheckoutShipmentType)
+                }
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600"
+              >
+                <option value="local">Envio local</option>
+                <option value="national">Envio nacional</option>
+              </select>
+            </label>
+
+            {addresses.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAddressMode("saved")}
+                  className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                    addressMode === "saved"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-slate-600 hover:bg-blue-50"
+                  }`}
+                >
+                  Usar direccion guardada
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddressMode("manual")}
+                  className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                    addressMode === "manual"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-slate-600 hover:bg-blue-50"
+                  }`}
+                >
+                  Usar otra direccion
+                </button>
+              </div>
+            )}
+
+            {addressMode === "saved" && addresses.length > 0 ? (
+              <label className="mt-4 block">
+                <span className="mb-2 block font-bold text-slate-700">
+                  Direccion guardada
+                </span>
+                <select
+                  value={selectedAddressId}
+                  onChange={(event) => setSelectedAddressId(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600"
+                >
+                  <option value="">Seleccionar direccion</option>
+                  {addresses.map((address) => (
+                    <option key={address.id} value={address.id}>
+                      {address.label} - {formatUserAddress(address)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {shipmentType === "local" ? (
+                  <>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Nombre de quien recibe
+                      </span>
+                      <input
+                        name="receiverName"
+                        value={shippingAddressForm.receiverName}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Opcional"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Telefono de contacto
+                      </span>
+                      <input
+                        name="phone"
+                        value={shippingAddressForm.phone}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Telefono"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Direccion
+                      </span>
+                      <input
+                        name="addressLine"
+                        value={shippingAddressForm.addressLine}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Calle, numero o referencia"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Localidad
+                      </span>
+                      <input
+                        name="city"
+                        value={shippingAddressForm.city}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Localidad"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Nombre de quien recibe
+                      </span>
+                      <input
+                        name="receiverName"
+                        value={shippingAddressForm.receiverName}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Opcional"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Telefono de contacto
+                      </span>
+                      <input
+                        name="phone"
+                        value={shippingAddressForm.phone}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Telefono"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Calle
+                      </span>
+                      <input
+                        name="street"
+                        value={shippingAddressForm.street}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Calle"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Numero
+                      </span>
+                      <input
+                        name="number"
+                        value={shippingAddressForm.number}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Numero"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Localidad
+                      </span>
+                      <input
+                        name="city"
+                        value={shippingAddressForm.city}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Localidad"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Provincia
+                      </span>
+                      <input
+                        name="province"
+                        value={shippingAddressForm.province}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Provincia"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Codigo postal
+                      </span>
+                      <input
+                        name="postalCode"
+                        value={shippingAddressForm.postalCode}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Codigo postal"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Piso
+                      </span>
+                      <input
+                        name="floor"
+                        value={shippingAddressForm.floor}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Opcional"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Departamento
+                      </span>
+                      <input
+                        name="apartment"
+                        value={shippingAddressForm.apartment}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Opcional"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className="mb-2 block font-bold text-slate-700">
+                        Referencia
+                      </span>
+                      <textarea
+                        name="reference"
+                        value={shippingAddressForm.reference}
+                        onChange={handleShippingAddressChange}
+                        placeholder="Indicaciones adicionales"
+                        className="min-h-24 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      />
+                    </label>
+                  </>
+                )}
+              </div>
+            )}
+          </section>
 
           <label className="block">
             <span className="mb-2 block font-bold text-slate-700">

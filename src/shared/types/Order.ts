@@ -1,4 +1,5 @@
 import type { Product } from "./Product";
+import type { Shipment } from "./Shipment";
 import type { User } from "./User";
 
 export type OrderStatus =
@@ -27,6 +28,16 @@ export type OrderPayment = {
   amount?: number;
   senderAlias?: string;
   senderCbu?: string;
+  proofUrl?: string;
+  proofImageUrl?: string;
+  proofFileUrl?: string;
+  transferProofUrl?: string;
+  receiptUrl?: string;
+  proof?: {
+    url?: string;
+    fileUrl?: string;
+    imageUrl?: string;
+  } | null;
   adminNote?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -41,6 +52,9 @@ export type Order = {
   paymentMethod?: string;
   paymentStatus?: string;
   payment?: OrderPayment;
+  deliveryAddress?: string;
+  shipment?: Shipment | null;
+  shipments?: Shipment[];
   notes?: string;
   createdAt?: string;
 };

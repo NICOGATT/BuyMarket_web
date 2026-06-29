@@ -5,7 +5,11 @@ import {
   getCategories,
 } from "../../shared/services/category.service";
 import type { Category } from "../../shared/types/Category";
-import { buildImageUrl } from "../../shared/utils/buildImageUrl";
+import {
+  getCategoryBannerUrls,
+  getCategoryIconUrls,
+  getCategoryInitials,
+} from "../../shared/utils/categoryImages";
 
 function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -13,6 +17,12 @@ function AdminCategoriesPage() {
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(
     null
   );
+  const [bannerImageAttempts, setBannerImageAttempts] = useState<
+    Record<string, number>
+  >({});
+  const [iconImageAttempts, setIconImageAttempts] = useState<
+    Record<string, number>
+  >({});
 
   useEffect(() => {
     async function loadCategories() {
@@ -68,60 +78,83 @@ function AdminCategoriesPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {categories.map((category) => (
-          <article
-            key={category.id}
-            className="relative min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-          >
-            <button
-              type="button"
-              onClick={() => handleDeleteCategory(category)}
-              disabled={deletingCategoryId === category.id}
-              aria-label={`Eliminar categoria ${category.name}`}
-              className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-red-600 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 sm:right-4 sm:top-4"
+        {categories.map((category) => {
+          const bannerUrls = getCategoryBannerUrls(category);
+          const iconUrls = getCategoryIconUrls(category);
+          const bannerUrl = bannerUrls[bannerImageAttempts[category.id] ?? 0];
+          const iconUrl = iconUrls[iconImageAttempts[category.id] ?? 0];
+          const shouldShowBanner = Boolean(bannerUrl);
+          const shouldShowIcon = Boolean(iconUrl);
+
+          return (
+            <article
+              key={category.id}
+              className="relative min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
             >
-              <Trash2 className="h-5 w-5" aria-hidden="true" />
-            </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteCategory(category)}
+                disabled={deletingCategoryId === category.id}
+                aria-label={`Eliminar categoria ${category.name}`}
+                className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-red-600 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 sm:right-4 sm:top-4"
+              >
+                <Trash2 className="h-5 w-5" aria-hidden="true" />
+              </button>
 
-            {category.banner ? (
-              <img
-                src={buildImageUrl(category.banner) ?? category.banner}
-                alt={category.name}
-                className="h-32 w-full object-cover sm:h-36"
-              />
-            ) : (
-              <div className="flex h-32 items-center justify-center bg-slate-100 text-sm font-bold text-slate-400 sm:h-36">
-                Sin banner
-              </div>
-            )}
+              {shouldShowBanner ? (
+                <img
+                  key={bannerUrl}
+                  src={bannerUrl}
+                  alt={category.name}
+                  onError={() =>
+                    setBannerImageAttempts((current) => ({
+                      ...current,
+                      [category.id]: (current[category.id] ?? 0) + 1,
+                    }))
+                  }
+                  className="h-32 w-full object-cover sm:h-36"
+                />
+              ) : (
+                <div className="flex h-32 items-center justify-center bg-slate-100 text-sm font-bold text-slate-400 sm:h-36">
+                  Sin banner
+                </div>
+              )}
 
-            <div className="p-4 sm:p-6">
-              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                {category.icon ? (
-                  <img
-                    src={buildImageUrl(category.icon) ?? "/placeholder.png"}
-                    alt={category.name}
-                    className="h-12 w-12 shrink-0 rounded-2xl object-cover sm:h-14 sm:w-14"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-sm font-bold text-blue-600 sm:h-14 sm:w-14">
-                    {category.name.slice(0, 2).toUpperCase()}
+              <div className="p-4 sm:p-6">
+                <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                  {shouldShowIcon ? (
+                    <img
+                      key={iconUrl}
+                      src={iconUrl}
+                      alt={category.name}
+                      onError={() =>
+                        setIconImageAttempts((current) => ({
+                          ...current,
+                          [category.id]: (current[category.id] ?? 0) + 1,
+                        }))
+                      }
+                      className="h-12 w-12 shrink-0 rounded-2xl object-cover sm:h-14 sm:w-14"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-sm font-bold text-blue-600 sm:h-14 sm:w-14">
+                      {getCategoryInitials(category)}
+                    </div>
+                  )}
+
+                  <div className="min-w-0">
+                    <h2 className="m-0 truncate text-lg font-black text-slate-950 sm:text-xl">
+                      {category.name}
+                    </h2>
+
+                    <p className="mt-1 break-words text-sm leading-5 text-slate-500">
+                      {category.description || "Sin descripcion"}
+                    </p>
                   </div>
-                )}
-
-                <div className="min-w-0">
-                  <h2 className="m-0 truncate text-lg font-black text-slate-950 sm:text-xl">
-                    {category.name}
-                  </h2>
-
-                  <p className="mt-1 break-words text-sm leading-5 text-slate-500">
-                    {category.description || "Sin descripcion"}
-                  </p>
                 </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </section>
   );

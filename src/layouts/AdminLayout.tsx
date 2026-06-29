@@ -71,6 +71,10 @@ function AdminLayout() {
             Pedidos
           </NavLink>
 
+          <NavLink className={adminLinkClass} to="/admin/shipments">
+            Envios
+          </NavLink>
+
           <NavLink className={adminLinkClass} to="/admin/withdrawals">
             Retiros
           </NavLink>

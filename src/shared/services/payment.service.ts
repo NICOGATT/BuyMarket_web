@@ -34,6 +34,21 @@ export async function notifyTransferPayment(
   });
 }
 
+export async function uploadTransferProof(
+  paymentId: string,
+  file: File
+): Promise<void> {
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  await api.post(`/payments/${paymentId}/proof`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+}
+
 export async function approveTransferPayment(
   orderId: string
 ): Promise<TransferPaymentStatusResponse> {

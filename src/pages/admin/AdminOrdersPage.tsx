@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { API_URL } from "../../shared/services/api";
 import { getAdminOrders } from "../../shared/services/order.service";
 import { approveTransferPayment } from "../../shared/services/payment.service";
 import type { Order } from "../../shared/types/Order";
@@ -8,6 +10,44 @@ const paymentMethodLabels: Record<string, string> = {
   transfer: "Transferencia",
   mercado_pago: "Mercado Pago",
 };
+
+function toPublicFileUrl(value?: string) {
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+
+  return `${API_URL}${value.startsWith("/") ? value : `/${value}`}`;
+}
+
+function getTransferProofUrl(order: Order) {
+  const payment = order.payment;
+  const proofUrl =
+    payment?.proofUrl ??
+    payment?.proofImageUrl ??
+    payment?.proofFileUrl ??
+    payment?.transferProofUrl ??
+    payment?.receiptUrl ??
+    payment?.proof?.url ??
+    payment?.proof?.fileUrl ??
+    payment?.proof?.imageUrl;
+
+  return toPublicFileUrl(proofUrl);
+}
+
+function hasShipment(order: Order) {
+  return Boolean(order.shipment || order.shipments?.length);
+}
+
+function canCreateShipment(order: Order) {
+  const paymentStatus = order.payment?.status ?? order.paymentStatus;
+
+  return (
+    !hasShipment(order) &&
+    (order.status === "paid" ||
+      order.status === "accepted" ||
+      order.status === "preparing" ||
+      paymentStatus === "COMPLETED")
+  );
+}
 
 function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -89,6 +129,7 @@ function AdminOrdersPage() {
                 <th className="px-6 py-4">Items</th>
                 <th className="px-6 py-4">Total</th>
                 <th className="px-6 py-4">Pago</th>
+                <th className="px-6 py-4">Comprobante</th>
                 <th className="px-6 py-4">Estado</th>
                 <th className="px-6 py-4">Fecha</th>
                 <th className="px-6 py-4">Acciones</th>
@@ -96,64 +137,101 @@ function AdminOrdersPage() {
             </thead>
 
             <tbody className="divide-y divide-slate-200">
-              {orders.map((order) => (
-                <tr key={order.id}>
-                  <td className="px-6 py-4 font-bold text-slate-900">
-                    #{order.id.slice(0, 8)}
-                  </td>
+              {orders.map((order) => {
+                const transferProofUrl = getTransferProofUrl(order);
 
-                  <td className="px-6 py-4 text-slate-600">
-                    {order.buyer?.email ?? "Sin comprador"}
-                  </td>
+                return (
+                  <tr key={order.id}>
+                    <td className="px-6 py-4 font-bold text-slate-900">
+                      #{order.id.slice(0, 8)}
+                    </td>
 
-                  <td className="px-6 py-4 text-slate-600">
-                    {order.items?.length ?? 0}
-                  </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {order.buyer?.email ?? "Sin comprador"}
+                    </td>
 
-                  <td className="px-6 py-4 font-bold text-blue-600">
-                    ${order.total.toLocaleString("es-AR")}
-                  </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {order.items?.length ?? 0}
+                    </td>
 
-                  <td className="px-6 py-4 text-slate-600">
-                    {order.paymentMethod
-                      ? paymentMethodLabels[order.paymentMethod] ??
-                        order.paymentMethod
-                      : "-"}
-                  </td>
+                    <td className="px-6 py-4 font-bold text-blue-600">
+                      ${order.total.toLocaleString("es-AR")}
+                    </td>
 
-                  <td className="px-6 py-4">
-                    <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-blue-700">
-                      {order.status}
-                    </span>
-                  </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {order.paymentMethod
+                        ? paymentMethodLabels[order.paymentMethod] ??
+                          order.paymentMethod
+                        : "-"}
+                    </td>
 
-                  <td className="px-6 py-4 text-slate-600">
-                    {order.createdAt
-                      ? new Date(order.createdAt).toLocaleDateString("es-AR")
-                      : "-"}
-                  </td>
+                    <td className="px-6 py-4">
+                      {order.paymentMethod === "transfer" && transferProofUrl ? (
+                        <a
+                          href={transferProofUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-blue-600 transition hover:border-blue-200 hover:bg-blue-50"
+                        >
+                          <img
+                            src={transferProofUrl}
+                            alt="Comprobante de transferencia"
+                            className="h-10 w-10 rounded-lg object-cover"
+                          />
+                          Ver comprobante
+                        </a>
+                      ) : order.paymentMethod === "transfer" ? (
+                        <span className="text-sm font-semibold text-amber-600">
+                          Sin comprobante
+                        </span>
+                      ) : (
+                        <span className="text-sm font-semibold text-slate-400">
+                          -
+                        </span>
+                      )}
+                    </td>
 
-                  <td className="px-6 py-4">
-                    {order.paymentMethod === "transfer" &&
-                    order.status === "pending" ? (
-                      <button
-                        type="button"
-                        onClick={() => handleApproveTransfer(order.id)}
-                        disabled={approvingOrderId === order.id}
-                        className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-green-300"
-                      >
-                        {approvingOrderId === order.id
-                          ? "Aprobando..."
-                          : "Aprobar transferencia"}
-                      </button>
-                    ) : (
-                      <span className="text-sm font-semibold text-slate-400">
-                        -
+                    <td className="px-6 py-4">
+                      <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-blue-700">
+                        {order.status}
                       </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+
+                    <td className="px-6 py-4 text-slate-600">
+                      {order.createdAt
+                        ? new Date(order.createdAt).toLocaleDateString("es-AR")
+                        : "-"}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {order.paymentMethod === "transfer" &&
+                      order.status === "pending" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleApproveTransfer(order.id)}
+                          disabled={approvingOrderId === order.id}
+                          className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-green-300"
+                        >
+                          {approvingOrderId === order.id
+                            ? "Aprobando..."
+                          : "Aprobar transferencia"}
+                        </button>
+                      ) : canCreateShipment(order) ? (
+                        <Link
+                          to="/admin/shipments"
+                          className="inline-flex rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
+                        >
+                          Crear envio
+                        </Link>
+                      ) : (
+                        <span className="text-sm font-semibold text-slate-400">
+                          -
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

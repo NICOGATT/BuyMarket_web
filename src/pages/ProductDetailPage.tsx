@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, MapPin, User, X } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { addCart, isAuthRequiredError } from "../features/cart/store/cartStore";
 import { getProductById } from "../shared/services/product.service";
 import type {
   Product,
@@ -80,9 +81,13 @@ function getProductFeatures(product: Product) {
 
 function ProductDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isBuyingNow, setIsBuyingNow] = useState(false);
+  const [buyNowError, setBuyNowError] = useState("");
 
   useEffect(() => {
     async function loadProduct() {
@@ -118,6 +123,45 @@ function ProductDetailPage() {
     setSelectedImageIndex((currentIndex) =>
       currentIndex === imageUrls.length - 1 ? 0 : currentIndex + 1
     );
+  }
+
+  async function handleBuyNow() {
+    if (!product) return;
+
+    try {
+      setIsBuyingNow(true);
+      setBuyNowError("");
+      await addCart(product);
+      navigate("/checkout");
+    } catch (error) {
+      if (isAuthRequiredError(error)) {
+        navigate("/login");
+        return;
+      }
+
+      setBuyNowError("No se pudo preparar tu compra. Intentalo nuevamente.");
+    } finally {
+      setIsBuyingNow(false);
+    }
+  }
+
+  async function handleAddToCart() {
+    if (!product) return;
+
+    try {
+      setIsAddingToCart(true);
+      setBuyNowError("");
+      await addCart(product);
+    } catch (error) {
+      if (isAuthRequiredError(error)) {
+        navigate("/login");
+        return;
+      }
+
+      setBuyNowError("No se pudo agregar el producto al carrito.");
+    } finally {
+      setIsAddingToCart(false);
+    }
   }
 
   return (
@@ -212,19 +256,6 @@ function ProductDetailPage() {
                 </p>
               </div>
             </div>
-
-            <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
-              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
-              <div>
-                <p className="m-0 text-sm font-black uppercase text-slate-500">
-                  Direccion
-                </p>
-                <p className="m-0 mt-1 font-bold text-slate-900">
-                  {productAddress || "No informada"}
-                </p>
-              </div>
-            </div>
-
             <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
               <Clock className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
               <div>
@@ -278,10 +309,45 @@ function ProductDetailPage() {
           ${product.price.toLocaleString("es-AR")}
         </p>
 
-        <button className="mt-8 rounded-xl bg-blue-600 px-8 py-4 font-bold text-white transition hover:bg-blue-700">
-          Comprar ahora
-        </button>
+        {buyNowError && (
+          <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 font-semibold text-red-700">
+            {buyNowError}
+          </p>
+        )}
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={isAddingToCart || isBuyingNow}
+            className="rounded-xl bg-blue-600 px-8 py-4 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+          >
+            {isAddingToCart ? "Agregando..." : "Agregar al carrito"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            disabled={isAddingToCart || isBuyingNow}
+            className="rounded-xl bg-emerald-600 px-8 py-4 font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+          >
+            {isBuyingNow ? "Preparando tu compra..." : "Comprar ahora"}
+          </button>
+        </div>
       </div>
+
+      {isBuyingNow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="rounded-2xl bg-white px-6 py-5 text-center shadow-xl">
+            <p className="text-lg font-black text-slate-950">
+              Se esta preparando tu compra
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              Estamos agregando el producto al carrito...
+            </p>
+          </div>
+        </div>
+      )}
 
       {isModalOpen && selectedImage && (
         <div

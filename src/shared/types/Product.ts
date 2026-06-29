@@ -32,7 +32,7 @@ export type Product = {
   description: string;
   price: number;
   stock: number;
-  category: Category;
+  category?: Category | string;
   subCategory?: SubCategory;
   subCategoryId?: string;
   subcategory?: SubCategory;
@@ -68,6 +68,7 @@ export type ProductCardProps = {
   description: string;
   price: number;
   image?: string;
+  categoryName?: string;
 };
 
 export type CreateProductPayload = {

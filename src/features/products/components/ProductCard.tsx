@@ -3,12 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { addCart, isAuthRequiredError } from "../../cart/store/cartStore";
 import { useState } from "react";
 import type { Category } from "../../../shared/types/Category";
-function ProductCard({ id,title, description, price, image }: ProductCardProps) {
+function ProductCard({ id,title, description, price, image, categoryName }: ProductCardProps) {
     const [isAddingToCart, setIsAddingToCart] = useState(false);
+    const [isBuyingNow, setIsBuyingNow] = useState(false);
     const navigate = useNavigate();
 
-    async function handleAddToCart() {
-        const product : Product = {
+    function buildCartProduct(): Product {
+        return {
             id: id,
             title,
             description,
@@ -19,10 +20,12 @@ function ProductCard({ id,title, description, price, image }: ProductCardProps) 
             isActive: true,
             owner: "",
         };
+    }
 
+    async function handleAddToCart() {
         try {
             setIsAddingToCart(true);
-            await addCart(product);
+            await addCart(buildCartProduct());
             alert("Producto agregado al carrito");
         } catch (error) {
             if (isAuthRequiredError(error)) {
@@ -36,8 +39,39 @@ function ProductCard({ id,title, description, price, image }: ProductCardProps) 
             setIsAddingToCart(false);
         }
     }
+
+    async function handleBuyNow() {
+        try {
+            setIsBuyingNow(true);
+            await addCart(buildCartProduct());
+            navigate("/checkout");
+        } catch (error) {
+            if (isAuthRequiredError(error)) {
+                alert("Inicia sesion para comprar.");
+                navigate("/login");
+                return;
+            }
+
+            alert("No se pudo preparar tu compra.");
+        } finally {
+            setIsBuyingNow(false);
+        }
+    }
+
     return (
         <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md w-55">
+        {isBuyingNow && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+                <div className="rounded-2xl bg-white px-6 py-5 text-center shadow-xl">
+                    <p className="text-lg font-black text-slate-950">
+                        Se esta preparando tu compra
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                        Estamos agregando el producto al carrito...
+                    </p>
+                </div>
+            </div>
+        )}
         <div className="relative aspect-[4/3] overflow-hidden border-b border-slate-100 bg-slate-50">
             {image ? (
                 <img
@@ -58,8 +92,12 @@ function ProductCard({ id,title, description, price, image }: ProductCardProps) 
                     {title}
                 </h3>
 
-                <p className="mt-2 line-clamp-3 text-sm text-slate-500">
-                    {description}
+                <p className="mt-2 text-sm font-bold text-blue-600">
+                    {categoryName || "Sin categoria"}
+                </p>
+
+                <p className="mt-2 line-clamp-2 text-sm text-slate-500">
+                    Para ver los detalles del producto, apretá el botón Ver detalles.
                 </p>
 
                 <div className="mt-auto pt-3">
@@ -67,19 +105,26 @@ function ProductCard({ id,title, description, price, image }: ProductCardProps) 
                     ${price.toLocaleString("es-AR")}
                     </span>
 
-                    <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="mt-4 grid gap-3">
                         <Link
                             to={`/products/${id}`}
-                            className="flex justify-center items-center rounded-xl bg-slate-950 text-sm font-bold text-white transition hover:bg-slate-800"
+                            className="flex items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
                         >
-                            Ver
+                            Ver detalles
                         </Link>
                         <button
                             onClick={handleAddToCart}
-                            disabled={isAddingToCart}
+                            disabled={isAddingToCart || isBuyingNow}
                             className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
                         >
-                            {isAddingToCart ? "Agregando..." : "Comprar"}
+                            {isAddingToCart ? "Agregando..." : "Agregar al carrito"}
+                        </button>
+                        <button
+                            onClick={handleBuyNow}
+                            disabled={isAddingToCart || isBuyingNow}
+                            className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                        >
+                            {isBuyingNow ? "Preparando..." : "Comprar ahora"}
                         </button>
                     </div>
                 </div>

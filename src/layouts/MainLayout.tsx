@@ -280,7 +280,7 @@ function MainLayout() {
               Productos
             </NavLink>
             <NavLink to="/products/create" className={navLinkClass}>
-              Publicar producto
+              Vender
             </NavLink>
             {!user && (
               <>
@@ -305,7 +305,7 @@ function MainLayout() {
                 Productos
               </NavLink>
               <NavLink to="/products/create" onClick={closeMenu} className={navLinkClass}>
-                Publicar producto
+                Vender
               </NavLink>
               <NavLink to="/cart" onClick={closeMenu} className={navLinkClass}>
                 Carrito
