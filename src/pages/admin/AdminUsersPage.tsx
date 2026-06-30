@@ -210,7 +210,7 @@ function AdminUsersPage() {
         <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-            <WalletCards className="h-6 w-6 text-blue-600" aria-hidden />
+            <WalletCards className="h-6 w-6 text-[var(--brand)]" aria-hidden />
             <div>
               <h2 className="m-0 text-xl font-black text-slate-950">
                 Usuarios sin wallet
@@ -225,7 +225,7 @@ function AdminUsersPage() {
               type="button"
               onClick={handleSyncMissingWallets}
               disabled={usersWithoutWallet.length === 0 || isSyncingWallets}
-              className="rounded-xl bg-blue-600 px-4 py-2 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-[var(--brand)] px-4 py-2 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSyncingWallets ? "Sincronizando..." : "Crear wallets faltantes"}
             </button>

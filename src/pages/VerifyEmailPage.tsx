@@ -49,22 +49,22 @@ function VerifyEmailPage() {
 
   return (
     <section className="-mx-4 -my-8 min-h-[calc(100svh-154px)] overflow-hidden bg-[#F8FAFC] sm:-mx-6 lg:-mx-8">
-      <div className="relative flex min-h-[calc(100svh-154px)] items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.10),transparent_34%),linear-gradient(135deg,#F8FAFC_0%,#FFFFFF_50%,#EFF6FF_100%)] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="relative flex min-h-[calc(100svh-154px)] items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(45,0,107,0.10),transparent_34%),linear-gradient(135deg,#F8FAFC_0%,#FFFFFF_50%,#F2ECFF_100%)] px-4 py-8 sm:px-6 lg:px-8">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-24 top-12 h-72 w-72 rounded-full bg-[#2563EB]/10 blur-3xl" />
+          <div className="absolute -left-24 top-12 h-72 w-72 rounded-full bg-[#2D006B]/10 blur-3xl" />
           <div className="absolute -right-24 top-24 h-80 w-80 rounded-full bg-sky-300/20 blur-3xl" />
           <div className="absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-indigo-200/25 blur-3xl" />
-          <div className="absolute left-[14%] top-[24%] hidden h-16 w-16 rotate-[-12deg] items-center justify-center rounded-[22px] border border-[#E2E8F0]/80 bg-white/50 text-[#2563EB]/20 shadow-sm backdrop-blur-sm sm:flex">
+          <div className="absolute left-[14%] top-[24%] hidden h-16 w-16 rotate-[-12deg] items-center justify-center rounded-[22px] border border-[#E2E8F0]/80 bg-white/50 text-[#2D006B]/20 shadow-sm backdrop-blur-sm sm:flex">
             <MailCheck className="h-7 w-7" />
           </div>
-          <div className="absolute right-[16%] top-[30%] hidden h-16 w-16 rotate-[14deg] items-center justify-center rounded-[22px] border border-[#E2E8F0]/80 bg-white/50 text-[#2563EB]/20 shadow-sm backdrop-blur-sm sm:flex">
+          <div className="absolute right-[16%] top-[30%] hidden h-16 w-16 rotate-[14deg] items-center justify-center rounded-[22px] border border-[#E2E8F0]/80 bg-white/50 text-[#2D006B]/20 shadow-sm backdrop-blur-sm sm:flex">
             <ShieldCheck className="h-7 w-7" />
           </div>
         </div>
 
         <div className="relative z-10 w-full max-w-[456px] animate-login-card-in rounded-[24px] border border-white/80 bg-white/92 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12),0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-10">
           <div className="mb-8 text-center">
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] text-white shadow-[0_14px_32px_rgba(37,99,235,0.26)]">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-hover)] text-white shadow-[0_14px_32px_rgba(45,0,107,0.26)]">
               <BadgeCheck className="h-7 w-7" aria-hidden="true" />
             </span>
             <h1 className="mt-6 text-3xl font-black tracking-normal text-[#0F172A] sm:text-4xl">
@@ -83,7 +83,7 @@ function VerifyEmailPage() {
               <span className="group relative block">
                 <KeyRound
                   aria-hidden="true"
-                  className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#64748B] transition group-focus-within:text-[#2563EB]"
+                  className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#64748B] transition group-focus-within:text-[#2D006B]"
                 />
                 <input
                   value={code}
@@ -91,7 +91,7 @@ function VerifyEmailPage() {
                   placeholder="Ingresá tu código"
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  className="h-[52px] w-full rounded-[14px] border border-[#E2E8F0] bg-white pl-12 pr-4 text-center text-[18px] font-black tracking-[0.18em] text-[#0F172A] outline-none transition duration-200 placeholder:text-left placeholder:text-[15px] placeholder:font-semibold placeholder:tracking-normal placeholder:text-slate-400 hover:border-slate-300 focus:border-[#2563EB] focus:shadow-[0_0_0_4px_rgba(37,99,235,0.10),0_12px_24px_rgba(37,99,235,0.08)]"
+                  className="h-[52px] w-full rounded-[14px] border border-[#E2E8F0] bg-white pl-12 pr-4 text-center text-[18px] font-black tracking-[0.18em] text-[#0F172A] outline-none transition duration-200 placeholder:text-left placeholder:text-[15px] placeholder:font-semibold placeholder:tracking-normal placeholder:text-slate-400 hover:border-slate-300 focus:border-[#2D006B] focus:shadow-[0_0_0_4px_rgba(45,0,107,0.10),0_12px_24px_rgba(45,0,107,0.08)]"
                 />
               </span>
             </label>
@@ -108,7 +108,7 @@ function VerifyEmailPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-gradient-to-b from-[#2563EB] to-[#1D4ED8] px-6 text-base font-black text-white shadow-[0_14px_30px_rgba(37,99,235,0.26)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(37,99,235,0.32)] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-gradient-to-b from-[var(--brand)] to-[var(--brand-hover)] px-6 text-base font-black text-white shadow-[0_14px_30px_rgba(45,0,107,0.26)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(45,0,107,0.32)] focus:outline-none focus:ring-2 focus:ring-[#2D006B] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
             >
               {isSubmitting ? "Verificando..." : "Verificar email"}
             </button>
@@ -116,7 +116,7 @@ function VerifyEmailPage() {
 
           <Link
             to="/profile"
-            className="mt-7 flex items-center justify-center gap-2 text-sm font-black text-[#2563EB] transition hover:text-[#1D4ED8] hover:underline focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-2"
+            className="mt-7 flex items-center justify-center gap-2 text-sm font-black text-[#2D006B] transition hover:text-[#240055] hover:underline focus:outline-none focus:ring-2 focus:ring-[#2D006B] focus:ring-offset-2"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Volver a mi perfil

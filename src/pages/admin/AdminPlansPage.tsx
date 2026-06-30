@@ -169,7 +169,7 @@ function AdminPlansPage() {
               onChange={handleChange}
               disabled={isSaving}
               placeholder="Ej: Premium"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 disabled:cursor-not-allowed disabled:bg-slate-100"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
             />
           </label>
 
@@ -186,7 +186,7 @@ function AdminPlansPage() {
               onChange={handleChange}
               disabled={isSaving}
               placeholder="Ej: 10"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 disabled:cursor-not-allowed disabled:bg-slate-100"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
             />
           </label>
 
@@ -197,7 +197,7 @@ function AdminPlansPage() {
               checked={form.isActive}
               onChange={handleChange}
               disabled={isSaving}
-              className="h-5 w-5 rounded border-slate-300 text-blue-600"
+              className="h-5 w-5 rounded border-slate-300 text-[var(--brand)]"
             />
             Activo
           </label>
@@ -205,7 +205,7 @@ function AdminPlansPage() {
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            className="w-full rounded-xl bg-[var(--brand)] px-6 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {isSaving ? "Guardando..." : "Guardar plan"}
           </button>

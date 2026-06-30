@@ -136,7 +136,7 @@ function AdminCategoriesPage() {
                       className="h-12 w-12 shrink-0 rounded-2xl object-cover sm:h-14 sm:w-14"
                     />
                   ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-sm font-bold text-blue-600 sm:h-14 sm:w-14">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-soft)] text-sm font-bold text-[var(--brand)] sm:h-14 sm:w-14">
                       {getCategoryInitials(category)}
                     </div>
                   )}

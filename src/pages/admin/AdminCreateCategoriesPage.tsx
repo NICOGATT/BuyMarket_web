@@ -73,7 +73,7 @@ function AdminCreateCategoryPage() {
           placeholder="Nombre de la categoria"
           value={form.name}
           onChange={handleChange}
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+          className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
         />
 
         <textarea
@@ -81,7 +81,7 @@ function AdminCreateCategoryPage() {
           placeholder="Descripcion"
           value={form.description}
           onChange={handleChange}
-          className="min-h-28 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+          className="min-h-28 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
         />
 
         <label className="block">
@@ -107,7 +107,7 @@ function AdminCreateCategoryPage() {
         <button
           type="submit"
           disabled={isSaving}
-          className="w-full rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="w-full rounded-xl bg-[var(--brand)] px-6 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {isSaving ? "Guardando..." : "Guardar categoria"}
         </button>

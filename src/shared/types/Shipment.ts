@@ -30,10 +30,11 @@ export type Shipment = {
   status?: ShipmentStatus | string;
   deliveryAddress?: string;
   pickupAddress?: string;
-  receiverName?: string;
-  phone?: string;
-  trackingCode?: string;
-  notes?: string;
+  buyerProvince?: string;
+  buyerCity?: string;
+  buyerPostalCode?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -43,5 +44,4 @@ export type CreateShipmentPayload = {
   type: ShipmentType;
   carrier: ShipmentCarrier;
   deliveryAddress: string;
-  notes?: string;
 };

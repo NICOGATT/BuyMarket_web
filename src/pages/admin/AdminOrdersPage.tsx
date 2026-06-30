@@ -154,7 +154,7 @@ function AdminOrdersPage() {
                       {order.items?.length ?? 0}
                     </td>
 
-                    <td className="px-6 py-4 font-bold text-blue-600">
+                    <td className="px-6 py-4 font-bold text-[var(--brand)]">
                       ${order.total.toLocaleString("es-AR")}
                     </td>
 
@@ -171,7 +171,7 @@ function AdminOrdersPage() {
                           href={transferProofUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-blue-600 transition hover:border-blue-200 hover:bg-blue-50"
+                          className="inline-flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-[var(--brand)] transition hover:border-[var(--brand-border)] hover:bg-[var(--brand-soft)]"
                         >
                           <img
                             src={transferProofUrl}
@@ -192,7 +192,7 @@ function AdminOrdersPage() {
                     </td>
 
                     <td className="px-6 py-4">
-                      <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-blue-700">
+                      <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-sm font-bold text-[var(--brand-hover)]">
                         {order.status}
                       </span>
                     </td>
@@ -219,7 +219,7 @@ function AdminOrdersPage() {
                       ) : canCreateShipment(order) ? (
                         <Link
                           to="/admin/shipments"
-                          className="inline-flex rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
+                          className="inline-flex rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--brand-hover)]"
                         >
                           Crear envio
                         </Link>

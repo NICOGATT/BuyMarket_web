@@ -10,16 +10,12 @@ import {
   createMercadoPagoPreference,
   uploadTransferProof,
 } from "../shared/services/payment.service";
-import { createShipment } from "../shared/services/shipment.service";
 import {
   createUserAddress,
   getMyAddresses,
 } from "../shared/services/userAddress.service";
 import type { CartItem } from "../shared/types/Cart";
 import type { Order } from "../shared/types/Order";
-import type {
-  CreateShipmentPayload,
-} from "../shared/types/Shipment";
 import type {
   CreateUserAddressPayload,
   UserAddress,
@@ -35,12 +31,9 @@ type CheckoutForm = {
 type AddressMode = "saved" | "manual";
 type CheckoutShipmentType = "local" | "national";
 
-type CheckoutShipmentPayload = Omit<CreateShipmentPayload, "orderId">;
-
 type CheckoutShipmentResult =
   | {
       deliveryAddress: string;
-      shipmentPayload: CheckoutShipmentPayload;
       addressPayload?: CreateUserAddressPayload;
     }
   | {
@@ -68,6 +61,7 @@ const transferAccount = {
 };
 
 const transferProofAcceptedTypes = ["image/jpeg", "image/png", "image/webp"];
+const transferProofMaxSize = 5 * 1024 * 1024;
 
 const emptyShippingAddressForm: ShippingAddressForm = {
   receiverName: "",
@@ -82,6 +76,12 @@ const emptyShippingAddressForm: ShippingAddressForm = {
   postalCode: "",
   reference: "",
 };
+
+function formatFileSize(size: number) {
+  const megabytes = size / (1024 * 1024);
+
+  return `${megabytes.toFixed(megabytes >= 1 ? 1 : 2)} MB`;
+}
 
 function CheckoutPage() {
   const navigate = useNavigate();
@@ -184,16 +184,6 @@ function CheckoutPage() {
     return user?.name?.trim() || user?.email?.trim() || "Comprador";
   }
 
-  function buildShipmentNotes(receiverName: string, phone: string, notes?: string) {
-    return [
-      `Telefono: ${phone}`,
-      receiverName ? `Recibe: ${receiverName}` : "",
-      notes ? `Referencia: ${notes}` : "",
-    ]
-      .filter(Boolean)
-      .join(". ");
-  }
-
   function buildCheckoutShipment(): CheckoutShipmentResult {
     const selectedAddress = getSelectedAddress();
     const fallbackReceiverName = getFallbackReceiverName();
@@ -221,39 +211,23 @@ function CheckoutPage() {
           return { error: "La direccion guardada no tiene datos suficientes." };
         }
 
-        return {
-          deliveryAddress: `Envio local - ${addressLine}, ${city}. Telefono: ${phone}${
+        const deliveryAddress = `Envio local - ${addressLine}, ${city}. Telefono: ${phone}${
             receiverName ? `. Recibe: ${receiverName}` : ""
-          }`,
-          shipmentPayload: {
-            type: "local_delivery",
-            carrier: "buymarket",
-            deliveryAddress: `Envio local - ${addressLine}, ${city}`,
-            notes: buildShipmentNotes(
-              receiverName,
-              phone,
-              selectedAddress.reference?.trim()
-            ),
-          },
+          }${selectedAddress.reference?.trim() ? `. Referencia: ${selectedAddress.reference.trim()}` : ""}`;
+
+        return {
+          deliveryAddress,
         };
       }
 
       const formattedAddress = formatUserAddress(selectedAddress);
 
-      return {
-        deliveryAddress: `Envio nacional - ${formattedAddress}. Telefono: ${phone}${
+      const deliveryAddress = `Envio nacional - ${formattedAddress}. Telefono: ${phone}${
           receiverName ? `. Recibe: ${receiverName}` : ""
-        }`,
-        shipmentPayload: {
-          type: "national_shipping",
-          carrier: "buymarket",
-          deliveryAddress: `Envio nacional - ${formattedAddress}`,
-          notes: buildShipmentNotes(
-            receiverName,
-            phone,
-            selectedAddress.reference?.trim()
-          ),
-        },
+        }${selectedAddress.reference?.trim() ? `. Referencia: ${selectedAddress.reference.trim()}` : ""}`;
+
+      return {
+        deliveryAddress,
       };
     }
 
@@ -277,12 +251,6 @@ function CheckoutPage() {
 
       return {
         deliveryAddress,
-        shipmentPayload: {
-          type: "local_delivery",
-          carrier: "buymarket",
-          deliveryAddress: `Envio local - ${addressLine}, ${city}`,
-          notes: buildShipmentNotes(receiverName, phone, reference),
-        },
         addressPayload: {
           label: "Checkout local",
           receiverName,
@@ -341,12 +309,6 @@ function CheckoutPage() {
       deliveryAddress: `Envio nacional - ${deliveryAddress}. Telefono: ${phone}${
         receiverName ? `. Recibe: ${receiverName}` : ""
       }${nationalAddress.reference ? `. Referencia: ${nationalAddress.reference}` : ""}`,
-      shipmentPayload: {
-        type: "national_shipping",
-        carrier: "buymarket",
-        deliveryAddress: `Envio nacional - ${deliveryAddress}`,
-        notes: buildShipmentNotes(receiverName, phone, nationalAddress.reference),
-      },
       addressPayload: {
         label: "Checkout nacional",
         receiverName,
@@ -406,10 +368,15 @@ function CheckoutPage() {
       return;
     }
 
+    if (transferProofFile.size > transferProofMaxSize) {
+      setError("El comprobante no puede superar los 5 MB.");
+      return;
+    }
+
     const paymentId = transferOrder.payment?.id;
 
     if (!paymentId) {
-      setError("No se encontro el pago asociado a la orden.");
+      setError("No se encontro el pago asociado a la orden. Intenta recargar tus pedidos.");
       return;
     }
 
@@ -418,10 +385,29 @@ function CheckoutPage() {
       setError("");
       await uploadTransferProof(paymentId, transferProofFile);
       setIsTransferNotified(true);
-    } catch {
-      setError("No se pudo enviar el comprobante. Intentalo nuevamente.");
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "No se pudo enviar el comprobante. Intentalo nuevamente."
+      );
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function saveCheckoutAddressIfNeeded(
+    addressPayload?: CreateUserAddressPayload
+  ) {
+    if (!addressPayload) return;
+
+    try {
+      const createdAddress = await createUserAddress(addressPayload);
+      setAddresses((prev) => [...prev, createdAddress]);
+      setSelectedAddressId(createdAddress.id);
+      setAddressMode("saved");
+    } catch {
+      // La orden ya fue creada; no bloqueamos el siguiente paso por no guardar la direccion.
     }
   }
 
@@ -457,23 +443,10 @@ function CheckoutPage() {
       }
 
       if (form.paymentMethod === "transfer") {
-        if (shipmentResult.addressPayload) {
-          const createdAddress = await createUserAddress(
-            shipmentResult.addressPayload
-          );
-          setAddresses((prev) => [...prev, createdAddress]);
-          setSelectedAddressId(createdAddress.id);
-          setAddressMode("saved");
-        }
-
-        await createShipment({
-          orderId: order.id,
-          ...shipmentResult.shipmentPayload,
-        });
-
         setCart([]);
         window.dispatchEvent(new Event(CART_CHANGE_EVENT));
         setTransferOrder(order);
+        void saveCheckoutAddressIfNeeded(shipmentResult.addressPayload);
         return;
       }
 
@@ -523,11 +496,11 @@ function CheckoutPage() {
 
   if (mercadoPagoOrder) {
     return (
-      <section className="mx-auto max-w-2xl rounded-3xl border border-blue-200 bg-blue-50 p-8">
-        <h1 className="m-0 text-3xl font-black text-blue-950">
+      <section className="mx-auto max-w-2xl rounded-3xl border border-[var(--brand-border)] bg-[var(--brand-soft)] p-8">
+        <h1 className="m-0 text-3xl font-black text-[var(--text-main)]">
           Orden creada
         </h1>
-        <p className="mt-2 font-semibold text-blue-800">
+        <p className="mt-2 font-semibold text-[var(--brand-hover)]">
           La orden #{mercadoPagoOrder.id.slice(0, 8)} esta pendiente de pago en
           Mercado Pago.
         </p>
@@ -542,7 +515,7 @@ function CheckoutPage() {
           type="button"
           onClick={handleRetryMercadoPago}
           disabled={isSubmitting}
-          className="mt-6 w-full rounded-xl bg-blue-600 px-6 py-4 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+          className="mt-6 w-full rounded-xl bg-[var(--brand)] px-6 py-4 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
         >
           {isSubmitting ? "Abriendo Mercado Pago..." : "Pagar con Mercado Pago"}
         </button>
@@ -624,14 +597,28 @@ function CheckoutPage() {
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                onChange={(event) =>
-                  setTransferProofFile(event.target.files?.[0] ?? null)
-                }
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+
+                  setTransferProofFile(file);
+
+                  if (file && file.size > transferProofMaxSize) {
+                    setError("El comprobante no puede superar los 5 MB.");
+                    return;
+                  }
+
+                  setError("");
+                }}
                 className="w-full rounded-xl border border-amber-300 px-4 py-3 outline-none focus:border-amber-600"
               />
               <span className="mt-2 block text-sm font-semibold text-amber-800">
-                Formatos permitidos: JPG, PNG o WebP.
+                Formatos permitidos: JPG, PNG o WebP. Maximo 5 MB.
               </span>
+              {transferProofFile && (
+                <span className="mt-2 block rounded-xl bg-white px-3 py-2 text-sm font-semibold text-amber-900">
+                  {transferProofFile.name} ({formatFileSize(transferProofFile.size)})
+                </span>
+              )}
             </label>
 
             {error && (
@@ -660,7 +647,7 @@ function CheckoutPage() {
         </h1>
         <Link
           to="/products"
-          className="mt-4 inline-flex rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700"
+          className="mt-4 inline-flex rounded-xl bg-[var(--brand)] px-5 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)]"
         >
           Ver productos
         </Link>
@@ -699,7 +686,7 @@ function CheckoutPage() {
                 onChange={(event) =>
                   setShipmentType(event.target.value as CheckoutShipmentType)
                 }
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
               >
                 <option value="local">Envio local</option>
                 <option value="national">Envio nacional</option>
@@ -713,8 +700,8 @@ function CheckoutPage() {
                   onClick={() => setAddressMode("saved")}
                   className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
                     addressMode === "saved"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-slate-600 hover:bg-blue-50"
+                      ? "bg-[var(--brand)] text-white"
+                      : "bg-white text-slate-600 hover:bg-[var(--brand-soft)]"
                   }`}
                 >
                   Usar direccion guardada
@@ -724,8 +711,8 @@ function CheckoutPage() {
                   onClick={() => setAddressMode("manual")}
                   className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
                     addressMode === "manual"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-slate-600 hover:bg-blue-50"
+                      ? "bg-[var(--brand)] text-white"
+                      : "bg-white text-slate-600 hover:bg-[var(--brand-soft)]"
                   }`}
                 >
                   Usar otra direccion
@@ -741,7 +728,7 @@ function CheckoutPage() {
                 <select
                   value={selectedAddressId}
                   onChange={(event) => setSelectedAddressId(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
                 >
                   <option value="">Seleccionar direccion</option>
                   {addresses.map((address) => (
@@ -764,7 +751,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.receiverName}
                         onChange={handleShippingAddressChange}
                         placeholder="Opcional"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block">
@@ -776,7 +763,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.phone}
                         onChange={handleShippingAddressChange}
                         placeholder="Telefono"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block sm:col-span-2">
@@ -788,7 +775,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.addressLine}
                         onChange={handleShippingAddressChange}
                         placeholder="Calle, numero o referencia"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block sm:col-span-2">
@@ -800,7 +787,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.city}
                         onChange={handleShippingAddressChange}
                         placeholder="Localidad"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                   </>
@@ -815,7 +802,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.receiverName}
                         onChange={handleShippingAddressChange}
                         placeholder="Opcional"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block">
@@ -827,7 +814,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.phone}
                         onChange={handleShippingAddressChange}
                         placeholder="Telefono"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block">
@@ -839,7 +826,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.street}
                         onChange={handleShippingAddressChange}
                         placeholder="Calle"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block">
@@ -851,7 +838,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.number}
                         onChange={handleShippingAddressChange}
                         placeholder="Numero"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block">
@@ -863,7 +850,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.city}
                         onChange={handleShippingAddressChange}
                         placeholder="Localidad"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block">
@@ -875,7 +862,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.province}
                         onChange={handleShippingAddressChange}
                         placeholder="Provincia"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block">
@@ -887,7 +874,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.postalCode}
                         onChange={handleShippingAddressChange}
                         placeholder="Codigo postal"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block">
@@ -899,7 +886,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.floor}
                         onChange={handleShippingAddressChange}
                         placeholder="Opcional"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block">
@@ -911,7 +898,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.apartment}
                         onChange={handleShippingAddressChange}
                         placeholder="Opcional"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                     <label className="block sm:col-span-2">
@@ -923,7 +910,7 @@ function CheckoutPage() {
                         value={shippingAddressForm.reference}
                         onChange={handleShippingAddressChange}
                         placeholder="Indicaciones adicionales"
-                        className="min-h-24 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                        className="min-h-24 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
                     </label>
                   </>
@@ -940,7 +927,7 @@ function CheckoutPage() {
               name="paymentMethod"
               value={form.paymentMethod}
               onChange={handleChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
             >
               <option value="mercado_pago">Mercado Pago</option>
               <option value="cash">Efectivo</option>
@@ -957,14 +944,14 @@ function CheckoutPage() {
               value={form.notes}
               onChange={handleChange}
               placeholder="Indicaciones para la entrega"
-              className="min-h-28 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+              className="min-h-28 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
             />
           </label>
         </div>
 
         <button
           disabled={isSubmitting}
-          className="mt-6 w-full rounded-xl bg-blue-600 px-6 py-4 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+          className="mt-6 w-full rounded-xl bg-[var(--brand)] px-6 py-4 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
         >
           {isSubmitting
             ? form.paymentMethod === "mercado_pago"

@@ -1,4 +1,5 @@
 import { api } from "./api";
+import axios from "axios";
 import type { OrderStatus } from "../types/Order";
 
 export type MercadoPagoPreference = {
@@ -42,11 +43,21 @@ export async function uploadTransferProof(
 
   formData.append("file", file);
 
-  await api.post(`/payments/${paymentId}/proof`, formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  try {
+    await api.post(`/payments/${paymentId}/proof`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 413) {
+      throw new Error("El comprobante no puede superar los 5 MB.", {
+        cause: error,
+      });
+    }
+
+    throw error;
+  }
 }
 
 export async function approveTransferPayment(

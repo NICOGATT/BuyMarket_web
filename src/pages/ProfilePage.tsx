@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Star,
   Trash2,
+  Truck,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { getCurrentAuthUser, sendVerificationCode } from "../shared/services/auth.service";
@@ -76,7 +77,7 @@ const withdrawalStatusLabels: Record<string, string> = {
 
 const withdrawalStatusClasses: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
-  approved: "bg-blue-100 text-blue-700",
+  approved: "bg-[var(--brand-soft)] text-[var(--brand-hover)]",
   paid: "bg-green-100 text-green-700",
   rejected: "bg-red-100 text-red-700",
   cancelled: "bg-slate-200 text-slate-600",
@@ -407,7 +408,7 @@ function ProfilePage() {
     <section className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-black uppercase text-blue-600">
+          <p className="text-sm font-black uppercase text-[var(--brand)]">
             Cuenta
           </p>
           <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">
@@ -417,7 +418,7 @@ function ProfilePage() {
 
         <NavLink
           to="/products/create"
-          className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-5 font-bold text-white transition hover:bg-blue-700"
+          className="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--brand)] px-5 font-bold text-white transition hover:bg-[var(--brand-hover)]"
         >
           Publicar producto
         </NavLink>
@@ -464,11 +465,11 @@ function ProfilePage() {
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]">
                   <ShieldCheck className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="text-sm font-black uppercase text-blue-600">
+                  <p className="text-sm font-black uppercase text-[var(--brand)]">
                     Seguridad
                   </p>
                   <h2 className="m-0 text-xl font-black text-slate-950">
@@ -509,7 +510,7 @@ function ProfilePage() {
                 type="button"
                 onClick={handleSendVerificationCode}
                 disabled={isSendingVerificationCode || !user.email || isEmailVerified}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-5 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
               >
                 <MailCheck className="h-5 w-5" aria-hidden="true" />
                 {isSendingVerificationCode
@@ -547,10 +548,10 @@ function ProfilePage() {
 
           <NavLink
             to="/profile/orders"
-            className="flex items-center justify-between gap-4 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:bg-blue-50"
+            className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--brand-border)] bg-white p-5 shadow-sm transition hover:border-[var(--brand)] hover:bg-[var(--brand-soft)]"
           >
             <span className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]">
                 <ShoppingBag className="h-5 w-5" aria-hidden="true" />
               </span>
               <span>
@@ -562,15 +563,37 @@ function ProfilePage() {
                 </span>
               </span>
             </span>
-            <span className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white">
+            <span className="shrink-0 rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white">
               Ver compras
+            </span>
+          </NavLink>
+
+          <NavLink
+            to="/profile/shipments"
+            className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--nav-blue-border)] bg-white p-5 shadow-sm transition hover:border-[var(--nav-blue-hover)] hover:bg-[var(--nav-blue-soft)]"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--nav-blue-soft)] text-[var(--nav-blue)]">
+                <Truck className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-xl font-black text-slate-950">
+                  Mis envíos
+                </span>
+                <span className="text-sm font-semibold text-slate-500">
+                  Seguir compras con envío y repartidor asignado
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 rounded-xl bg-[var(--nav-blue)] px-4 py-2 text-sm font-bold text-white">
+              Ver envíos
             </span>
           </NavLink>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                <Package className="h-5 w-5 text-[var(--brand)]" aria-hidden="true" />
                 <h2 className="m-0 text-xl font-black text-slate-950">
                   Mis productos
                 </h2>
@@ -578,7 +601,7 @@ function ProfilePage() {
 
               <NavLink
                 to="/products/create"
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-bold text-white transition hover:bg-blue-700"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--brand)] px-4 text-sm font-bold text-white transition hover:bg-[var(--brand-hover)]"
               >
                 Publicar
               </NavLink>
@@ -601,7 +624,7 @@ function ProfilePage() {
                 </p>
                 <NavLink
                   to="/products/create"
-                  className="mt-4 inline-flex rounded-xl bg-blue-600 px-4 py-2 font-bold text-white transition hover:bg-blue-700"
+                  className="mt-4 inline-flex rounded-xl bg-[var(--brand)] px-4 py-2 font-bold text-white transition hover:bg-[var(--brand-hover)]"
                 >
                   Publicar mi primer producto
                 </NavLink>
@@ -616,7 +639,7 @@ function ProfilePage() {
                       key={product.id}
                       className="flex flex-col gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-center"
                     >
-                      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white text-blue-600">
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white text-[var(--brand)]">
                         {image ? (
                           <img
                             src={image}
@@ -636,7 +659,7 @@ function ProfilePage() {
                           {product.description}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <span className="rounded-full bg-white px-3 py-1 text-sm font-black text-blue-600">
+                          <span className="rounded-full bg-white px-3 py-1 text-sm font-black text-[var(--brand)]">
                             ${Number(product.price).toLocaleString("es-AR")}
                           </span>
                           <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600">
@@ -650,7 +673,7 @@ function ProfilePage() {
 
                       <NavLink
                         to={`/products/${product.id}`}
-                        className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-blue-200 hover:text-blue-600"
+                        className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-[var(--brand-border)] hover:text-[var(--brand)]"
                       >
                         Ver
                       </NavLink>
@@ -663,7 +686,7 @@ function ProfilePage() {
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-blue-600" aria-hidden="true" />
+              <MapPin className="h-5 w-5 text-[var(--brand)]" aria-hidden="true" />
               <h2 className="m-0 text-xl font-black text-slate-950">
                 Mis direcciones
               </h2>
@@ -685,14 +708,14 @@ function ProfilePage() {
                 value={addressForm.label}
                 onChange={handleAddressChange}
                 required
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
               />
               <input
                 name="receiverName"
                 placeholder="Nombre de quien recibe (opcional)"
                 value={addressForm.receiverName ?? ""}
                 onChange={handleAddressChange}
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
               />
               <input
                 name="phone"
@@ -700,7 +723,7 @@ function ProfilePage() {
                 value={addressForm.phone}
                 onChange={handleAddressChange}
                 required
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
               />
               <input
                 name="street"
@@ -708,7 +731,7 @@ function ProfilePage() {
                 value={addressForm.street}
                 onChange={handleAddressChange}
                 required
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
               />
               <input
                 name="number"
@@ -716,7 +739,7 @@ function ProfilePage() {
                 value={addressForm.number}
                 onChange={handleAddressChange}
                 required
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
               />
               <input
                 name="postalCode"
@@ -724,7 +747,7 @@ function ProfilePage() {
                 value={addressForm.postalCode}
                 onChange={handleAddressChange}
                 required
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
               />
               <input
                 name="city"
@@ -732,7 +755,7 @@ function ProfilePage() {
                 value={addressForm.city}
                 onChange={handleAddressChange}
                 required
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
               />
               <input
                 name="province"
@@ -740,28 +763,28 @@ function ProfilePage() {
                 value={addressForm.province}
                 onChange={handleAddressChange}
                 required
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
               />
               <input
                 name="floor"
                 placeholder="Piso"
                 value={addressForm.floor}
                 onChange={handleAddressChange}
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
               />
               <input
                 name="apartment"
                 placeholder="Departamento"
                 value={addressForm.apartment}
                 onChange={handleAddressChange}
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
               />
               <textarea
                 name="reference"
                 placeholder="Referencia para el repartidor"
                 value={addressForm.reference}
                 onChange={handleAddressChange}
-                className="min-h-24 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 sm:col-span-2"
+                className="min-h-24 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] sm:col-span-2"
               />
 
               <label className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 font-bold text-slate-700 sm:col-span-2">
@@ -777,7 +800,7 @@ function ProfilePage() {
 
               <button
                 disabled={isSavingAddress}
-                className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300 sm:col-span-2"
+                className="rounded-xl bg-[var(--brand)] px-5 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8] sm:col-span-2"
               >
                 {isSavingAddress ? "Guardando..." : "Guardar direccion"}
               </button>
@@ -805,7 +828,7 @@ function ProfilePage() {
                             {address.label}
                           </h3>
                           {address.isDefault && (
-                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black uppercase text-blue-700">
+                            <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-black uppercase text-[var(--brand-hover)]">
                               Predeterminada
                             </span>
                           )}
@@ -831,7 +854,7 @@ function ProfilePage() {
                           <button
                             type="button"
                             onClick={() => handleSetDefaultAddress(address.id)}
-                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-blue-200 hover:text-blue-600"
+                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-[var(--brand-border)] hover:text-[var(--brand)]"
                             aria-label="Marcar como predeterminada"
                           >
                             <Star size={18} />
@@ -919,7 +942,7 @@ function ProfilePage() {
 
         <aside className="space-y-6">
           <section className="rounded-2xl bg-slate-950 p-6 text-white shadow-sm">
-            <p className="text-sm font-black uppercase text-blue-200">
+            <p className="text-sm font-black uppercase text-[#D8C7FF]">
               Billetera
             </p>
             <p className="mt-4 text-sm font-semibold text-slate-300">
@@ -958,7 +981,7 @@ function ProfilePage() {
                 setIsWithdrawalFormOpen((prev) => !prev);
               }}
               disabled={profileData.balance <= 0}
-              className="mt-6 w-full rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-600"
+              className="mt-6 w-full rounded-xl bg-[var(--brand)] px-5 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-slate-600"
             >
               Retirar dinero
             </button>
@@ -982,21 +1005,21 @@ function ProfilePage() {
                   value={withdrawalForm.amount}
                   onChange={handleWithdrawalChange}
                   placeholder="Monto a retirar"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                 />
                 <input
                   name="alias"
                   value={withdrawalForm.alias}
                   onChange={handleWithdrawalChange}
                   placeholder="Alias destino"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                 />
                 <input
                   name="cbu"
                   value={withdrawalForm.cbu}
                   onChange={handleWithdrawalChange}
                   placeholder="CBU destino"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                 />
               </div>
 
@@ -1008,7 +1031,7 @@ function ProfilePage() {
 
               <button
                 disabled={isRequestingWithdrawal}
-                className="mt-4 w-full rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                className="mt-4 w-full rounded-xl bg-[var(--brand)] px-5 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
               >
                 {isRequestingWithdrawal ? "Enviando..." : "Solicitar retiro"}
               </button>

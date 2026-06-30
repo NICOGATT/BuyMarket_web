@@ -1,4 +1,4 @@
-import { Menu, Search, ShoppingBag, ShoppingCart, User, X } from "lucide-react";
+import { Menu, Search, ShoppingBag, ShoppingCart, Truck, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { CART_CHANGE_EVENT, getCart } from "../features/cart/store/cartStore";
@@ -7,8 +7,8 @@ import { getUserFromToken, logout } from "../shared/utils/auth";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   isActive
-    ? "font-bold text-blue-600"
-    : "font-bold text-slate-700 transition hover:text-blue-600";
+    ? "font-bold text-[var(--nav-blue)]"
+    : "font-bold text-slate-700 transition hover:text-[var(--nav-blue-hover)]";
 
 function MainLayout() {
   const [isOpen, setIsOpen] = useState(false);
@@ -82,19 +82,19 @@ function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text-main)]">
+      <header className="sticky top-0 z-40 border-b border-[var(--nav-blue-border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(234,244,255,0.92))] shadow-[0_10px_30px_rgba(18,60,105,0.08)] backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-4 py-4 lg:grid-cols-[auto_minmax(280px,1fr)_auto] lg:items-center">
             <div className="flex items-center justify-between gap-4">
-              <NavLink to="/" className="text-2xl font-black text-blue-600 sm:text-3xl">
+              <NavLink to="/" className="text-2xl font-black text-[var(--nav-blue)] sm:text-3xl">
                 BuyMarket
               </NavLink>
 
               <button
                 type="button"
                 onClick={() => setIsOpen((current) => !current)}
-                className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-700 lg:hidden"
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--nav-blue-border)] bg-white/80 text-[var(--nav-blue)] lg:hidden"
                 aria-label="Abrir menu"
               >
                 {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -110,7 +110,7 @@ function MainLayout() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar productos"
-                className="h-12 w-full rounded-2xl border border-slate-300 bg-slate-50 pl-12 pr-4 font-semibold outline-none transition focus:border-blue-600 focus:bg-white"
+                className="h-12 w-full rounded-2xl border border-[var(--nav-blue-border)] bg-white/78 pl-12 pr-4 font-semibold text-[var(--text-main)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--nav-blue-hover)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(15,94,156,0.12)]"
               />
             </form>
 
@@ -128,12 +128,12 @@ function MainLayout() {
               >
                 <NavLink
                   to="/cart"
-                  className="relative flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-blue-200 hover:text-blue-600"
+                  className="relative flex h-12 items-center gap-2 rounded-2xl border border-[var(--nav-blue-border)] bg-white/86 px-4 font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-[var(--nav-blue-hover)] hover:text-[var(--nav-blue)] hover:shadow-[0_12px_24px_rgba(18,60,105,0.12)]"
                 >
                   <ShoppingCart className="h-5 w-5" aria-hidden="true" />
                   Carrito
                   {cartItemsCount > 0 && (
-                    <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-blue-600 px-2 text-xs font-black text-white">
+                    <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--brand)] px-2 text-xs font-black text-white">
                       {cartItemsCount}
                     </span>
                   )}
@@ -141,7 +141,7 @@ function MainLayout() {
 
                 {isCartPreviewOpen && (
                   <div className="absolute right-0 top-full z-30 w-80 pt-2">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+                    <div className="rounded-2xl border border-[var(--nav-blue-border)] bg-white p-4 shadow-[0_24px_60px_rgba(18,60,105,0.16)]">
                     <div className="mb-3 flex items-center justify-between">
                       <h3 className="m-0 text-lg font-black text-slate-950">
                         Tu carrito
@@ -163,7 +163,7 @@ function MainLayout() {
                               key={item.product.id}
                               className="flex gap-3 rounded-xl bg-slate-50 p-3"
                             >
-                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-xs font-black text-blue-600">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-xs font-black text-[var(--brand)]">
                                 x{item.quantity}
                               </div>
                               <div className="min-w-0 flex-1">
@@ -186,7 +186,7 @@ function MainLayout() {
                             <span className="font-bold text-slate-500">
                               Total
                             </span>
-                            <strong className="text-xl text-blue-600">
+                            <strong className="text-xl text-[var(--brand)]">
                               ${cartTotal.toLocaleString("es-AR")}
                             </strong>
                           </div>
@@ -194,7 +194,7 @@ function MainLayout() {
                           <NavLink
                             to="/checkout"
                             onClick={() => setIsCartPreviewOpen(false)}
-                            className="block rounded-xl bg-blue-600 px-4 py-3 text-center font-bold text-white transition hover:bg-blue-700"
+                            className="block rounded-xl bg-[var(--brand)] px-4 py-3 text-center font-bold text-white shadow-[0_12px_24px_rgba(45,0,107,0.20)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-hover)]"
                           >
                             Ir a pagar
                           </NavLink>
@@ -211,9 +211,9 @@ function MainLayout() {
                   <button
                     type="button"
                     onClick={() => setIsUserMenuOpen((current) => !current)}
-                    className="flex h-12 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-blue-200"
+                    className="flex h-12 items-center gap-3 rounded-2xl border border-[var(--nav-blue-border)] bg-white/86 px-4 font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-[var(--nav-blue-hover)] hover:shadow-[0_12px_24px_rgba(18,60,105,0.12)]"
                   >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nav-blue-soft)] text-[var(--nav-blue)]">
                       <User size={18} />
                     </span>
                     <span className="max-w-36 truncate">
@@ -228,7 +228,7 @@ function MainLayout() {
                         className="fixed inset-0 z-10"
                       />
 
-                      <div className="absolute right-0 z-20 mt-3 w-65 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg">
+                      <div className="absolute right-0 z-20 mt-3 w-65 rounded-2xl border border-[var(--nav-blue-border)] bg-white p-3 shadow-[0_24px_60px_rgba(18,60,105,0.16)]">
                         <p className="px-3 py-2 text-sm font-semibold text-slate-500">
                           {user.email ?? "Sesion activa"}
                         </p>
@@ -250,6 +250,15 @@ function MainLayout() {
                           Mis compras
                         </NavLink>
 
+                        <NavLink
+                          to="/profile/shipments"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-slate-700 hover:bg-slate-50"
+                        >
+                          <Truck size={18} />
+                          Mis envíos
+                        </NavLink>
+
                         <button
                           onClick={handleLogout}
                           className="w-full rounded-xl px-3 py-2 text-left font-bold text-red-600 hover:bg-red-50"
@@ -263,7 +272,7 @@ function MainLayout() {
               ) : (
                 <NavLink
                   to="/login"
-                  className="flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-blue-200 hover:text-blue-600"
+                  className="flex h-12 items-center gap-2 rounded-2xl border border-[var(--nav-blue-border)] bg-white/86 px-4 font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-[var(--nav-blue-hover)] hover:text-[var(--nav-blue)] hover:shadow-[0_12px_24px_rgba(18,60,105,0.12)]"
                 >
                   <User className="h-5 w-5" aria-hidden="true" />
                   Perfil
@@ -272,7 +281,7 @@ function MainLayout() {
             </div>
           </div>
 
-          <nav className="hidden items-center justify-center gap-8 border-t border-slate-100 py-3 text-sm font-bold lg:flex">
+          <nav className="hidden items-center justify-center gap-8 border-t border-[rgba(18,60,105,0.10)] py-3 text-sm font-bold lg:flex">
             <NavLink to="/" className={navLinkClass} end>
               Inicio
             </NavLink>
@@ -282,6 +291,11 @@ function MainLayout() {
             <NavLink to="/products/create" className={navLinkClass}>
               Vender
             </NavLink>
+            {user && (
+              <NavLink to="/profile/shipments" className={navLinkClass}>
+                Envíos
+              </NavLink>
+            )}
             {!user && (
               <>
                 <NavLink to="/login" className={navLinkClass}>
@@ -296,7 +310,7 @@ function MainLayout() {
         </div>
 
         {isOpen && (
-          <div className="border-t border-slate-200 bg-white lg:hidden">
+          <div className="border-t border-[var(--nav-blue-border)] bg-white/95 lg:hidden">
             <div className="flex flex-col gap-4 px-4 py-5 text-base font-bold text-slate-700 sm:px-6">
               <NavLink to="/" onClick={closeMenu} className={navLinkClass} end>
                 Inicio
@@ -325,6 +339,13 @@ function MainLayout() {
                     className={navLinkClass}
                   >
                     Mis compras
+                  </NavLink>
+                  <NavLink
+                    to="/profile/shipments"
+                    onClick={closeMenu}
+                    className={navLinkClass}
+                  >
+                    Envíos
                   </NavLink>
                   <button
                     type="button"

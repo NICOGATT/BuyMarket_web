@@ -224,7 +224,7 @@ function ProductDetailPage() {
                 aria-label={`Ver imagen ${index + 1}`}
                 className={`h-20 w-24 shrink-0 overflow-hidden rounded-2xl border-2 bg-slate-100 transition ${
                   selectedImageIndex === index
-                    ? "border-blue-600"
+                    ? "border-[var(--brand)]"
                     : "border-transparent hover:border-slate-300"
                 }`}
               >
@@ -246,7 +246,7 @@ function ProductDetailPage() {
 
           <div className="grid gap-3">
             <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
-              <User className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
+              <User className="mt-0.5 h-5 w-5 shrink-0 text-[var(--brand)]" aria-hidden="true" />
               <div>
                 <p className="m-0 text-sm font-black uppercase text-slate-500">
                   Publicado por
@@ -257,13 +257,24 @@ function ProductDetailPage() {
               </div>
             </div>
             <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
-              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
+              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-[var(--brand)]" aria-hidden="true" />
               <div>
                 <p className="m-0 text-sm font-black uppercase text-slate-500">
                   Horario
                 </p>
                 <p className="m-0 mt-1 font-bold text-slate-900">
                   {availableSchedule || "No informado"}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[var(--brand)]" aria-hidden="true" />
+              <div>
+                <p className="m-0 text-sm font-black uppercase text-slate-500">
+                  Retiro
+                </p>
+                <p className="m-0 mt-1 font-bold text-slate-900">
+                  {productAddress || "No informado"}
                 </p>
               </div>
             </div>
@@ -305,7 +316,7 @@ function ProductDetailPage() {
         </h1>
         <p className="mt-4 text-slate-600">{product.description}</p>
 
-        <p className="mt-6 text-4xl font-black text-blue-600">
+        <p className="mt-6 text-4xl font-black text-[var(--brand)]">
           ${product.price.toLocaleString("es-AR")}
         </p>
 
@@ -320,7 +331,7 @@ function ProductDetailPage() {
             type="button"
             onClick={handleAddToCart}
             disabled={isAddingToCart || isBuyingNow}
-            className="rounded-xl bg-blue-600 px-8 py-4 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+            className="rounded-xl bg-[var(--brand)] px-8 py-4 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
           >
             {isAddingToCart ? "Agregando..." : "Agregar al carrito"}
           </button>

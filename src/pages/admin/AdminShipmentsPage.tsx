@@ -138,6 +138,7 @@ function AdminShipmentsPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAdminShipments();
   }, []);
 
@@ -168,16 +169,19 @@ function AdminShipmentsPage() {
   async function handleCreateShipment(event: React.FormEvent) {
     event.preventDefault();
 
+    const contactNotes = buildContactNotes(
+      createForm.phone.trim(),
+      createForm.receiverName.trim(),
+      createForm.notes.trim()
+    );
+    const deliveryAddress = [createForm.deliveryAddress.trim(), contactNotes]
+      .filter(Boolean)
+      .join(". ");
     const payload: CreateShipmentPayload = {
       orderId: createForm.orderId,
       type: createForm.type,
       carrier: createForm.carrier,
-      deliveryAddress: createForm.deliveryAddress.trim(),
-      notes: buildContactNotes(
-        createForm.phone.trim(),
-        createForm.receiverName.trim(),
-        createForm.notes.trim()
-      ),
+      deliveryAddress,
     };
 
     if (!payload.orderId || !payload.deliveryAddress || !createForm.phone.trim()) {
@@ -288,7 +292,7 @@ function AdminShipmentsPage() {
               name="orderId"
               value={createForm.orderId}
               onChange={handleCreateFormChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
             >
               <option value="">
                 {ordersWithoutShipment.length === 0
@@ -309,7 +313,7 @@ function AdminShipmentsPage() {
               name="type"
               value={createForm.type}
               onChange={handleCreateFormChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
             >
               <option value="local_delivery">Local</option>
               <option value="national_shipping">Nacional</option>
@@ -324,7 +328,7 @@ function AdminShipmentsPage() {
               name="carrier"
               value={createForm.carrier}
               onChange={handleCreateFormChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
             >
               <option value="buymarket">BuyMarket</option>
               <option value="andreani">Andreani</option>
@@ -340,7 +344,7 @@ function AdminShipmentsPage() {
               value={createForm.phone}
               onChange={handleCreateFormChange}
               placeholder="Telefono de contacto"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
             />
           </label>
 
@@ -353,7 +357,7 @@ function AdminShipmentsPage() {
               value={createForm.receiverName}
               onChange={handleCreateFormChange}
               placeholder="Opcional"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
             />
           </label>
 
@@ -364,7 +368,7 @@ function AdminShipmentsPage() {
               value={createForm.notes}
               onChange={handleCreateFormChange}
               placeholder="Notas internas"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
             />
           </label>
 
@@ -377,14 +381,14 @@ function AdminShipmentsPage() {
               value={createForm.deliveryAddress}
               onChange={handleCreateFormChange}
               placeholder="Destino del envio"
-              className="min-h-24 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+              className="min-h-24 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
             />
           </label>
         </div>
 
         <button
           disabled={isCreating}
-          className="mt-5 rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+          className="mt-5 rounded-xl bg-[var(--brand)] px-5 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
         >
           {isCreating ? "Creando..." : "Crear envio"}
         </button>
@@ -401,7 +405,7 @@ function AdminShipmentsPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[1180px] text-left">
+          <table className="w-full min-w-[1080px] text-left">
             <thead className="bg-slate-50 text-sm text-slate-500">
               <tr>
                 <th className="px-5 py-4">Orden</th>
@@ -410,7 +414,6 @@ function AdminShipmentsPage() {
                 <th className="px-5 py-4">Transportista</th>
                 <th className="px-5 py-4">Estado</th>
                 <th className="px-5 py-4">Destino</th>
-                <th className="px-5 py-4">Contacto</th>
                 <th className="px-5 py-4">Repartidor</th>
                 <th className="px-5 py-4">Tracking</th>
                 <th className="px-5 py-4">Acciones</th>
@@ -437,7 +440,7 @@ function AdminShipmentsPage() {
                       "-"}
                   </td>
                   <td className="px-5 py-4">
-                    <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-blue-700">
+                    <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-sm font-bold text-[var(--brand-hover)]">
                       {statusLabels[shipment.status ?? "pending"] ??
                         shipment.status ??
                         "Pendiente"}
@@ -445,9 +448,6 @@ function AdminShipmentsPage() {
                   </td>
                   <td className="max-w-xs px-5 py-4 text-slate-600">
                     {shipment.deliveryAddress ?? "-"}
-                  </td>
-                  <td className="max-w-xs px-5 py-4 text-slate-600">
-                    {shipment.notes ?? shipment.phone ?? "-"}
                   </td>
                   <td className="px-5 py-4">
                     <div className="space-y-2">
@@ -466,13 +466,13 @@ function AdminShipmentsPage() {
                             }))
                           }
                           placeholder="driverId"
-                          className="w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-600"
+                          className="w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[var(--brand)]"
                         />
                         <button
                           type="button"
                           onClick={() => handleAssignDriver(shipment)}
                           disabled={workingShipmentId === shipment.id}
-                          className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white disabled:bg-blue-300"
+                          className="rounded-lg bg-[var(--brand)] px-3 py-2 text-sm font-bold text-white disabled:bg-[#BBA7E8]"
                         >
                           Asignar
                         </button>
@@ -482,7 +482,7 @@ function AdminShipmentsPage() {
                   <td className="px-5 py-4">
                     <div className="space-y-2">
                       <p className="text-sm font-semibold text-slate-600">
-                        {shipment.trackingCode ?? "-"}
+                        {shipment.trackingNumber ?? "-"}
                       </p>
                       <div className="flex gap-2">
                         <input
@@ -494,7 +494,7 @@ function AdminShipmentsPage() {
                             }))
                           }
                           placeholder="Tracking"
-                          className="w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-600"
+                          className="w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[var(--brand)]"
                         />
                         <button
                           type="button"

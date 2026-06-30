@@ -179,8 +179,8 @@ function ProductsPage() {
                 onClick={() => updateFilters({ category: "" })}
                 className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left font-bold transition ${
                   !selectedCategoryId
-                    ? "border-blue-600 bg-blue-50 text-blue-700"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-blue-200"
+                    ? "border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--brand-hover)]"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-[var(--brand-border)]"
                 }`}
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm font-black">
@@ -207,8 +207,8 @@ function ProductsPage() {
                       }
                       className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
                         isActive
-                          ? "border-blue-600 bg-blue-50 text-blue-700"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-blue-200"
+                          ? "border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--brand-hover)]"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-[var(--brand-border)]"
                       }`}
                     >
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-sm font-black text-slate-500">
@@ -254,7 +254,7 @@ function ProductsPage() {
                               onClick={() => updateFilters({ subCategory: "" })}
                               className={`w-full rounded-xl px-3 py-2 text-left text-sm font-bold transition ${
                                 !selectedSubCategoryId
-                                  ? "bg-blue-600 text-white"
+                                  ? "bg-[var(--brand)] text-white"
                                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                               }`}
                             >
@@ -272,7 +272,7 @@ function ProductsPage() {
                                 }
                                 className={`w-full rounded-xl px-3 py-2 text-left text-sm font-bold transition ${
                                   selectedSubCategoryId === subCategory.id
-                                    ? "bg-blue-600 text-white"
+                                    ? "bg-[var(--brand)] text-white"
                                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                                 }`}
                               >

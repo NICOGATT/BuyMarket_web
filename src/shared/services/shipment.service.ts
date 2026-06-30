@@ -19,6 +19,10 @@ export async function getShipments(): Promise<Shipment[]> {
   return response.data;
 }
 
+export async function getMyShipments(): Promise<Shipment[]> {
+  return getShipments();
+}
+
 export async function createShipment(
   payload: CreateShipmentPayload
 ): Promise<Shipment> {
@@ -27,7 +31,9 @@ export async function createShipment(
 
     return response.data;
   } catch (error) {
-    throw new Error(getApiErrorMessage(error, "No se pudo crear el envio."));
+    throw new Error(getApiErrorMessage(error, "No se pudo crear el envio."), {
+      cause: error,
+    });
   }
 }
 
@@ -43,7 +49,9 @@ export async function assignShipmentDriver(
 
     return response.data;
   } catch (error) {
-    throw new Error(getApiErrorMessage(error, "No se pudo asignar el repartidor."));
+    throw new Error(getApiErrorMessage(error, "No se pudo asignar el repartidor."), {
+      cause: error,
+    });
   }
 }
 
@@ -73,15 +81,17 @@ export async function cancelShipment(id: string): Promise<Shipment> {
 
 export async function updateTracking(
   id: string,
-  trackingCode: string
+  trackingNumber: string
 ): Promise<Shipment> {
   try {
     const response = await api.patch<Shipment>(`/shipments/${id}/tracking`, {
-      trackingCode,
+      trackingNumber,
     });
 
     return response.data;
   } catch (error) {
-    throw new Error(getApiErrorMessage(error, "No se pudo actualizar el tracking."));
+    throw new Error(getApiErrorMessage(error, "No se pudo actualizar el tracking."), {
+      cause: error,
+    });
   }
 }

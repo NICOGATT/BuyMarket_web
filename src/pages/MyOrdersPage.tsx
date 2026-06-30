@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Package, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Package, ShoppingBag, Truck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getMyOrders } from "../shared/services/order.service";
 import type { Order } from "../shared/types/Order";
@@ -59,6 +59,10 @@ function getOrderPaymentStatus(order: Order) {
   return "PENDING";
 }
 
+function getOrderShipment(order: Order) {
+  return order.shipment ?? order.shipments?.[0] ?? null;
+}
+
 function MyOrdersPage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -92,12 +96,12 @@ function MyOrdersPage() {
         <div>
           <Link
             to="/profile"
-            className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-blue-600"
+            className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-[var(--brand)]"
           >
             <ArrowLeft size={16} />
             Volver al perfil
           </Link>
-          <p className="mt-4 text-sm font-black uppercase text-blue-600">
+          <p className="mt-4 text-sm font-black uppercase text-[var(--brand)]">
             Cuenta
           </p>
           <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">
@@ -118,13 +122,13 @@ function MyOrdersPage() {
         </p>
       ) : orders.length === 0 ? (
         <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
-          <ShoppingBag className="mx-auto h-10 w-10 text-blue-600" />
+          <ShoppingBag className="mx-auto h-10 w-10 text-[var(--brand)]" />
           <h2 className="mt-4 text-2xl font-black text-slate-950">
             Todavia no realizaste compras
           </h2>
           <Link
             to="/products"
-            className="mt-5 inline-flex rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700"
+            className="mt-5 inline-flex rounded-xl bg-[var(--brand)] px-5 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)]"
           >
             Ver productos
           </Link>
@@ -135,6 +139,7 @@ function MyOrdersPage() {
             const paymentStatus = getOrderPaymentStatus(order);
             const firstItem = order.items?.[0];
             const extraItems = Math.max((order.items?.length ?? 0) - 1, 0);
+            const shipment = getOrderShipment(order);
 
             return (
               <article
@@ -147,7 +152,7 @@ function MyOrdersPage() {
                       Orden #{order.id.slice(0, 8)} - {formatDate(order.createdAt)}
                     </p>
                     <h2 className="mt-2 flex items-center gap-2 text-xl font-black text-slate-950">
-                      <Package className="h-5 w-5 shrink-0 text-blue-600" />
+                      <Package className="h-5 w-5 shrink-0 text-[var(--brand)]" />
                       <span className="truncate">
                         {firstItem?.product?.title ?? "Compra en BuyMarket"}
                         {extraItems > 0 ? ` +${extraItems} mas` : ""}
@@ -160,7 +165,7 @@ function MyOrdersPage() {
                     </p>
                   </div>
 
-                  <strong className="text-2xl font-black text-blue-600">
+                  <strong className="text-2xl font-black text-[var(--brand)]">
                     ${Number(order.total).toLocaleString("es-AR")}
                   </strong>
                 </div>
@@ -177,6 +182,15 @@ function MyOrdersPage() {
                   >
                     {paymentStatusLabels[paymentStatus] ?? paymentStatus}
                   </span>
+                  {shipment && (
+                    <Link
+                      to="/profile/shipments"
+                      className="inline-flex items-center gap-2 rounded-full bg-[var(--nav-blue)] px-3 py-1 text-sm font-black text-white transition hover:bg-[var(--nav-blue-hover)]"
+                    >
+                      <Truck className="h-4 w-4" aria-hidden="true" />
+                      Ver envío
+                    </Link>
+                  )}
                 </div>
               </article>
             );

@@ -89,7 +89,7 @@ function FeaturedProducts() {
                         Publicaciones con más actividad y productos promocionados.
                     </p>
                 </div>
-                <a href="/products" className="font-bold text-blue-600 hover:text-blue-700">
+                <a href="/products" className="font-bold text-[var(--brand)] hover:text-[var(--brand-hover)]">
                     Ver todos
                 </a>
             </div>

@@ -164,7 +164,7 @@ function CartPage() {
                 +
               </button>
 
-              <strong className="min-w-28 text-right text-xl text-blue-600">
+              <strong className="min-w-28 text-right text-xl text-[var(--brand)]">
                 ${(item.product.price * item.quantity).toLocaleString("es-AR")}
               </strong>
 
@@ -184,7 +184,7 @@ function CartPage() {
       <div className="mt-auto rounded-2xl bg-slate-950 p-6 text-white">
         <Link
           to="/checkout"
-          className="mb-5 block rounded-xl bg-blue-600 px-6 py-4 text-center font-bold text-white transition hover:bg-blue-700"
+          className="mb-5 block rounded-xl bg-[var(--brand)] px-6 py-4 text-center font-bold text-white transition hover:bg-[var(--brand-hover)]"
         >
           Ir a pagar
         </Link>

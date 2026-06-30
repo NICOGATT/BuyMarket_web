@@ -288,7 +288,7 @@ function CreateProductPage() {
   function renderAttributeInput(attribute: SubCategoryAttribute) {
     const value = attributeValues[attribute.id] ?? "";
     const commonClass =
-      "w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600";
+      "w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]";
 
     if (attribute.type === "select") {
       return (
@@ -352,7 +352,7 @@ function CreateProductPage() {
     <section className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-black uppercase text-blue-600">
+          <p className="text-sm font-black uppercase text-[var(--brand)]">
             Nueva publicación
           </p>
           <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">
@@ -366,7 +366,7 @@ function CreateProductPage() {
               key={item}
               className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-black ${
                 step >= item
-                  ? "bg-blue-600 text-white"
+                  ? "bg-[var(--brand)] text-white"
                   : "bg-slate-100 text-slate-500"
               }`}
             >
@@ -401,8 +401,8 @@ function CreateProductPage() {
                   onClick={() => setSelectedCategoryId(category.id)}
                   className={`rounded-2xl border p-4 text-left transition ${
                     selectedCategoryId === category.id
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-slate-200 bg-white hover:border-blue-200"
+                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                      : "border-slate-200 bg-white hover:border-[var(--brand-border)]"
                   }`}
                 >
                   <span className="block text-lg font-black text-slate-950">
@@ -426,7 +426,7 @@ function CreateProductPage() {
               value={selectedSubCategoryId}
               onChange={(event) => setSelectedSubCategoryId(event.target.value)}
               disabled={!selectedCategoryId || isLoadingSubCategories}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600 disabled:bg-slate-100 disabled:text-slate-500"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)] disabled:bg-slate-100 disabled:text-slate-500"
             >
               <option value="">
                 {isLoadingSubCategories
@@ -446,7 +446,7 @@ function CreateProductPage() {
           <button
             type="button"
             onClick={() => validateClassification() && setStep(2)}
-            className="mt-6 w-full rounded-xl bg-blue-600 px-6 py-4 font-bold text-white transition hover:bg-blue-700"
+            className="mt-6 w-full rounded-xl bg-[var(--brand)] px-6 py-4 font-bold text-white transition hover:bg-[var(--brand-hover)]"
           >
             Continuar
           </button>
@@ -458,7 +458,7 @@ function CreateProductPage() {
           <button
             type="button"
             onClick={() => setStep(1)}
-            className="mb-5 inline-flex items-center gap-2 font-bold text-slate-600 transition hover:text-blue-600"
+            className="mb-5 inline-flex items-center gap-2 font-bold text-slate-600 transition hover:text-[var(--brand)]"
           >
             <ChevronLeft size={18} />
             Volver
@@ -471,8 +471,8 @@ function CreateProductPage() {
             {selectedCategory?.name} / {selectedSubCategory?.name}
           </p>
 
-          <label className="mt-6 flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition hover:border-blue-300 hover:bg-blue-50">
-            <ImagePlus className="h-10 w-10 text-blue-600" aria-hidden="true" />
+          <label className="mt-6 flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition hover:border-[var(--brand-border)] hover:bg-[var(--brand-soft)]">
+            <ImagePlus className="h-10 w-10 text-[var(--brand)]" aria-hidden="true" />
             <span className="mt-3 text-lg font-black text-slate-950">
               Seleccionar imágenes
             </span>
@@ -516,7 +516,7 @@ function CreateProductPage() {
             type="button"
             onClick={handleContinueFromMedia}
             disabled={isUploadingMedia}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-4 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-6 py-4 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
           >
             <UploadCloud size={20} />
             {isUploadingMedia ? "Subiendo..." : "Continuar"}
@@ -532,7 +532,7 @@ function CreateProductPage() {
           <button
             type="button"
             onClick={() => setStep(2)}
-            className="mb-5 inline-flex items-center gap-2 font-bold text-slate-600 transition hover:text-blue-600"
+            className="mb-5 inline-flex items-center gap-2 font-bold text-slate-600 transition hover:text-[var(--brand)]"
           >
             <ChevronLeft size={18} />
             Volver
@@ -552,7 +552,7 @@ function CreateProductPage() {
               placeholder="Titulo"
               value={detailsForm.title}
               onChange={handleDetailsChange}
-              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 sm:col-span-2"
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] sm:col-span-2"
             />
 
             <textarea
@@ -560,7 +560,7 @@ function CreateProductPage() {
               placeholder="Descripcion"
               value={detailsForm.description}
               onChange={handleDetailsChange}
-              className="min-h-32 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 sm:col-span-2"
+              className="min-h-32 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] sm:col-span-2"
             />
 
             <input
@@ -571,7 +571,7 @@ function CreateProductPage() {
               placeholder="Precio"
               value={detailsForm.price}
               onChange={handleDetailsChange}
-              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
             />
 
             <input
@@ -581,7 +581,7 @@ function CreateProductPage() {
               placeholder="Stock"
               value={detailsForm.stock}
               onChange={handleDetailsChange}
-              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
             />
 
             <select
@@ -589,7 +589,7 @@ function CreateProductPage() {
               value={detailsForm.pickupAddressId}
               onChange={handleDetailsChange}
               disabled={isLoadingAddresses || addresses.length === 0}
-              className="rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-blue-600 disabled:bg-slate-100 disabled:text-slate-500 sm:col-span-2"
+              className="rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)] disabled:bg-slate-100 disabled:text-slate-500 sm:col-span-2"
             >
               <option value="">
                 {isLoadingAddresses
@@ -608,7 +608,7 @@ function CreateProductPage() {
             {addresses.length === 0 && !isLoadingAddresses && (
               <p className="text-sm font-semibold text-slate-500 sm:col-span-2">
                 Cargá una dirección desde{" "}
-                <Link to="/profile" className="font-bold text-blue-600 hover:underline">
+                <Link to="/profile" className="font-bold text-[var(--brand)] hover:underline">
                   Mi perfil
                 </Link>
                 .
@@ -620,7 +620,7 @@ function CreateProductPage() {
               placeholder="Horario disponible"
               value={detailsForm.horarioDisponible}
               onChange={handleDetailsChange}
-              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 sm:col-span-2"
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] sm:col-span-2"
             />
           </div>
 
@@ -677,7 +677,7 @@ function CreateProductPage() {
 
           <button
             disabled={isSubmiting}
-            className="mt-8 w-full rounded-xl bg-blue-600 px-6 py-4 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+            className="mt-8 w-full rounded-xl bg-[var(--brand)] px-6 py-4 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
           >
             {isSubmiting ? "Publicando..." : "Publicar producto"}
           </button>

@@ -15,7 +15,7 @@ const withdrawalStatusLabels: Record<string, string> = {
 
 const withdrawalStatusClasses: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
-  approved: "bg-blue-100 text-blue-700",
+  approved: "bg-[var(--brand-soft)] text-[var(--brand-hover)]",
   paid: "bg-green-100 text-green-700",
   rejected: "bg-red-100 text-red-700",
   cancelled: "bg-slate-200 text-slate-600",
@@ -176,7 +176,7 @@ function AdminWithdrawalsPage() {
                       </p>
                     </td>
 
-                    <td className="px-5 py-4 font-black text-blue-600">
+                    <td className="px-5 py-4 font-black text-[var(--brand)]">
                       {formatMoney(withdrawal.amount)}
                     </td>
 
@@ -213,7 +213,7 @@ function AdminWithdrawalsPage() {
                             }))
                           }
                           placeholder="Nota opcional"
-                          className="w-56 rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-blue-600"
+                          className="w-56 rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-[var(--brand)]"
                         />
                       ) : (
                         <span className="text-sm font-semibold text-slate-500">

@@ -128,7 +128,7 @@ function CategoryProductSections() {
 
               <Link
                 to={`/products?category=${category.id}`}
-                className="font-bold text-blue-600 transition hover:text-blue-700"
+                className="font-bold text-[var(--brand)] transition hover:text-[var(--brand-hover)]"
               >
                 Ver categoría
               </Link>

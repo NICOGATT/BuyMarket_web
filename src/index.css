@@ -1,13 +1,28 @@
 
 :root {
+  --brand: #2D006B;
+  --brand-hover: #240055;
+  --brand-soft: #F2ECFF;
+  --brand-border: #D8C7FF;
+  --nav-blue: #123C69;
+  --nav-blue-hover: #0F5E9C;
+  --nav-blue-soft: #EAF4FF;
+  --nav-blue-border: #BFD7F2;
+  --surface: #FFFFFF;
+  --app-bg: #F8F7FC;
+  --text-main: #120A1F;
+  --text-muted: #675E76;
+  --brand-shadow: rgba(45, 0, 107, 0.24);
   /* --text: #6b6375;
   --text-h: #08060d; */
-  --bg: #fff;
-  --border: #e5e4e7;
+  --bg: var(--app-bg);
+  --text: var(--text-muted);
+  --text-h: var(--text-main);
+  --border: #E7E1F2;
   --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
+  --accent: var(--brand);
+  --accent-bg: rgba(45, 0, 107, 0.1);
+  --accent-border: rgba(45, 0, 107, 0.5);
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;

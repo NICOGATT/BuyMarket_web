@@ -453,7 +453,7 @@ function AdminSubCategoriesAttributesPage() {
             value={selectedCategoryId}
             onChange={(event) => void handleSelectCategory(event.target.value)}
             disabled={isLoadingCategories}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 disabled:cursor-not-allowed disabled:bg-slate-100"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
           >
             <option value="">
               {isLoadingCategories
@@ -494,7 +494,7 @@ function AdminSubCategoriesAttributesPage() {
               onChange={(event) => setSubCategoryName(event.target.value)}
               disabled={!selectedCategoryId || savingSubCategory}
               placeholder="Nombre de la subcategoria"
-              className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 disabled:cursor-not-allowed disabled:bg-slate-100"
+              className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
             />
 
             {editingSubCategoryId && (
@@ -511,7 +511,7 @@ function AdminSubCategoriesAttributesPage() {
             <button
               type="submit"
               disabled={!selectedCategoryId || savingSubCategory}
-              className="flex h-12 w-full min-w-12 items-center justify-center rounded-xl bg-blue-600 px-4 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              className="flex h-12 w-full min-w-12 items-center justify-center rounded-xl bg-[var(--brand)] px-4 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               <Plus className="h-5 w-5" aria-hidden="true" />
               <span className="ml-2">
@@ -535,7 +535,7 @@ function AdminSubCategoriesAttributesPage() {
                   key={subCategory.id}
                   className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
                     selectedSubCategoryId === subCategory.id
-                      ? "border-blue-200 bg-blue-50"
+                      ? "border-[var(--brand-border)] bg-[var(--brand-soft)]"
                       : "border-slate-200 bg-white"
                   }`}
                 >
@@ -599,7 +599,7 @@ function AdminSubCategoriesAttributesPage() {
                 }
                 disabled={!selectedSubCategoryId || savingAttribute}
                 placeholder="Nombre del atributo"
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 disabled:cursor-not-allowed disabled:bg-slate-100"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
               />
 
               <select
@@ -615,7 +615,7 @@ function AdminSubCategoriesAttributesPage() {
                   }))
                 }
                 disabled={!selectedSubCategoryId || savingAttribute}
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 disabled:cursor-not-allowed disabled:bg-slate-100"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
               >
                 {subCategoryAttributeTypes.map((type) => (
                   <option key={type} value={type}>
@@ -636,7 +636,7 @@ function AdminSubCategoriesAttributesPage() {
                   }))
                 }
                 disabled={!selectedSubCategoryId || savingAttribute}
-                className="h-5 w-5 rounded border-slate-300 text-blue-600"
+                className="h-5 w-5 rounded border-slate-300 text-[var(--brand)]"
               />
               Obligatorio
             </label>
@@ -663,7 +663,7 @@ function AdminSubCategoriesAttributesPage() {
                 disabled={
                   !selectedCategoryId || Boolean(editingAttributeId) || savingAttribute
                 }
-                className="h-5 w-5 rounded border-slate-300 text-blue-600"
+                className="h-5 w-5 rounded border-slate-300 text-[var(--brand)]"
               />
               Aplicar este atributo a varias subcategorias
             </label>
@@ -708,7 +708,7 @@ function AdminSubCategoriesAttributesPage() {
                         onChange={() =>
                           handleToggleAttributeSubCategory(subCategory.id)
                         }
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                        className="h-4 w-4 rounded border-slate-300 text-[var(--brand)]"
                       />
                       <span className="min-w-0 truncate">
                         {subCategory.name}
@@ -730,7 +730,7 @@ function AdminSubCategoriesAttributesPage() {
                 }
                 disabled={!selectedSubCategoryId || savingAttribute}
                 placeholder="Opciones separadas por coma: S, M, L, XL"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 disabled:cursor-not-allowed disabled:bg-slate-100"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
               />
             )}
 
@@ -748,7 +748,7 @@ function AdminSubCategoriesAttributesPage() {
               <button
                 type="submit"
                 disabled={!selectedSubCategoryId || savingAttribute}
-                className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-[var(--brand)] px-6 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {editingAttributeId ? "Guardar atributo" : "Agregar atributo"}
               </button>
