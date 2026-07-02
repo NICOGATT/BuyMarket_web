@@ -165,9 +165,9 @@ function ProductDetailPage() {
   }
 
   return (
-    <section className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-10">
+    <section className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-10">
       <div className="min-w-0">
-        <div className="relative max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-sm">
+        <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm sm:rounded-3xl">
           {selectedImage ? (
             <button
               type="button"
@@ -239,41 +239,41 @@ function ProductDetailPage() {
           </div>
         )}
 
-        <div className="mt-8 space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm w-230">
+        <div className="mt-8 w-full space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
           <h2 className="m-0 text-xl font-black text-slate-950">
             Datos de la publicacion
           </h2>
 
           <div className="grid gap-3">
-            <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+            <div className="flex min-w-0 gap-3 rounded-2xl bg-slate-50 p-4">
               <User className="mt-0.5 h-5 w-5 shrink-0 text-[var(--brand)]" aria-hidden="true" />
-              <div>
+              <div className="min-w-0">
                 <p className="m-0 text-sm font-black uppercase text-slate-500">
                   Publicado por
                 </p>
-                <p className="m-0 mt-1 font-bold text-slate-900">
+                <p className="m-0 mt-1 break-words font-bold text-slate-900">
                   {publisherName || "No informado"}
                 </p>
               </div>
             </div>
-            <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+            <div className="flex min-w-0 gap-3 rounded-2xl bg-slate-50 p-4">
               <Clock className="mt-0.5 h-5 w-5 shrink-0 text-[var(--brand)]" aria-hidden="true" />
-              <div>
+              <div className="min-w-0">
                 <p className="m-0 text-sm font-black uppercase text-slate-500">
                   Horario
                 </p>
-                <p className="m-0 mt-1 font-bold text-slate-900">
+                <p className="m-0 mt-1 break-words font-bold text-slate-900">
                   {availableSchedule || "No informado"}
                 </p>
               </div>
             </div>
-            <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+            <div className="flex min-w-0 gap-3 rounded-2xl bg-slate-50 p-4">
               <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[var(--brand)]" aria-hidden="true" />
-              <div>
+              <div className="min-w-0">
                 <p className="m-0 text-sm font-black uppercase text-slate-500">
                   Retiro
                 </p>
-                <p className="m-0 mt-1 font-bold text-slate-900">
+                <p className="m-0 mt-1 break-words font-bold text-slate-900">
                   {productAddress || "No informado"}
                 </p>
               </div>
@@ -281,7 +281,7 @@ function ProductDetailPage() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm w-230">
+        <div className="mt-6 w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
           <h2 className="m-0 text-xl font-black text-slate-950">
             Caracteristicas
           </h2>
@@ -310,13 +310,13 @@ function ProductDetailPage() {
         </div>
       </div>
 
-      <div>
+      <div className="min-w-0">
         <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">
           {product.title}
         </h1>
-        <p className="mt-4 text-slate-600">{product.description}</p>
+        <p className="mt-4 break-words text-slate-600">{product.description}</p>
 
-        <p className="mt-6 text-4xl font-black text-[var(--brand)]">
+        <p className="mt-6 text-3xl font-black text-[var(--brand)] sm:text-4xl">
           ${product.price.toLocaleString("es-AR")}
         </p>
 
@@ -326,12 +326,12 @@ function ProductDetailPage() {
           </p>
         )}
 
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={isAddingToCart || isBuyingNow}
-            className="rounded-xl bg-[var(--brand)] px-8 py-4 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
+            className="w-full rounded-xl bg-[var(--brand)] px-6 py-4 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8] sm:w-auto sm:px-8"
           >
             {isAddingToCart ? "Agregando..." : "Agregar al carrito"}
           </button>
@@ -340,7 +340,7 @@ function ProductDetailPage() {
             type="button"
             onClick={handleBuyNow}
             disabled={isAddingToCart || isBuyingNow}
-            className="rounded-xl bg-emerald-600 px-8 py-4 font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+            className="w-full rounded-xl bg-emerald-600 px-6 py-4 font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300 sm:w-auto sm:px-8"
           >
             {isBuyingNow ? "Preparando tu compra..." : "Comprar ahora"}
           </button>

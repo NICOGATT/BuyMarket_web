@@ -103,7 +103,7 @@ function CartPage() {
 
   if (cart.length === 0) {
     return (
-      <section className="items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10">
+      <section className="items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 sm:rounded-3xl sm:p-10">
         <h1 className="text-2xl font-black text-slate-900">
           Tu carrito esta vacio
         </h1>
@@ -117,11 +117,11 @@ function CartPage() {
   return (
     <section className="flex min-h-[calc(100vh-220px)] flex-col">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="m-0 text-4xl font-black text-slate-950">Carrito</h1>
+        <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">Carrito</h1>
         <button
           type="button"
           onClick={handleClearCart}
-          className="rounded-xl bg-red-50 px-4 py-2 font-bold text-red-600 transition hover:bg-red-100"
+          className="w-full rounded-xl bg-red-50 px-4 py-2 font-bold text-red-600 transition hover:bg-red-100 sm:w-auto"
         >
           Vaciar carrito
         </button>
@@ -131,19 +131,19 @@ function CartPage() {
         {cart.map((item) => (
           <article
             key={item.id ?? item.product.id}
-            className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+            className="flex min-w-0 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5"
           >
-            <div>
-              <h2 className="text-xl font-black text-slate-900">
+            <div className="min-w-0">
+              <h2 className="break-words text-lg font-black text-slate-900 sm:text-xl">
                 {item.product.title}
               </h2>
 
-              <p className="text-slate-500">
+              <p className="break-words text-slate-500">
                 ${item.product.price.toLocaleString("es-AR")} por unidad
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="grid grid-cols-[auto_auto_auto_1fr] items-center gap-3 sm:flex sm:flex-wrap sm:justify-end">
               <button
                 type="button"
                 onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
@@ -164,7 +164,7 @@ function CartPage() {
                 +
               </button>
 
-              <strong className="min-w-28 text-right text-xl text-[var(--brand)]">
+              <strong className="col-span-4 text-left text-xl text-[var(--brand)] sm:col-span-1 sm:min-w-28 sm:text-right">
                 ${(item.product.price * item.quantity).toLocaleString("es-AR")}
               </strong>
 
@@ -172,7 +172,7 @@ function CartPage() {
                 type="button"
                 onClick={() => handleRemoveItem(item)}
                 disabled={!item.id || updatingItemId === item.id}
-                className="rounded-xl bg-red-50 px-4 py-2 font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="col-span-4 rounded-xl bg-red-50 px-4 py-2 font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1"
               >
                 Eliminar
               </button>
@@ -181,7 +181,7 @@ function CartPage() {
         ))}
       </div>
 
-      <div className="mt-auto rounded-2xl bg-slate-950 p-6 text-white">
+      <div className="mt-6 rounded-2xl bg-slate-950 p-5 text-white sm:mt-auto sm:p-6">
         <Link
           to="/checkout"
           className="mb-5 block rounded-xl bg-[var(--brand)] px-6 py-4 text-center font-bold text-white transition hover:bg-[var(--brand-hover)]"

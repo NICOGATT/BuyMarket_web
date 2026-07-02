@@ -144,7 +144,7 @@ function ProductsPage() {
 
   return (
     <section>
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">
           Explorar productos
         </h1>
@@ -155,9 +155,9 @@ function ProductsPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-36 lg:self-start">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
             <div className="mb-4 flex items-center justify-between gap-4">
               <h2 className="m-0 text-xl font-black text-slate-950">
                 Categorias
@@ -173,7 +173,7 @@ function ProductsPage() {
               )}
             </div>
 
-            <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
+            <div className="space-y-2 overflow-y-auto pr-1 lg:max-h-[55vh]">
               <button
                 type="button"
                 onClick={() => updateFilters({ category: "" })}

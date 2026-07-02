@@ -85,15 +85,15 @@ function MainLayout() {
     <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text-main)]">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[linear-gradient(135deg,rgba(7,24,50,0.94),rgba(18,60,105,0.90)_48%,rgba(45,0,107,0.88))] shadow-[0_18px_48px_rgba(7,24,50,0.22)] backdrop-blur-2xl">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-4 py-4 lg:grid-cols-[auto_minmax(280px,1fr)_auto] lg:items-center">
+          <div className="grid gap-3 py-3 sm:gap-4 sm:py-4 lg:grid-cols-[auto_minmax(280px,1fr)_auto] lg:items-center">
             <div className="flex items-center justify-between gap-4">
-              <NavLink to="/" className="flex items-center gap-3">
+              <NavLink to="/" className="flex min-w-0 items-center gap-3">
                 <img
                   src="/BuyMarketLogoWeb.png"
                   alt="BuyMarket"
                   className="h-10 w-10 rounded-2xl object-contain shadow-sm"
                 />
-                <span className="text-2xl font-black text-white sm:text-3xl">
+                <span className="truncate text-2xl font-black text-white sm:text-3xl">
                   BuyMarket
                 </span>
               </NavLink>
@@ -235,7 +235,7 @@ function MainLayout() {
                         className="fixed inset-0 z-10"
                       />
 
-                      <div className="absolute right-0 z-20 mt-3 w-65 rounded-2xl border border-[var(--nav-blue-border)] bg-white p-3 shadow-[0_24px_60px_rgba(18,60,105,0.16)]">
+                      <div className="absolute right-0 z-20 mt-3 w-64 rounded-2xl border border-[var(--nav-blue-border)] bg-white p-3 shadow-[0_24px_60px_rgba(18,60,105,0.16)]">
                         <p className="px-3 py-2 text-sm font-semibold text-slate-500">
                           {user.email ?? "Sesión activa"}
                         </p>
@@ -318,7 +318,7 @@ function MainLayout() {
 
         {isOpen && (
           <div className="border-t border-white/10 bg-[#071832]/96 backdrop-blur-xl lg:hidden">
-            <div className="flex flex-col gap-4 px-4 py-5 text-base font-bold text-white/86 sm:px-6">
+            <div className="flex max-h-[calc(100svh-88px)] flex-col gap-4 overflow-y-auto px-4 py-5 text-base font-bold text-white/86 sm:px-6">
               <NavLink to="/" onClick={closeMenu} className={navLinkClass} end>
                 Inicio
               </NavLink>
@@ -377,11 +377,11 @@ function MainLayout() {
         )}
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <Outlet />
       </main>
       <footer className="mt-auto border-t border-[var(--nav-blue-border)] bg-white/82 backdrop-blur-xl">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr] lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr] lg:px-8">
           <div>
             <NavLink to="/" className="flex items-center gap-3">
               <img
