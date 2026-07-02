@@ -1,4 +1,4 @@
-import { Menu, Search, ShoppingBag, ShoppingCart, Truck, User, X } from "lucide-react";
+import { Mail, MapPin, Menu, Search, ShoppingBag, ShoppingCart, Truck, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { CART_CHANGE_EVENT, getCart } from "../features/cart/store/cartStore";
@@ -7,8 +7,8 @@ import { getUserFromToken, logout } from "../shared/utils/auth";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   isActive
-    ? "font-bold text-[var(--nav-blue)]"
-    : "font-bold text-slate-700 transition hover:text-[var(--nav-blue-hover)]";
+    ? "font-bold text-cyan-200"
+    : "font-bold text-white/82 transition hover:text-white";
 
 function MainLayout() {
   const [isOpen, setIsOpen] = useState(false);
@@ -83,18 +83,25 @@ function MainLayout() {
 
   return (
     <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text-main)]">
-      <header className="sticky top-0 z-40 border-b border-[var(--nav-blue-border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(234,244,255,0.92))] shadow-[0_10px_30px_rgba(18,60,105,0.08)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[linear-gradient(135deg,rgba(7,24,50,0.94),rgba(18,60,105,0.90)_48%,rgba(45,0,107,0.88))] shadow-[0_18px_48px_rgba(7,24,50,0.22)] backdrop-blur-2xl">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-4 py-4 lg:grid-cols-[auto_minmax(280px,1fr)_auto] lg:items-center">
             <div className="flex items-center justify-between gap-4">
-              <NavLink to="/" className="text-2xl font-black text-[var(--nav-blue)] sm:text-3xl">
-                BuyMarket
+              <NavLink to="/" className="flex items-center gap-3">
+                <img
+                  src="/BuyMarketLogoWeb.png"
+                  alt="BuyMarket"
+                  className="h-10 w-10 rounded-2xl object-contain shadow-sm"
+                />
+                <span className="text-2xl font-black text-white sm:text-3xl">
+                  BuyMarket
+                </span>
               </NavLink>
 
               <button
                 type="button"
                 onClick={() => setIsOpen((current) => !current)}
-                className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--nav-blue-border)] bg-white/80 text-[var(--nav-blue)] lg:hidden"
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/18 bg-white/12 text-white backdrop-blur-xl lg:hidden"
                 aria-label="Abrir menu"
               >
                 {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -110,7 +117,7 @@ function MainLayout() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar productos"
-                className="h-12 w-full rounded-2xl border border-[var(--nav-blue-border)] bg-white/78 pl-12 pr-4 font-semibold text-[var(--text-main)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--nav-blue-hover)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(15,94,156,0.12)]"
+                className="h-12 w-full rounded-2xl border border-white/18 bg-white/92 pl-12 pr-4 font-semibold text-[var(--text-main)] outline-none shadow-[0_12px_28px_rgba(0,0,0,0.10)] transition placeholder:text-[var(--text-muted)] focus:border-cyan-200 focus:bg-white focus:shadow-[0_0_0_4px_rgba(125,211,252,0.18)]"
               />
             </form>
 
@@ -128,7 +135,7 @@ function MainLayout() {
               >
                 <NavLink
                   to="/cart"
-                  className="relative flex h-12 items-center gap-2 rounded-2xl border border-[var(--nav-blue-border)] bg-white/86 px-4 font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-[var(--nav-blue-hover)] hover:text-[var(--nav-blue)] hover:shadow-[0_12px_24px_rgba(18,60,105,0.12)]"
+                  className="relative flex h-12 items-center gap-2 rounded-2xl border border-white/18 bg-white/12 px-4 font-bold text-white backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-cyan-200/70 hover:bg-white/18 hover:shadow-[0_12px_24px_rgba(0,0,0,0.16)]"
                 >
                   <ShoppingCart className="h-5 w-5" aria-hidden="true" />
                   Carrito
@@ -153,7 +160,7 @@ function MainLayout() {
 
                     {cart.length === 0 ? (
                       <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm font-semibold text-slate-500">
-                        Todavia no agregaste productos.
+                        Todavía no agregaste productos.
                       </p>
                     ) : (
                       <>
@@ -211,9 +218,9 @@ function MainLayout() {
                   <button
                     type="button"
                     onClick={() => setIsUserMenuOpen((current) => !current)}
-                    className="flex h-12 items-center gap-3 rounded-2xl border border-[var(--nav-blue-border)] bg-white/86 px-4 font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-[var(--nav-blue-hover)] hover:shadow-[0_12px_24px_rgba(18,60,105,0.12)]"
+                    className="flex h-12 items-center gap-3 rounded-2xl border border-white/18 bg-white/12 px-4 font-bold text-white backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-cyan-200/70 hover:bg-white/18 hover:shadow-[0_12px_24px_rgba(0,0,0,0.16)]"
                   >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nav-blue-soft)] text-[var(--nav-blue)]">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/18 text-cyan-100">
                       <User size={18} />
                     </span>
                     <span className="max-w-36 truncate">
@@ -230,7 +237,7 @@ function MainLayout() {
 
                       <div className="absolute right-0 z-20 mt-3 w-65 rounded-2xl border border-[var(--nav-blue-border)] bg-white p-3 shadow-[0_24px_60px_rgba(18,60,105,0.16)]">
                         <p className="px-3 py-2 text-sm font-semibold text-slate-500">
-                          {user.email ?? "Sesion activa"}
+                          {user.email ?? "Sesión activa"}
                         </p>
 
                         <NavLink
@@ -263,7 +270,7 @@ function MainLayout() {
                           onClick={handleLogout}
                           className="w-full rounded-xl px-3 py-2 text-left font-bold text-red-600 hover:bg-red-50"
                         >
-                          Cerrar sesion
+                          Cerrar sesión
                         </button>
                       </div>
                     </>
@@ -272,7 +279,7 @@ function MainLayout() {
               ) : (
                 <NavLink
                   to="/login"
-                  className="flex h-12 items-center gap-2 rounded-2xl border border-[var(--nav-blue-border)] bg-white/86 px-4 font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-[var(--nav-blue-hover)] hover:text-[var(--nav-blue)] hover:shadow-[0_12px_24px_rgba(18,60,105,0.12)]"
+                  className="flex h-12 items-center gap-2 rounded-2xl border border-white/18 bg-white/12 px-4 font-bold text-white backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-cyan-200/70 hover:bg-white/18 hover:shadow-[0_12px_24px_rgba(0,0,0,0.16)]"
                 >
                   <User className="h-5 w-5" aria-hidden="true" />
                   Perfil
@@ -281,7 +288,7 @@ function MainLayout() {
             </div>
           </div>
 
-          <nav className="hidden items-center justify-center gap-8 border-t border-[rgba(18,60,105,0.10)] py-3 text-sm font-bold lg:flex">
+          <nav className="hidden items-center justify-center gap-8 border-t border-white/10 py-3 text-sm font-bold lg:flex">
             <NavLink to="/" className={navLinkClass} end>
               Inicio
             </NavLink>
@@ -299,7 +306,7 @@ function MainLayout() {
             {!user && (
               <>
                 <NavLink to="/login" className={navLinkClass}>
-                  Iniciar sesion
+                  Iniciar sesión
                 </NavLink>
                 <NavLink to="/register" className={navLinkClass}>
                   Registrarse
@@ -310,8 +317,8 @@ function MainLayout() {
         </div>
 
         {isOpen && (
-          <div className="border-t border-[var(--nav-blue-border)] bg-white/95 lg:hidden">
-            <div className="flex flex-col gap-4 px-4 py-5 text-base font-bold text-slate-700 sm:px-6">
+          <div className="border-t border-white/10 bg-[#071832]/96 backdrop-blur-xl lg:hidden">
+            <div className="flex flex-col gap-4 px-4 py-5 text-base font-bold text-white/86 sm:px-6">
               <NavLink to="/" onClick={closeMenu} className={navLinkClass} end>
                 Inicio
               </NavLink>
@@ -352,13 +359,13 @@ function MainLayout() {
                     onClick={handleLogout}
                     className="text-left font-bold text-red-600 hover:text-red-700"
                   >
-                    Cerrar sesion
+                    Cerrar sesión
                   </button>
                 </>
               ) : (
                 <>
                   <NavLink to="/login" onClick={closeMenu} className={navLinkClass}>
-                    Iniciar sesion
+                    Iniciar sesión
                   </NavLink>
                   <NavLink to="/register" onClick={closeMenu} className={navLinkClass}>
                     Registrarse
@@ -370,9 +377,81 @@ function MainLayout() {
         )}
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Outlet />
       </main>
+      <footer className="mt-auto border-t border-[var(--nav-blue-border)] bg-white/82 backdrop-blur-xl">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr] lg:px-8">
+          <div>
+            <NavLink to="/" className="flex items-center gap-3">
+              <img
+                src="/BuyMarketLogoWeb.png"
+                alt="BuyMarket"
+                className="h-11 w-11 rounded-2xl object-contain"
+              />
+              <span className="text-2xl font-black text-[var(--nav-blue)]">
+                BuyMarket
+              </span>
+            </NavLink>
+            <p className="mt-4 max-w-sm text-sm font-semibold leading-6 text-slate-500">
+              Una plataforma para comprar, vender y descubrir productos con una experiencia moderna, simple y confiable.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-black uppercase tracking-wide text-slate-950">
+              Marketplace
+            </h3>
+            <div className="mt-4 grid gap-3 text-sm font-bold text-slate-500">
+              <NavLink to="/products" className="transition hover:text-[var(--brand)]">
+                Productos
+              </NavLink>
+              <NavLink to="/products/create" className="transition hover:text-[var(--brand)]">
+                Vender
+              </NavLink>
+              <NavLink to="/cart" className="transition hover:text-[var(--brand)]">
+                Carrito
+              </NavLink>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-black uppercase tracking-wide text-slate-950">
+              Cuenta
+            </h3>
+            <div className="mt-4 grid gap-3 text-sm font-bold text-slate-500">
+              <NavLink to="/login" className="transition hover:text-[var(--brand)]">
+                Iniciar sesión
+              </NavLink>
+              <NavLink to="/register" className="transition hover:text-[var(--brand)]">
+                Registrarse
+              </NavLink>
+              <NavLink to="/profile" className="transition hover:text-[var(--brand)]">
+                Mi perfil
+              </NavLink>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-black uppercase tracking-wide text-slate-950">
+              Contacto
+            </h3>
+            <div className="mt-4 grid gap-3 text-sm font-bold text-slate-500">
+              <span className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                soporte@buymarket.com
+              </span>
+              <span className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Argentina
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-slate-100 px-4 py-5 text-center text-sm font-semibold text-slate-500">
+          © {new Date().getFullYear()} BuyMarket. Todos los derechos reservados.
+        </div>
+      </footer>
     </div>
   );
 }

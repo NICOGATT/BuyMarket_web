@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Eye, ShoppingCart, Zap } from "lucide-react";
 import { addCart, isAuthRequiredError } from "../../cart/store/cartStore";
 import type { Category } from "../../../shared/types/Category";
 import type { Product, ProductCardProps } from "../../../shared/types/Product";
@@ -37,7 +38,7 @@ function ProductCard({
       alert("Producto agregado al carrito");
     } catch (error) {
       if (isAuthRequiredError(error)) {
-        alert("Inicia sesion para agregar productos al carrito.");
+        alert("Inicia sesión para agregar productos al carrito.");
         navigate("/login");
         return;
       }
@@ -55,7 +56,7 @@ function ProductCard({
       navigate("/checkout");
     } catch (error) {
       if (isAuthRequiredError(error)) {
-        alert("Inicia sesion para comprar.");
+        alert("Inicia sesión para comprar.");
         navigate("/login");
         return;
       }
@@ -67,12 +68,12 @@ function ProductCard({
   }
 
   return (
-    <article className="w-55 overflow-hidden rounded-2xl border border-[var(--brand-border)] bg-white shadow-sm transition hover:-translate-y-1 hover:border-[var(--brand)] hover:shadow-[0_22px_55px_rgba(45,0,107,0.14)]">
+    <article className="group flex h-full w-full flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-[0_12px_34px_rgba(18,60,105,0.07)] transition duration-300 hover:-translate-y-1 hover:border-[var(--brand-border)] hover:shadow-[0_24px_70px_rgba(18,60,105,0.14)]">
       {isBuyingNow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
           <div className="rounded-2xl bg-white px-6 py-5 text-center shadow-xl">
             <p className="text-lg font-black text-slate-950">
-              Se esta preparando tu compra
+              Se está preparando tu compra
             </p>
             <p className="mt-1 text-sm font-semibold text-slate-500">
               Estamos agregando el producto al carrito...
@@ -81,12 +82,15 @@ function ProductCard({
         </div>
       )}
 
-      <div className="relative aspect-[4/3] overflow-hidden border-b border-[var(--brand-border)] bg-[#F8F4FF]">
+      <div className="relative aspect-[4/3] overflow-hidden border-b border-slate-100 bg-[linear-gradient(135deg,#F8FBFF,#F5EFFF)]">
+        <span className="absolute left-4 top-4 z-10 rounded-full bg-white/88 px-3 py-1 text-xs font-black text-[var(--brand)] shadow-sm backdrop-blur">
+          Destacado
+        </span>
         {image ? (
           <img
             src={image}
             alt={title}
-            className="h-full w-full object-contain p-3"
+            className="h-full w-full object-contain p-5 transition duration-300 group-hover:scale-105"
             loading="lazy"
           />
         ) : (
@@ -96,43 +100,49 @@ function ProductCard({
         )}
       </div>
 
-      <div className="flex min-h-56 flex-1 flex-col p-5">
-        <h3 className="line-clamp-2 text-xl font-black text-[var(--text-main)]">
+      <div className="flex min-h-72 flex-1 flex-col p-5">
+        <h3 className="line-clamp-2 text-lg font-black leading-snug text-[var(--text-main)]">
           {title}
         </h3>
 
-        <p className="mt-2 text-sm font-bold text-[var(--brand)]">
-          {categoryName || "Sin categoria"}
+        <p className="mt-2 w-fit rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-black text-[var(--brand)]">
+          {categoryName || "Sin categoría"}
         </p>
 
-        <p className="mt-2 line-clamp-2 text-sm text-slate-500">
-          Para ver los detalles del producto, apreta el boton Ver detalles.
+        <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-slate-500">
+          {description || "Publicación disponible para ver detalles, comparar y comprar."}
         </p>
 
-        <div className="mt-auto pt-3">
-          <span className="text-2xl font-black text-[var(--brand)]">
+        <div className="mt-auto pt-5">
+          <span className="block text-2xl font-black text-slate-950">
             ${price.toLocaleString("es-AR")}
           </span>
+          <span className="mt-1 block text-sm font-bold text-emerald-600">
+            Compra protegida
+          </span>
 
-          <div className="mt-4 grid gap-3">
+          <div className="mt-4 grid gap-2">
             <Link
               to={`/products/${id}`}
-              className="flex items-center justify-center rounded-xl bg-[var(--text-main)] px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[var(--brand-hover)]"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[var(--brand-hover)]"
             >
+              <Eye className="h-4 w-4" />
               Ver detalles
             </Link>
             <button
               onClick={handleAddToCart}
               disabled={isAddingToCart || isBuyingNow}
-              className="rounded-xl bg-[var(--brand)] px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_rgba(45,0,107,0.18)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(45,0,107,0.18)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
+              <ShoppingCart className="h-4 w-4" />
               {isAddingToCart ? "Agregando..." : "Agregar al carrito"}
             </button>
             <button
               onClick={handleBuyNow}
               disabled={isAddingToCart || isBuyingNow}
-              className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
             >
+              <Zap className="h-4 w-4" />
               {isBuyingNow ? "Preparando..." : "Comprar ahora"}
             </button>
           </div>

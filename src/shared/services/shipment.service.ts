@@ -1,5 +1,6 @@
 import axios from "axios";
 import { api } from "./api";
+import { getMyOrders } from "./order.service";
 import type { CreateShipmentPayload, Shipment } from "../types/Shipment";
 
 function getApiErrorMessage(error: unknown, fallback: string) {
@@ -20,7 +21,20 @@ export async function getShipments(): Promise<Shipment[]> {
 }
 
 export async function getMyShipments(): Promise<Shipment[]> {
-  return getShipments();
+  const orders = await getMyOrders();
+
+  return orders.flatMap((order) => {
+    const shipments = [
+      ...(order.shipment ? [order.shipment] : []),
+      ...(order.shipments ?? []),
+    ];
+
+    return shipments.map((shipment) => ({
+      ...shipment,
+      order: shipment.order ?? order,
+      orderId: shipment.orderId ?? order.id,
+    }));
+  });
 }
 
 export async function createShipment(

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import { Layers3 } from "lucide-react";
 import ProductGrid from "./ProductGrid";
 import ProductCardSkeleton from "./ProductCardSkeleton";
 import { getCategories } from "../../../shared/services/category.service";
@@ -88,7 +89,7 @@ function CategoryProductSections() {
             Explorá productos agrupados por rubro.
           </p>
         </div>
-        <p className="rounded-2xl border border-red-200 bg-red-50 p-5 font-semibold text-red-700">
+        <p className="rounded-3xl border border-red-200 bg-red-50 p-6 font-semibold text-red-700">
           {error}
         </p>
       </section>
@@ -102,7 +103,13 @@ function CategoryProductSections() {
   return (
     <section>
       <div className="mb-8">
-        <h2 className="text-3xl font-black text-slate-950">Categorías</h2>
+        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--nav-blue-soft)] px-3 py-1 text-sm font-black text-[var(--nav-blue)]">
+          <Layers3 className="h-4 w-4" />
+          Catálogo activo
+        </span>
+        <h2 className="mt-3 text-3xl font-black text-slate-950">
+          Más categorías para descubrir
+        </h2>
         <p className="mt-2 max-w-2xl font-semibold text-slate-500">
           Explorá productos agrupados por rubro.
         </p>
@@ -110,7 +117,11 @@ function CategoryProductSections() {
 
       <div className="space-y-14">
         {categorySections.map(({ category, products: categoryProducts }) => (
-          <section key={category.id} aria-labelledby={`category-${category.id}`}>
+          <section
+            key={category.id}
+            aria-labelledby={`category-${category.id}`}
+            className="rounded-[32px] border border-slate-100 bg-white/74 p-5 shadow-[0_18px_55px_rgba(18,60,105,0.08)] backdrop-blur sm:p-6"
+          >
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h3
@@ -128,7 +139,7 @@ function CategoryProductSections() {
 
               <Link
                 to={`/products?category=${category.id}`}
-                className="font-bold text-[var(--brand)] transition hover:text-[var(--brand-hover)]"
+                className="font-black text-[var(--brand)] transition hover:text-[var(--brand-hover)]"
               >
                 Ver categoría
               </Link>
