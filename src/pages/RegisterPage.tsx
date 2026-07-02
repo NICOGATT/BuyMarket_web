@@ -13,6 +13,9 @@ type RegisterFieldName =
   | "email"
   | "password"
   | "confirmPassword";
+type RegisterForm = Record<RegisterFieldName, string>;
+type RegisterErrors = Partial<Record<RegisterFieldName, string>>;
+type RegisterTouched = Partial<Record<RegisterFieldName, boolean>>;
 
 type RegisterFieldProps = {
   icon: LucideIcon;
@@ -22,9 +25,14 @@ type RegisterFieldProps = {
   type?: string;
   value: string;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur: (event: React.FocusEvent<HTMLInputElement>) => void;
   autoComplete?: string;
+  error?: string;
+  touched?: boolean;
   action?: React.ReactNode;
 };
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function RegisterField({
   icon: Icon,
@@ -34,16 +42,24 @@ function RegisterField({
   type = "text",
   value,
   onChange,
+  onBlur,
   autoComplete,
+  error,
+  touched,
   action,
 }: RegisterFieldProps) {
+  const showError = Boolean(touched && error);
+  const errorId = `${name}-error`;
+
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-bold text-[#0F172A]">{label}</span>
       <span className="group relative block">
         <Icon
           aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#64748B] transition group-focus-within:text-[#2D006B]"
+          className={`pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transition group-focus-within:text-[#2D006B] ${
+            showError ? "text-red-500" : "text-[#64748B]"
+          }`}
         />
         <input
           name={name}
@@ -51,22 +67,92 @@ function RegisterField({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          required
+          onBlur={onBlur}
           autoComplete={autoComplete}
-          className="h-[52px] w-full rounded-[14px] border border-[#E2E8F0] bg-white pl-12 pr-12 text-[15px] font-semibold text-[#0F172A] outline-none transition duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:border-[#2D006B] focus:shadow-[0_0_0_4px_rgba(45,0,107,0.10),0_12px_24px_rgba(45,0,107,0.08)]"
+          aria-invalid={showError}
+          aria-describedby={showError ? errorId : undefined}
+          className={`h-[52px] w-full rounded-[14px] border bg-white pl-12 pr-12 text-[15px] font-semibold text-[#0F172A] outline-none transition duration-200 placeholder:text-slate-400 focus:border-[#2D006B] focus:shadow-[0_0_0_4px_rgba(45,0,107,0.10),0_12px_24px_rgba(45,0,107,0.08)] ${
+            showError
+              ? "border-red-300 bg-red-50/40 hover:border-red-300 focus:border-red-500 focus:shadow-[0_0_0_4px_rgba(239,68,68,0.12)]"
+              : "border-[#E2E8F0] hover:border-slate-300"
+          }`}
         />
         {action}
       </span>
+      {showError && (
+        <p id={errorId} role="alert" className="mt-2 text-sm font-bold text-red-600">
+          {error}
+        </p>
+      )}
     </label>
   );
+}
+
+function validateRegister(form: RegisterForm): RegisterErrors {
+  const errors: RegisterErrors = {};
+  const firstName = form.firstName.trim();
+  const lastName = form.lastName.trim();
+  const email = form.email.trim();
+
+  if (!firstName) {
+    errors.firstName = "Ingresá tu nombre.";
+  }
+
+  if (!lastName) {
+    errors.lastName = "Ingresá tu apellido.";
+  }
+
+  if (!email) {
+    errors.email = "Ingresá tu email.";
+  } else if (!emailPattern.test(email)) {
+    errors.email = "Ingresá un email válido.";
+  }
+
+  if (!form.password) {
+    errors.password = "Creá una contraseña.";
+  } else if (form.password.length < 6) {
+    errors.password = "La contraseña debe tener al menos 6 caracteres.";
+  }
+
+  if (!form.confirmPassword) {
+    errors.confirmPassword = "Repetí tu contraseña.";
+  } else if (form.password !== form.confirmPassword) {
+    errors.confirmPassword = "Las contraseñas no coinciden.";
+  }
+
+  return errors;
+}
+
+function getRegisterErrorMessage(error: unknown) {
+  if (!axios.isAxiosError(error)) {
+    return "No pudimos crear la cuenta. Intentá nuevamente.";
+  }
+
+  const message = error.response?.data?.message;
+
+  if (Array.isArray(message) && message.length > 0) {
+    return String(message[0]);
+  }
+
+  if (typeof message === "string" && message.trim()) {
+    return message;
+  }
+
+  if (error.response?.status === 409) {
+    return "Ya existe una cuenta con ese email.";
+  }
+
+  return "No pudimos crear la cuenta. Revisá los datos e intentá nuevamente.";
 }
 
 function RegisterPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
-  const [form, setForm] = useState({
+  const [errors, setErrors] = useState<RegisterErrors>({});
+  const [touched, setTouched] = useState<RegisterTouched>({});
+  const [submitError, setSubmitError] = useState("");
+  const [form, setForm] = useState<RegisterForm>({
     firstName: "",
     lastName: "",
     email: "",
@@ -76,43 +162,68 @@ function RegisterPage() {
   const [isSubmiting, setIsSubmiting] = useState(false);
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const { name, value } = event.target;
+    const { name, value } = event.target as HTMLInputElement & {
+      name: RegisterFieldName;
+    };
 
-    if (passwordError) {
-      setPasswordError("");
-    }
+    setSubmitError("");
+    setForm((prev) => {
+      const nextForm = {
+        ...prev,
+        [name]: value,
+      };
 
-    setForm((prev) => ({
+      setErrors(validateRegister(nextForm));
+      return nextForm;
+    });
+  }
+
+  function handleBlur(event: React.FocusEvent<HTMLInputElement>) {
+    const { name } = event.target as HTMLInputElement & {
+      name: RegisterFieldName;
+    };
+
+    setTouched((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: true,
     }));
+    setErrors(validateRegister(form));
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
-    if (form.password !== form.confirmPassword) {
-      setPasswordError("Las contraseñas no coinciden.");
+    const nextErrors = validateRegister(form);
+    setErrors(nextErrors);
+    setTouched({
+      firstName: true,
+      lastName: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+    });
+    setSubmitError("");
+
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
 
     const registerPayload = {
-      firstName: form.firstName,
-      lastName: form.lastName,
-      email: form.email,
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim(),
       password: form.password,
     };
 
     try {
       setIsSubmiting(true);
 
-      console.log("FORM REGISTER:", registerPayload);
-
       const data = await register(registerPayload);
       const token = data.access_token ?? data.accessToken;
 
       if (!token) {
-        throw new Error("El backend no devolvió token.");
+        setSubmitError("No pudimos iniciar la sesión después de crear la cuenta.");
+        return;
       }
 
       localStorage.setItem("token", token);
@@ -120,12 +231,8 @@ function RegisterPage() {
 
       navigate("/");
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        console.error("Register error:", error.response?.data || error.message);
-        return;
-      }
-
-      console.error("Register error:", error);
+      console.error("Register error:", axios.isAxiosError(error) ? error.response?.data || error.message : error);
+      setSubmitError(getRegisterErrorMessage(error));
     } finally {
       setIsSubmiting(false);
     }
@@ -153,7 +260,16 @@ function RegisterPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              {submitError && (
+                <p
+                  role="alert"
+                  className="rounded-[14px] border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-600"
+                >
+                  {submitError}
+                </p>
+              )}
+
               <div className="grid gap-5 sm:grid-cols-2">
                 <RegisterField
                   icon={User}
@@ -162,7 +278,10 @@ function RegisterPage() {
                   placeholder="Tu nombre"
                   value={form.firstName}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   autoComplete="given-name"
+                  error={errors.firstName}
+                  touched={touched.firstName}
                 />
 
                 <RegisterField
@@ -172,7 +291,10 @@ function RegisterPage() {
                   placeholder="Tu apellido"
                   value={form.lastName}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   autoComplete="family-name"
+                  error={errors.lastName}
+                  touched={touched.lastName}
                 />
               </div>
 
@@ -184,7 +306,10 @@ function RegisterPage() {
                 placeholder="tu@email.com"
                 value={form.email}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 autoComplete="email"
+                error={errors.email}
+                touched={touched.email}
               />
 
               <RegisterField
@@ -195,7 +320,10 @@ function RegisterPage() {
                 placeholder="Creá una contraseña segura"
                 value={form.password}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 autoComplete="new-password"
+                error={errors.password}
+                touched={touched.password}
                 action={
                   <button
                     type="button"
@@ -220,7 +348,10 @@ function RegisterPage() {
                 placeholder="Repetí tu contraseña"
                 value={form.confirmPassword}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 autoComplete="new-password"
+                error={errors.confirmPassword}
+                touched={touched.confirmPassword}
                 action={
                   <button
                     type="button"
@@ -240,15 +371,6 @@ function RegisterPage() {
                   </button>
                 }
               />
-
-              {passwordError && (
-                <p
-                  role="alert"
-                  className="-mt-2 rounded-[14px] border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-600"
-                >
-                  {passwordError}
-                </p>
-              )}
 
               <button
                 type="submit"

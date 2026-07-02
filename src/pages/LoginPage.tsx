@@ -6,16 +6,26 @@ import AuthBrandPanel from "../features/auth/components/AuthBrandPanel";
 import GoogleAuthButton from "../features/auth/components/GoogleAuthButton";
 import { login } from "../shared/services/auth.service";
 
+type LoginFieldName = "email" | "password";
+type LoginForm = Record<LoginFieldName, string>;
+type LoginErrors = Partial<Record<LoginFieldName, string>>;
+type LoginTouched = Partial<Record<LoginFieldName, boolean>>;
+
 type LoginFieldProps = {
   icon: LucideIcon;
   label: string;
-  name: "email" | "password";
+  name: LoginFieldName;
   placeholder: string;
   type: string;
   value: string;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur: (event: React.FocusEvent<HTMLInputElement>) => void;
+  error?: string;
+  touched?: boolean;
   action?: React.ReactNode;
 };
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LoginField({
   icon: Icon,
@@ -25,15 +35,23 @@ function LoginField({
   type,
   value,
   onChange,
+  onBlur,
+  error,
+  touched,
   action,
 }: LoginFieldProps) {
+  const showError = Boolean(touched && error);
+  const errorId = `${name}-error`;
+
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-bold text-[#0F172A]">{label}</span>
       <span className="group relative block">
         <Icon
           aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#64748B] transition group-focus-within:text-[#2D006B]"
+          className={`pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transition group-focus-within:text-[#2D006B] ${
+            showError ? "text-red-500" : "text-[#64748B]"
+          }`}
         />
         <input
           name={name}
@@ -41,44 +59,106 @@ function LoginField({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          required
+          onBlur={onBlur}
           autoComplete={name === "email" ? "email" : "current-password"}
-          className="h-[52px] w-full rounded-[14px] border border-[#E2E8F0] bg-white pl-12 pr-12 text-[15px] font-semibold text-[#0F172A] outline-none transition duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:border-[#2D006B] focus:shadow-[0_0_0_4px_rgba(45,0,107,0.10),0_12px_24px_rgba(45,0,107,0.08)]"
+          aria-invalid={showError}
+          aria-describedby={showError ? errorId : undefined}
+          className={`h-[52px] w-full rounded-[14px] border bg-white pl-12 pr-12 text-[15px] font-semibold text-[#0F172A] outline-none transition duration-200 placeholder:text-slate-400 focus:border-[#2D006B] focus:shadow-[0_0_0_4px_rgba(45,0,107,0.10),0_12px_24px_rgba(45,0,107,0.08)] ${
+            showError
+              ? "border-red-300 bg-red-50/40 hover:border-red-300 focus:border-red-500 focus:shadow-[0_0_0_4px_rgba(239,68,68,0.12)]"
+              : "border-[#E2E8F0] hover:border-slate-300"
+          }`}
         />
         {action}
       </span>
+      {showError && (
+        <p id={errorId} role="alert" className="mt-2 text-sm font-bold text-red-600">
+          {error}
+        </p>
+      )}
     </label>
   );
+}
+
+function validateLogin(form: LoginForm): LoginErrors {
+  const errors: LoginErrors = {};
+  const email = form.email.trim();
+
+  if (!email) {
+    errors.email = "Ingresá tu email.";
+  } else if (!emailPattern.test(email)) {
+    errors.email = "Ingresá un email válido.";
+  }
+
+  if (!form.password) {
+    errors.password = "Ingresá tu contraseña.";
+  }
+
+  return errors;
 }
 
 function LoginPage() {
   const [isSubmiting, setIsSubmiting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<LoginErrors>({});
+  const [touched, setTouched] = useState<LoginTouched>({});
+  const [submitError, setSubmitError] = useState("");
   const navigate = useNavigate();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<LoginForm>({
     email: "",
     password: "",
   });
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const { name, value } = event.target;
+    const { name, value } = event.target as HTMLInputElement & {
+      name: LoginFieldName;
+    };
 
-    setForm((prev) => ({
+    setSubmitError("");
+    setForm((prev) => {
+      const nextForm = {
+        ...prev,
+        [name]: value,
+      };
+
+      setErrors(validateLogin(nextForm));
+      return nextForm;
+    });
+  }
+
+  function handleBlur(event: React.FocusEvent<HTMLInputElement>) {
+    const { name } = event.target as HTMLInputElement & { name: LoginFieldName };
+
+    setTouched((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: true,
     }));
+    setErrors(validateLogin(form));
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
+    const nextErrors = validateLogin(form);
+    setErrors(nextErrors);
+    setTouched({ email: true, password: true });
+    setSubmitError("");
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
     try {
       setIsSubmiting(true);
-      const data = await login(form);
+      const data = await login({
+        email: form.email.trim(),
+        password: form.password,
+      });
       const token = data.access_token;
 
       if (!token) {
-        alert("El backend no devolvió accessToken");
+        setSubmitError("No pudimos iniciar sesión. Intentá nuevamente.");
+        return;
       }
 
       localStorage.setItem("token", token);
@@ -88,7 +168,7 @@ function LoginPage() {
       navigate("/");
     } catch (error) {
       console.log("Login Error", error);
-      alert("Credenciales inválidas");
+      setSubmitError("El email o la contraseña no son correctos.");
     } finally {
       setIsSubmiting(false);
     }
@@ -116,7 +196,16 @@ function LoginPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              {submitError && (
+                <p
+                  role="alert"
+                  className="rounded-[14px] border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-600"
+                >
+                  {submitError}
+                </p>
+              )}
+
               <LoginField
                 icon={Mail}
                 label="Email"
@@ -125,6 +214,9 @@ function LoginPage() {
                 placeholder="tu@email.com"
                 value={form.email}
                 onChange={handleChange}
+                onBlur={handleBlur}
+                error={errors.email}
+                touched={touched.email}
               />
 
               <LoginField
@@ -135,6 +227,9 @@ function LoginPage() {
                 placeholder="Ingresá tu contraseña"
                 value={form.password}
                 onChange={handleChange}
+                onBlur={handleBlur}
+                error={errors.password}
+                touched={touched.password}
                 action={
                   <button
                     type="button"
@@ -178,7 +273,7 @@ function LoginPage() {
             <GoogleAuthButton />
 
             <p className="mt-7 text-center text-sm font-semibold text-[#64748B]">
-              No tenés cuenta?{" "}
+              ¿No tenés cuenta?{" "}
               <Link
                 to="/register"
                 className="font-black text-[#2D006B] transition hover:text-[#240055] hover:underline focus:outline-none focus:ring-2 focus:ring-[#2D006B] focus:ring-offset-2"
