@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { Check, ChevronLeft, ImagePlus, UploadCloud } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCategories } from "../shared/services/category.service";
+import { createCategorySuggestion } from "../shared/services/categorySuggestion.service";
 import {
   createProduct,
   uploadProductMediaFiles,
@@ -29,6 +30,11 @@ type ProductDetailsForm = {
   pickupAddressId: string;
 };
 
+type CategorySuggestionForm = {
+  name: string;
+  description: string;
+};
+
 const emptyDetailsForm: ProductDetailsForm = {
   title: "",
   description: "",
@@ -36,6 +42,11 @@ const emptyDetailsForm: ProductDetailsForm = {
   stock: "",
   horarioDisponible: "",
   pickupAddressId: "",
+};
+
+const emptyCategorySuggestionForm: CategorySuggestionForm = {
+  name: "",
+  description: "",
 };
 
 function CreateProductPage() {
@@ -50,6 +61,8 @@ function CreateProductPage() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [uploadedMedia, setUploadedMedia] = useState<ProductMedia[]>([]);
   const [detailsForm, setDetailsForm] = useState<ProductDetailsForm>(emptyDetailsForm);
+  const [categorySuggestionForm, setCategorySuggestionForm] =
+    useState<CategorySuggestionForm>(emptyCategorySuggestionForm);
   const [attributeValues, setAttributeValues] = useState<Record<string, string>>({});
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoadingSubCategories, setIsLoadingSubCategories] = useState(false);
@@ -57,7 +70,11 @@ function CreateProductPage() {
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [isSubmiting, setIsSubmiting] = useState(false);
+  const [isSendingCategorySuggestion, setIsSendingCategorySuggestion] =
+    useState(false);
   const [error, setError] = useState("");
+  const [categorySuggestionError, setCategorySuggestionError] = useState("");
+  const [categorySuggestionSuccess, setCategorySuggestionSuccess] = useState("");
 
   const selectedCategory = categories.find(
     (category) => category.id === selectedCategoryId
@@ -173,6 +190,52 @@ function CreateProductPage() {
     }));
   }
 
+  function handleCategorySuggestionChange(
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
+    const { name, value } = event.target;
+
+    setCategorySuggestionError("");
+    setCategorySuggestionSuccess("");
+    setCategorySuggestionForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
+
+  async function handleCategorySuggestionSubmit(event: FormEvent) {
+    event.preventDefault();
+
+    const name = categorySuggestionForm.name.trim();
+    const description = categorySuggestionForm.description.trim();
+
+    if (!name) {
+      setCategorySuggestionError("Ingresá el nombre de la categoría sugerida.");
+      setCategorySuggestionSuccess("");
+      return;
+    }
+
+    try {
+      setIsSendingCategorySuggestion(true);
+      setCategorySuggestionError("");
+      setCategorySuggestionSuccess("");
+      await createCategorySuggestion({
+        name,
+        ...(description ? { description } : {}),
+      });
+      setCategorySuggestionForm(emptyCategorySuggestionForm);
+      setCategorySuggestionSuccess(
+        "Recibimos tu sugerencia. Cuando el equipo la apruebe, vas a poder publicar productos en esa categoría."
+      );
+    } catch {
+      setCategorySuggestionError(
+        "No pudimos enviar la sugerencia. Revisá los datos e intentá nuevamente."
+      );
+    } finally {
+      setIsSendingCategorySuggestion(false);
+    }
+  }
+
   function handleFilesChange(event: React.ChangeEvent<HTMLInputElement>) {
     setImageFiles(Array.from(event.target.files ?? []));
     setUploadedMedia([]);
@@ -276,7 +339,7 @@ function CreateProductPage() {
           .filter((item) => item.value.trim() !== ""),
       });
 
-      navigate("/products");
+      navigate("/profile");
     } catch (submitError) {
       console.log(submitError);
       setError("No se pudo publicar el producto.");
@@ -442,6 +505,59 @@ function CreateProductPage() {
               ))}
             </select>
           </div>
+
+          <form
+            onSubmit={handleCategorySuggestionSubmit}
+            className="mt-6 rounded-2xl border border-dashed border-[var(--brand-border)] bg-[var(--brand-soft)]/45 p-5"
+            noValidate
+          >
+            <div>
+              <h3 className="m-0 text-xl font-black text-slate-950">
+                ¿No encontrás la categoría?
+              </h3>
+              <p className="mt-1 text-sm font-semibold text-slate-600">
+                Sugerí una categoría principal nueva. Si el equipo la aprueba,
+                vas a poder usarla para publicar más adelante.
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <input
+                name="name"
+                value={categorySuggestionForm.name}
+                onChange={handleCategorySuggestionChange}
+                placeholder="Nombre de la categoría sugerida"
+                className="min-h-[48px] rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[var(--brand)]"
+              />
+              <button
+                type="submit"
+                disabled={isSendingCategorySuggestion}
+                className="min-h-[48px] rounded-xl bg-[var(--nav-blue)] px-5 py-3 font-bold text-white transition hover:bg-[var(--nav-blue-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSendingCategorySuggestion ? "Enviando..." : "Enviar sugerencia"}
+              </button>
+            </div>
+
+            <textarea
+              name="description"
+              value={categorySuggestionForm.description}
+              onChange={handleCategorySuggestionChange}
+              placeholder="Descripción opcional"
+              className="mt-3 min-h-24 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[var(--brand)]"
+            />
+
+            {categorySuggestionError && (
+              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">
+                {categorySuggestionError}
+              </p>
+            )}
+
+            {categorySuggestionSuccess && (
+              <p className="mt-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-700">
+                {categorySuggestionSuccess}
+              </p>
+            )}
+          </form>
 
           <button
             type="button"
@@ -674,6 +790,11 @@ function CreateProductPage() {
               })}
             </div>
           )}
+
+          <p className="mt-8 rounded-2xl border border-yellow-200 bg-yellow-50 p-4 font-semibold text-yellow-800">
+            Cuando envíes la publicación, quedará pendiente de aprobación por el
+            equipo de BuyMarket.
+          </p>
 
           <button
             disabled={isSubmiting}

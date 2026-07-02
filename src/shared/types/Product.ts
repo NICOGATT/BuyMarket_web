@@ -25,6 +25,7 @@ export type ProductAttributeValue = {
 };
 
 export type ProductPublisher = string | User;
+export type ProductApprovalStatus = "pending" | "approved" | "rejected";
 
 export type Product = {
   id: string;
@@ -41,6 +42,7 @@ export type Product = {
   productMedia?: ProductImage[];
   media?: ProductImage[];
   isActive: boolean;
+  approvalStatus?: ProductApprovalStatus;
   owner?: ProductPublisher;
   ownerId?: string;
   seller?: ProductPublisher;

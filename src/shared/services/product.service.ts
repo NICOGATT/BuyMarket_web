@@ -7,6 +7,11 @@ export async function getProducts() {
   return response.data;
 }
 
+export async function getAdminProducts() {
+  const response = await api.get<Product[]>("/products/admin");
+  return response.data;
+}
+
 export async function getFeaturedProducts() {
   const response = await api.get<Product[]>("/products/featured");
   return response.data;
@@ -92,4 +97,14 @@ export async function uploadProductMediaFiles(
 
 export async function deleteProduct(id: string): Promise<void> {
   await api.delete(`/products/${id}`);
+}
+
+export async function approveProduct(id: string): Promise<Product> {
+  const response = await api.patch<Product>(`/products/${id}/approve`);
+  return response.data;
+}
+
+export async function rejectProduct(id: string): Promise<Product> {
+  const response = await api.patch<Product>(`/products/${id}/reject`);
+  return response.data;
 }
