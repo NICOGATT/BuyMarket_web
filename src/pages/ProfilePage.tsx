@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   BadgeCheck,
   CheckCircle2,
+  CreditCard,
   MailCheck,
   MapPin,
   Package,
@@ -565,6 +566,28 @@ function ProfilePage() {
             </span>
             <span className="shrink-0 rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white">
               Ver compras
+            </span>
+          </NavLink>
+
+          <NavLink
+            to="/profile/payment-methods"
+            className="flex items-center justify-between gap-4 rounded-2xl border border-cyan-100 bg-white p-5 shadow-sm transition hover:border-cyan-300 hover:bg-cyan-50"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
+                <CreditCard className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-xl font-black text-slate-950">
+                  Medios de pago
+                </span>
+                <span className="text-sm font-semibold text-slate-500">
+                  Administrar opciones para usar en checkout
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 rounded-xl bg-cyan-700 px-4 py-2 text-sm font-bold text-white">
+              Gestionar
             </span>
           </NavLink>
 

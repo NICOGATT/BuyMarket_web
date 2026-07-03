@@ -2,33 +2,46 @@ import {
   ArrowRight,
   BadgeCheck,
   PackageCheck,
-  Search,
   ShieldCheck,
   Sparkles,
   Store,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const floatingProducts = [
+const brandAds = [
   {
-    title: "Notebook Pro",
-    price: "$1.250.000",
-    accent: "from-cyan-400 to-blue-600",
-    position: "right-3 top-10 rotate-3 xl:right-8 xl:top-16",
+    name: "Samsung",
+    category: "Tecnologia",
+    accent: "from-sky-300 to-blue-600",
   },
   {
-    title: "Auriculares Max",
-    price: "$89.900",
-    accent: "from-violet-400 to-fuchsia-600",
-    position: "left-0 bottom-12 -rotate-6 xl:left-2",
+    name: "Apple",
+    category: "Dispositivos",
+    accent: "from-slate-200 to-slate-500",
   },
   {
-    title: "Smartwatch",
-    price: "$145.000",
-    accent: "from-sky-300 to-indigo-500",
-    position: "right-12 bottom-4 -rotate-2 xl:right-20 xl:bottom-10",
+    name: "Nike",
+    category: "Moda urbana",
+    accent: "from-orange-300 to-orange-600",
+  },
+  {
+    name: "Sony",
+    category: "Audio y gaming",
+    accent: "from-violet-300 to-indigo-600",
+  },
+  {
+    name: "LG",
+    category: "Hogar",
+    accent: "from-pink-300 to-rose-600",
+  },
+  {
+    name: "Adidas",
+    category: "Deportes",
+    accent: "from-cyan-300 to-teal-600",
   },
 ];
+
+const brandAdCarousel = [...brandAds, ...brandAds];
 
 function HeroSection() {
   return (
@@ -45,12 +58,12 @@ function HeroSection() {
           </span>
 
           <h1 className="mt-6 max-w-3xl text-3xl font-black leading-[1.06] text-white sm:mt-7 sm:text-5xl lg:text-6xl">
-            Todo lo que buscás, en una experiencia más rápida y confiable.
+            Todo lo que buscas, en una experiencia mas rapida y confiable.
           </h1>
 
           <p className="mt-5 max-w-xl text-base font-semibold leading-7 text-blue-50/86 sm:mt-6 sm:text-lg sm:leading-8">
             BuyMarket conecta productos, vendedores verificados y compras simples
-            en una plataforma pensada para descubrir, comparar y vender sin fricción.
+            en una plataforma pensada para descubrir, comparar y vender sin friccion.
           </p>
 
           <div className="mt-7 grid gap-3 sm:mt-8 sm:flex sm:flex-wrap">
@@ -74,7 +87,7 @@ function HeroSection() {
             {[
               { icon: ShieldCheck, text: "Compra segura" },
               { icon: BadgeCheck, text: "Vendedores verificados" },
-              { icon: PackageCheck, text: "Envíos y retiro" },
+              { icon: PackageCheck, text: "Envios y retiro" },
             ].map(({ icon: Icon, text }) => (
               <div
                 key={text}
@@ -88,42 +101,36 @@ function HeroSection() {
         </div>
 
         <div className="relative min-w-0 lg:min-h-[430px]">
-          <div className="relative rounded-2xl border border-white/20 bg-white/14 p-3 shadow-[0_24px_70px_rgba(0,0,0,0.20)] backdrop-blur-2xl sm:rounded-[30px] sm:p-4 lg:absolute lg:inset-x-8 lg:top-8">
-            <div className="flex min-w-0 items-center gap-3 rounded-2xl bg-white px-4 py-3 text-slate-500 shadow-sm">
-              <Search className="h-5 w-5 shrink-0 text-[var(--nav-blue)]" />
-              <span className="truncate font-bold">
-                Buscar celulares, muebles, gaming...
-              </span>
-            </div>
+          <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-white/14 py-5 shadow-[0_24px_70px_rgba(0,0,0,0.20)] backdrop-blur-2xl sm:rounded-[30px] sm:py-6 lg:absolute lg:inset-x-8 lg:top-8">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(34,199,243,0.20),transparent_34%),radial-gradient(circle_at_92%_10%,rgba(255,138,0,0.22),transparent_32%)]" />
 
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-3">
-              {["Tecnología", "Hogar", "Moda", "Deportes"].map((item) => (
-                <div
-                  key={item}
-                  className="min-w-0 rounded-2xl bg-white/88 p-3 text-[var(--text-main)] shadow-sm sm:p-4"
+            <div className="relative overflow-hidden">
+              <div className="brand-ad-carousel flex w-max gap-4 px-5">
+              {brandAdCarousel.map((brand, index) => (
+                <Link
+                  key={`${brand.name}-${index}`}
+                  to={`/products?search=${encodeURIComponent(brand.name)}`}
+                  className="group w-44 shrink-0 rounded-3xl border border-white/18 bg-white/90 p-3 text-[var(--text-main)] shadow-[0_16px_38px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white sm:w-52"
                 >
-                  <div className="mb-3 h-14 rounded-2xl bg-gradient-to-br from-cyan-100 via-white to-violet-100 sm:mb-4 sm:h-20" />
-                  <p className="truncate font-black">{item}</p>
-                  <p className="mt-1 truncate text-xs font-semibold text-slate-500 sm:text-sm">
-                    Ofertas activas
-                  </p>
-                </div>
+                  <span
+                    className={`mb-3 flex h-28 w-full items-center justify-center rounded-2xl bg-gradient-to-br ${brand.accent} text-3xl font-black text-white shadow-sm sm:h-32`}
+                  >
+                    {brand.name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="block truncate text-xl font-black">
+                    {brand.name}
+                  </span>
+                  <span className="mt-1 block truncate text-sm font-semibold text-slate-500">
+                    {brand.category}
+                  </span>
+                  <span className="mt-4 inline-flex rounded-2xl bg-[var(--brand-orange)] px-4 py-2 text-sm font-black text-white transition group-hover:bg-[var(--brand-orange-hover)]">
+                    Ver ofertas
+                  </span>
+                </Link>
               ))}
+              </div>
             </div>
           </div>
-
-          {floatingProducts.map((product) => (
-            <div
-              key={product.title}
-              className={`absolute hidden w-40 rounded-3xl border border-white/24 bg-white/18 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-2xl transition hover:-translate-y-1 md:block xl:w-48 ${product.position}`}
-            >
-              <div
-                className={`h-20 rounded-2xl bg-gradient-to-br xl:h-24 ${product.accent}`}
-              />
-              <p className="mt-3 truncate font-black text-white">{product.title}</p>
-              <p className="text-sm font-bold text-cyan-100">{product.price}</p>
-            </div>
-          ))}
         </div>
       </div>
     </section>

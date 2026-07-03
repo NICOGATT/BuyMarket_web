@@ -14,17 +14,22 @@ import {
   createUserAddress,
   getMyAddresses,
 } from "../shared/services/userAddress.service";
+import { getMyPaymentMethods } from "../shared/services/userPaymentMethod.service";
 import type { CartItem } from "../shared/types/Cart";
 import type { Order } from "../shared/types/Order";
 import type {
   CreateUserAddressPayload,
   UserAddress,
 } from "../shared/types/UserAddress";
+import type {
+  PaymentMethod,
+  UserPaymentMethod,
+} from "../shared/types/UserPaymentMethod";
 import { getUserFromToken } from "../shared/utils/auth";
 import { formatUserAddress } from "../shared/utils/userAddress";
 
 type CheckoutForm = {
-  paymentMethod: "cash" | "transfer" | "mercado_pago";
+  paymentMethod: PaymentMethod;
   notes: string;
 };
 
@@ -63,6 +68,12 @@ const transferAccount = {
 const transferProofAcceptedTypes = ["image/jpeg", "image/png", "image/webp"];
 const transferProofMaxSize = 5 * 1024 * 1024;
 
+const paymentMethodLabels: Record<PaymentMethod, string> = {
+  mercado_pago: "Mercado Pago",
+  cash: "Efectivo",
+  transfer: "Transferencia",
+};
+
 const emptyShippingAddressForm: ShippingAddressForm = {
   receiverName: "",
   phone: "",
@@ -87,6 +98,7 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<UserPaymentMethod[]>([]);
   const [form, setForm] = useState<CheckoutForm>({
     paymentMethod: "mercado_pago",
     notes: "",
@@ -95,6 +107,7 @@ function CheckoutPage() {
     useState<CheckoutShipmentType>("local");
   const [addressMode, setAddressMode] = useState<AddressMode>("manual");
   const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState("");
   const [shippingAddressForm, setShippingAddressForm] =
     useState<ShippingAddressForm>(emptyShippingAddressForm);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
@@ -109,17 +122,34 @@ function CheckoutPage() {
   useEffect(() => {
     async function loadCheckout() {
       try {
-        const [cartData, addressesData] = await Promise.all([
+        const [cartData, addressesData, paymentMethodsData] = await Promise.all([
           getCart(),
           getMyAddresses().catch(() => []),
+          getMyPaymentMethods().catch(() => []),
         ]);
         const defaultAddress = addressesData.find((address) => address.isDefault);
         const selectedAddress = defaultAddress ?? addressesData[0];
+        const activePaymentMethods = paymentMethodsData.filter(
+          (paymentMethod) => paymentMethod.isActive !== false
+        );
+        const defaultPaymentMethod = activePaymentMethods.find(
+          (paymentMethod) => paymentMethod.isDefault
+        );
+        const selectedPaymentMethod =
+          defaultPaymentMethod ?? activePaymentMethods[0];
 
         setCart(cartData);
         setAddresses(addressesData);
+        setPaymentMethods(activePaymentMethods);
         setSelectedAddressId(selectedAddress?.id ?? "");
+        setSelectedPaymentMethodId(selectedPaymentMethod?.id ?? "");
         setAddressMode(selectedAddress ? "saved" : "manual");
+        if (selectedPaymentMethod) {
+          setForm((prev) => ({
+            ...prev,
+            paymentMethod: selectedPaymentMethod.method,
+          }));
+        }
       } catch (loadError) {
         if (isAuthRequiredError(loadError)) {
           navigate("/login");
@@ -166,6 +196,18 @@ function CheckoutPage() {
 
   function getSelectedAddress() {
     return addresses.find((address) => address.id === selectedAddressId) ?? null;
+  }
+
+  function getSelectedPaymentMethod() {
+    return (
+      paymentMethods.find(
+        (paymentMethod) => paymentMethod.id === selectedPaymentMethodId
+      ) ?? null
+    );
+  }
+
+  function getCheckoutPaymentMethod() {
+    return getSelectedPaymentMethod()?.method ?? form.paymentMethod;
   }
 
   function buildLocalAddressLine(address: UserAddress) {
@@ -421,6 +463,11 @@ function CheckoutPage() {
       return;
     }
 
+    if (paymentMethods.length > 0 && !getSelectedPaymentMethod()) {
+      setError("Selecciona un medio de pago guardado.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError("");
@@ -428,13 +475,16 @@ function CheckoutPage() {
       setTransferOrder(null);
       setTransferProofFile(null);
       setIsTransferNotified(false);
+      const selectedPaymentMethod = getSelectedPaymentMethod();
+      const checkoutPaymentMethod = selectedPaymentMethod?.method ?? form.paymentMethod;
       const order = await checkoutOrder({
         deliveryAddress: shipmentResult.deliveryAddress,
-        paymentMethod: form.paymentMethod,
+        paymentMethodId: selectedPaymentMethod?.id,
+        paymentMethod: selectedPaymentMethod ? undefined : form.paymentMethod,
         notes: form.notes.trim() || undefined,
       });
 
-      if (form.paymentMethod === "mercado_pago") {
+      if (checkoutPaymentMethod === "mercado_pago") {
         setCart([]);
         window.dispatchEvent(new Event(CART_CHANGE_EVENT));
         setMercadoPagoOrder(order);
@@ -442,7 +492,7 @@ function CheckoutPage() {
         return;
       }
 
-      if (form.paymentMethod === "transfer") {
+      if (checkoutPaymentMethod === "transfer") {
         setCart([]);
         window.dispatchEvent(new Event(CART_CHANGE_EVENT));
         setTransferOrder(order);
@@ -654,6 +704,8 @@ function CheckoutPage() {
       </section>
     );
   }
+
+  const checkoutPaymentMethod = getCheckoutPaymentMethod();
 
   return (
     <section className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -919,21 +971,56 @@ function CheckoutPage() {
             )}
           </section>
 
-          <label className="block">
-            <span className="mb-2 block font-bold text-slate-700">
-              Metodo de pago
-            </span>
-            <select
-              name="paymentMethod"
-              value={form.paymentMethod}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
-            >
-              <option value="mercado_pago">Mercado Pago</option>
-              <option value="cash">Efectivo</option>
-              <option value="transfer">Transferencia</option>
-            </select>
-          </label>
+          {paymentMethods.length > 0 ? (
+            <label className="block">
+              <span className="mb-2 block font-bold text-slate-700">
+                Medio de pago guardado
+              </span>
+              <select
+                value={selectedPaymentMethodId}
+                onChange={(event) => {
+                  const paymentMethodId = event.target.value;
+                  const paymentMethod = paymentMethods.find(
+                    (item) => item.id === paymentMethodId
+                  );
+
+                  setSelectedPaymentMethodId(paymentMethodId);
+
+                  if (paymentMethod) {
+                    setForm((prev) => ({
+                      ...prev,
+                      paymentMethod: paymentMethod.method,
+                    }));
+                  }
+                }}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
+              >
+                <option value="">Seleccionar medio de pago</option>
+                {paymentMethods.map((paymentMethod) => (
+                  <option key={paymentMethod.id} value={paymentMethod.id}>
+                    {paymentMethod.label} - {paymentMethodLabels[paymentMethod.method]}
+                    {paymentMethod.isDefault ? " (predeterminado)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label className="block">
+              <span className="mb-2 block font-bold text-slate-700">
+                Metodo de pago
+              </span>
+              <select
+                name="paymentMethod"
+                value={form.paymentMethod}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
+              >
+                <option value="mercado_pago">Mercado Pago</option>
+                <option value="cash">Efectivo</option>
+                <option value="transfer">Transferencia</option>
+              </select>
+            </label>
+          )}
 
           <label className="block">
             <span className="mb-2 block font-bold text-slate-700">
@@ -954,10 +1041,10 @@ function CheckoutPage() {
           className="mt-6 w-full rounded-xl bg-[var(--brand)] px-6 py-4 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
         >
           {isSubmitting
-            ? form.paymentMethod === "mercado_pago"
+            ? checkoutPaymentMethod === "mercado_pago"
               ? "Abriendo Mercado Pago..."
               : "Confirmando..."
-            : form.paymentMethod === "mercado_pago"
+            : checkoutPaymentMethod === "mercado_pago"
               ? "Pagar con Mercado Pago"
               : "Confirmar compra"}
         </button>

@@ -103,7 +103,7 @@ function CategoryProductSections() {
   return (
     <section>
       <div className="mb-8">
-        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--nav-blue-soft)] px-3 py-1 text-sm font-black text-[var(--nav-blue)]">
+        <span className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--brand-sky-soft),var(--brand-soft))] px-3 py-1 text-sm font-black text-[var(--nav-blue)]">
           <Layers3 className="h-4 w-4" />
           Catálogo activo
         </span>
@@ -120,7 +120,7 @@ function CategoryProductSections() {
           <section
             key={category.id}
             aria-labelledby={`category-${category.id}`}
-            className="rounded-[32px] border border-slate-100 bg-white/74 p-5 shadow-[0_18px_55px_rgba(18,60,105,0.08)] backdrop-blur sm:p-6"
+            className="rounded-[32px] border border-white/80 bg-[radial-gradient(circle_at_100%_0%,rgba(255,138,0,0.12),transparent_28%),rgba(255,255,255,0.78)] p-5 shadow-[0_18px_55px_rgba(18,60,105,0.08)] backdrop-blur sm:p-6"
           >
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>

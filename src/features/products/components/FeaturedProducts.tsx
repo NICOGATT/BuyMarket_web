@@ -10,7 +10,7 @@ function FeaturedProductsHeader() {
   return (
     <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-soft)] px-3 py-1 text-sm font-black text-[var(--brand)]">
+        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-sky-soft)] px-3 py-1 text-sm font-black text-[var(--nav-blue)]">
           <Sparkles className="h-4 w-4" />
           Selección BuyMarket
         </span>
@@ -80,9 +80,9 @@ function FeaturedProducts() {
     return (
       <section>
         <FeaturedProductsHeader />
-        <div className="overflow-hidden rounded-[32px] border border-dashed border-[var(--brand-border)] bg-white shadow-[0_18px_50px_rgba(18,60,105,0.08)]">
+        <div className="overflow-hidden rounded-[32px] border border-dashed border-[var(--brand-border)] bg-white/84 shadow-[0_18px_50px_rgba(18,60,105,0.08)] backdrop-blur">
           <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[auto_1fr_auto] lg:items-center">
-            <span className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[linear-gradient(135deg,#EAF4FF,#F2ECFF)] text-[var(--brand)]">
+            <span className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[linear-gradient(135deg,var(--brand-sky-soft),var(--brand-orange-soft),var(--brand-soft))] text-[var(--brand)]">
               <PackageSearch className="h-9 w-9" />
             </span>
             <div>

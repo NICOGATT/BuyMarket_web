@@ -8,8 +8,15 @@
   --nav-blue-hover: #0F5E9C;
   --nav-blue-soft: #EAF4FF;
   --nav-blue-border: #BFD7F2;
+  --brand-orange: #FF8A00;
+  --brand-orange-hover: #E87500;
+  --brand-orange-soft: #FFF1D8;
+  --brand-orange-border: #FFD19A;
+  --brand-sky: #22C7F3;
+  --brand-sky-soft: #E7F8FF;
+  --brand-sky-border: #A8E9FA;
   --surface: #FFFFFF;
-  --app-bg: #F8F7FC;
+  --app-bg: #FBF7FF;
   --text-main: #120A1F;
   --text-muted: #675E76;
   --brand-shadow: rgba(45, 0, 107, 0.24);
@@ -80,6 +87,12 @@
 body {
   margin: 0;
   overflow-x: clip;
+  min-height: 100svh;
+  background:
+    radial-gradient(circle at 8% -10%, rgba(34, 199, 243, 0.22), transparent 32%),
+    radial-gradient(circle at 92% 2%, rgba(255, 138, 0, 0.18), transparent 30%),
+    radial-gradient(circle at 50% 42%, rgba(45, 0, 107, 0.08), transparent 38%),
+    linear-gradient(180deg, #fffaf2 0%, #fbf7ff 42%, #eef9ff 100%);
 }
 
 * {
@@ -107,6 +120,24 @@ svg {
 
 .animate-login-card-in {
   animation: login-card-in 400ms ease-out both;
+}
+
+@keyframes brand-ad-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.brand-ad-carousel {
+  animation: brand-ad-scroll 24s linear infinite;
+}
+
+.brand-ad-carousel:hover {
+  animation-play-state: paused;
 }
 
 h1,

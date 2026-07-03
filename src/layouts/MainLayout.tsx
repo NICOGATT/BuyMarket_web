@@ -1,4 +1,4 @@
-import { Mail, MapPin, Menu, Search, ShoppingBag, ShoppingCart, Truck, User, X } from "lucide-react";
+import { CreditCard, Mail, MapPin, Menu, Search, ShoppingBag, ShoppingCart, Truck, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { CART_CHANGE_EVENT, getCart } from "../features/cart/store/cartStore";
@@ -82,8 +82,8 @@ function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text-main)]">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[linear-gradient(135deg,rgba(7,24,50,0.94),rgba(18,60,105,0.90)_48%,rgba(45,0,107,0.88))] shadow-[0_18px_48px_rgba(7,24,50,0.22)] backdrop-blur-2xl">
+    <div className="min-h-screen bg-transparent text-[var(--text-main)]">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[radial-gradient(circle_at_86%_0%,rgba(255,138,0,0.26),transparent_28%),linear-gradient(135deg,rgba(7,24,50,0.96),rgba(18,60,105,0.92)_45%,rgba(45,0,107,0.90))] shadow-[0_18px_48px_rgba(7,24,50,0.22)] backdrop-blur-2xl">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-3 py-3 sm:gap-4 sm:py-4 lg:grid-cols-[auto_minmax(280px,1fr)_auto] lg:items-center">
             <div className="flex items-center justify-between gap-4">
@@ -140,7 +140,7 @@ function MainLayout() {
                   <ShoppingCart className="h-5 w-5" aria-hidden="true" />
                   Carrito
                   {cartItemsCount > 0 && (
-                    <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--brand)] px-2 text-xs font-black text-white">
+                    <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--brand-orange)] px-2 text-xs font-black text-white shadow-[0_8px_18px_rgba(255,138,0,0.32)]">
                       {cartItemsCount}
                     </span>
                   )}
@@ -220,8 +220,8 @@ function MainLayout() {
                     onClick={() => setIsUserMenuOpen((current) => !current)}
                     className="flex h-12 items-center gap-3 rounded-2xl border border-white/18 bg-white/12 px-4 font-bold text-white backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-cyan-200/70 hover:bg-white/18 hover:shadow-[0_12px_24px_rgba(0,0,0,0.16)]"
                   >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/18 text-cyan-100">
-                      <User size={18} />
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-white/22 text-white shadow-[0_8px_18px_rgba(0,0,0,0.18)]">
+                      <User size={18} strokeWidth={2.6} />
                     </span>
                     <span className="max-w-36 truncate">
                       {user.name ?? user.email ?? "Perfil"}
@@ -246,6 +246,15 @@ function MainLayout() {
                           className="block rounded-xl px-3 py-2 font-bold text-slate-700 hover:bg-slate-50"
                         >
                           Mi perfil
+                        </NavLink>
+
+                        <NavLink
+                          to="/profile/payment-methods"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-slate-700 hover:bg-slate-50"
+                        >
+                          <CreditCard size={18} />
+                          Medios de pago
                         </NavLink>
 
                         <NavLink
@@ -281,7 +290,9 @@ function MainLayout() {
                   to="/login"
                   className="flex h-12 items-center gap-2 rounded-2xl border border-white/18 bg-white/12 px-4 font-bold text-white backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-cyan-200/70 hover:bg-white/18 hover:shadow-[0_12px_24px_rgba(0,0,0,0.16)]"
                 >
-                  <User className="h-5 w-5" aria-hidden="true" />
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-white/22 text-white shadow-[0_8px_18px_rgba(0,0,0,0.18)]">
+                    <User className="h-5 w-5" strokeWidth={2.6} aria-hidden="true" />
+                  </span>
                   Perfil
                 </NavLink>
               )}
@@ -341,6 +352,13 @@ function MainLayout() {
                     Mi perfil
                   </NavLink>
                   <NavLink
+                    to="/profile/payment-methods"
+                    onClick={closeMenu}
+                    className={navLinkClass}
+                  >
+                    Medios de pago
+                  </NavLink>
+                  <NavLink
                     to="/profile/orders"
                     onClick={closeMenu}
                     className={navLinkClass}
@@ -380,7 +398,7 @@ function MainLayout() {
       <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <Outlet />
       </main>
-      <footer className="mt-auto border-t border-[var(--nav-blue-border)] bg-white/82 backdrop-blur-xl">
+      <footer className="mt-auto border-t border-[var(--brand-sky-border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.90),rgba(231,248,255,0.86)_48%,rgba(255,241,216,0.82))] backdrop-blur-xl">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr] lg:px-8">
           <div>
             <NavLink to="/" className="flex items-center gap-3">

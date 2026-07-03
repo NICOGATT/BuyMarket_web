@@ -183,7 +183,7 @@ function ProductsPage() {
                     : "border-slate-200 bg-white text-slate-700 hover:border-[var(--brand-border)]"
                 }`}
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm font-black">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-white text-sm font-black shadow-sm">
                   All
                 </span>
                 Todas
@@ -211,7 +211,7 @@ function ProductsPage() {
                           : "border-slate-200 bg-white text-slate-700 hover:border-[var(--brand-border)]"
                       }`}
                     >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-sm font-black text-slate-500">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white text-sm font-black text-slate-500 shadow-sm">
                         {shouldShowImage ? (
                           <img
                             key={imageUrl}

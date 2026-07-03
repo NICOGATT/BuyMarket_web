@@ -14,6 +14,7 @@ import ProfilePage from "../../pages/ProfilePage";
 import VerifyEmailPage from "../../pages/VerifyEmailPage";
 import MyOrdersPage from "../../pages/MyOrdersPage";
 import MyShipmentsPage from "../../pages/MyShipmentsPage";
+import MyPaymentMethodsPage from "../../pages/MyPaymentMethodsPage";
 import AdminLayout from "../../layouts/AdminLayout";
 import AdminDashboardPage from "../../pages/admin/AdminDashboardPage";
 import AdminProductsPage from "../../pages/admin/AdminProductsPage";
@@ -121,6 +122,14 @@ const router = createBrowserRouter([
                 element : (
                     <ProtectedRoute>
                         <MyShipmentsPage/>
+                    </ProtectedRoute>
+                )
+            },
+            {
+                path : "profile/payment-methods",
+                element : (
+                    <ProtectedRoute>
+                        <MyPaymentMethodsPage/>
                     </ProtectedRoute>
                 )
             },

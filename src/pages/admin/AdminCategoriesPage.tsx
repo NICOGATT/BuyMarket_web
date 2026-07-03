@@ -133,10 +133,10 @@ function AdminCategoriesPage() {
                           [category.id]: (current[category.id] ?? 0) + 1,
                         }))
                       }
-                      className="h-12 w-12 shrink-0 rounded-2xl object-cover sm:h-14 sm:w-14"
+                      className="h-12 w-12 shrink-0 rounded-2xl border border-slate-100 bg-white object-cover shadow-sm sm:h-14 sm:w-14"
                     />
                   ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-soft)] text-sm font-bold text-[var(--brand)] sm:h-14 sm:w-14">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-slate-100 bg-white text-sm font-bold text-[var(--brand)] shadow-sm sm:h-14 sm:w-14">
                       {getCategoryInitials(category)}
                     </div>
                   )}

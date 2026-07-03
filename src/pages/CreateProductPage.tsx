@@ -17,6 +17,10 @@ import type { SubCategory } from "../shared/types/SubCategory";
 import type { SubCategoryAttribute } from "../shared/types/SubCategoryAttribute";
 import type { UserAddress } from "../shared/types/UserAddress";
 import { buildImageUrl } from "../shared/utils/buildImageUrl";
+import {
+  getCategoryDisplayImageUrls,
+  getCategoryInitials,
+} from "../shared/utils/categoryImages";
 import { formatUserAddress } from "../shared/utils/userAddress";
 
 type Step = 1 | 2 | 3;
@@ -75,6 +79,9 @@ function CreateProductPage() {
   const [error, setError] = useState("");
   const [categorySuggestionError, setCategorySuggestionError] = useState("");
   const [categorySuggestionSuccess, setCategorySuggestionSuccess] = useState("");
+  const [categoryImageAttempts, setCategoryImageAttempts] = useState<
+    Record<string, number>
+  >({});
 
   const selectedCategory = categories.find(
     (category) => category.id === selectedCategoryId
@@ -138,7 +145,7 @@ function CreateProductPage() {
         setAttributes([]);
         setAttributeValues({});
       } catch {
-        setError("No se pudieron cargar las subcategorias.");
+        setError("No se pudieron cargar las subcategorías.");
       } finally {
         setIsLoadingSubCategories(false);
       }
@@ -170,7 +177,7 @@ function CreateProductPage() {
           }, {})
         );
       } catch {
-        setError("No se pudieron cargar los atributos de la subcategoria.");
+        setError("No se pudieron cargar los atributos de la subcategoría.");
       } finally {
         setIsLoadingAttributes(false);
       }
@@ -200,6 +207,13 @@ function CreateProductPage() {
     setCategorySuggestionForm((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  }
+
+  function handleCategoryImageError(categoryId: string) {
+    setCategoryImageAttempts((current) => ({
+      ...current,
+      [categoryId]: (current[categoryId] ?? 0) + 1,
     }));
   }
 
@@ -243,7 +257,7 @@ function CreateProductPage() {
 
   function validateClassification() {
     if (!selectedCategoryId || !selectedSubCategoryId) {
-      setError("Elegí una categoria y una subcategoria.");
+      setError("Elegí una categoría y una subcategoría.");
       return false;
     }
 
@@ -269,7 +283,7 @@ function CreateProductPage() {
       setUploadedMedia(media);
       setStep(3);
     } catch {
-      setError("No se pudieron subir las imagenes.");
+      setError("No se pudieron subir las imágenes.");
     } finally {
       setIsUploadingMedia(false);
     }
@@ -296,7 +310,7 @@ function CreateProductPage() {
     }
 
     if (!detailsForm.pickupAddressId) {
-      setError("Elegí una direccion para que el repartidor sepa donde retirar.");
+      setError("Elegí una dirección para que el repartidor sepa dónde retirar.");
       return false;
     }
 
@@ -413,7 +427,7 @@ function CreateProductPage() {
 
   return (
     <section className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
         <div>
           <p className="text-sm font-black uppercase text-[var(--brand)]">
             Nueva publicación
@@ -421,21 +435,6 @@ function CreateProductPage() {
           <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">
             Publicar producto
           </h1>
-        </div>
-
-        <div className="flex gap-2">
-          {[1, 2, 3].map((item) => (
-            <span
-              key={item}
-              className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-black ${
-                step >= item
-                  ? "bg-[var(--brand)] text-white"
-                  : "bg-slate-100 text-slate-500"
-              }`}
-            >
-              {item}
-            </span>
-          ))}
         </div>
       </div>
 
@@ -453,37 +452,60 @@ function CreateProductPage() {
 
           {isLoadingCategories ? (
             <p className="mt-5 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
-              Cargando categorias...
+              Cargando categorías...
             </p>
           ) : (
             <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => setSelectedCategoryId(category.id)}
-                  className={`rounded-2xl border p-4 text-left transition ${
-                    selectedCategoryId === category.id
-                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                      : "border-slate-200 bg-white hover:border-[var(--brand-border)]"
-                  }`}
-                >
-                  <span className="block text-lg font-black text-slate-950">
-                    {category.name}
-                  </span>
-                  {category.description && (
-                    <span className="mt-1 block text-sm font-semibold text-slate-500">
-                      {category.description}
+              {categories.map((category) => {
+                const imageUrls = getCategoryDisplayImageUrls(category);
+                const imageAttempt = categoryImageAttempts[category.id] ?? 0;
+                const imageUrl = imageUrls[imageAttempt];
+
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setSelectedCategoryId(category.id)}
+                    className={`flex min-w-0 items-center gap-3 rounded-2xl border p-4 text-left transition ${
+                      selectedCategoryId === category.id
+                        ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                        : "border-slate-200 bg-white hover:border-[var(--brand-border)]"
+                    }`}
+                  >
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-white text-sm font-black text-[var(--brand)] shadow-sm">
+                      {imageUrl ? (
+                        <img
+                          key={imageUrl}
+                          src={imageUrl}
+                          alt={`Icono de ${category.name}`}
+                          loading="lazy"
+                          onError={() => handleCategoryImageError(category.id)}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        getCategoryInitials(category)
+                      )}
                     </span>
-                  )}
-                </button>
-              ))}
+
+                    <span className="min-w-0">
+                      <span className="block truncate text-lg font-black text-slate-950">
+                        {category.name}
+                      </span>
+                      {category.description && (
+                        <span className="mt-1 line-clamp-2 block text-sm font-semibold text-slate-500">
+                          {category.description}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
           <div className="mt-6">
             <label className="mb-2 block font-bold text-slate-700">
-              Subcategoria
+              Subcategoría
             </label>
             <select
               value={selectedSubCategoryId}
@@ -493,10 +515,10 @@ function CreateProductPage() {
             >
               <option value="">
                 {isLoadingSubCategories
-                  ? "Cargando subcategorias..."
+                  ? "Cargando subcategorías..."
                   : selectedCategoryId
-                    ? "Selecciona una subcategoria"
-                    : "Primero elegí una categoria"}
+                    ? "Seleccioná una subcategoría"
+                    : "Primero elegí una categoría"}
               </option>
               {subCategories.map((subCategory) => (
                 <option key={subCategory.id} value={subCategory.id}>
@@ -711,8 +733,8 @@ function CreateProductPage() {
                 {isLoadingAddresses
                   ? "Cargando direcciones..."
                   : addresses.length === 0
-                    ? "No tenes direcciones guardadas"
-                    : "Selecciona la direccion para el repartidor"}
+                    ? "No tenés direcciones guardadas"
+                    : "Seleccioná la dirección para el repartidor"}
               </option>
               {addresses.map((address) => (
                 <option key={address.id} value={address.id}>
@@ -751,7 +773,7 @@ function CreateProductPage() {
               </p>
             ) : attributes.length === 0 ? (
               <p className="mt-4 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
-                Esta subcategoria no tiene atributos extra.
+                Esta subcategoría no tiene atributos extra.
               </p>
             ) : (
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
