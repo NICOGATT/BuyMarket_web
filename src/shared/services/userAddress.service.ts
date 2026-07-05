@@ -29,7 +29,9 @@ export async function createUserAddress(
     const response = await api.post<UserAddress>("/user-addresses", payload);
     return response.data;
   } catch (error) {
-    throw new Error(getApiErrorMessage(error, "No se pudo guardar la direccion."));
+    throw new Error(getApiErrorMessage(error, "No se pudo guardar la direccion."), {
+      cause: error,
+    });
   }
 }
 

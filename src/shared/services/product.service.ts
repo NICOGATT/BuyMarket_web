@@ -1,6 +1,53 @@
 import { api } from "./api";
-import type { CreateProductPayload, Product, ProductMedia } from "../types/Product";
+import type {
+  CreateProductPayload,
+  Product,
+  ProductMedia,
+  ProductVariantPayload,
+  UpdateProductPayload,
+} from "../types/Product";
 import { getUserFromToken } from "../utils/auth";
+
+function getActiveVariantStats(variants?: ProductVariantPayload[]) {
+  const activeVariants = (variants ?? []).filter(
+    (variant) => variant.isActive !== false
+  );
+
+  if (activeVariants.length === 0) return null;
+
+  return {
+    price: Math.min(...activeVariants.map((variant) => Number(variant.price))),
+    stock: activeVariants.reduce(
+      (total, variant) => total + Math.max(0, Number(variant.stock) || 0),
+      0
+    ),
+  };
+}
+
+function buildProductRequestPayload(
+  payload: CreateProductPayload | UpdateProductPayload
+) {
+  const user = getUserFromToken();
+  const sellerId = payload.seller ?? payload.owner ?? user?.id ?? user?.sub;
+  const subCategoryId = payload.subCategoryId ?? payload.category;
+  const variantStats = getActiveVariantStats(payload.variants);
+
+  return {
+    title: payload.title,
+    description: payload.description,
+    price: variantStats?.price ?? payload.price,
+    stock: variantStats?.stock ?? payload.stock,
+    seller: sellerId,
+    subCategoryId,
+    mediaIds: payload.mediaIds ?? [],
+    attributes: payload.attributes ?? [],
+    horarioDisponible: payload.horarioDisponible,
+    ...(payload.pickupAddressId
+      ? { pickupAddressId: payload.pickupAddressId }
+      : {}),
+    ...(payload.variants !== undefined ? { variants: payload.variants } : {}),
+  };
+}
 
 export async function getProducts() {
   const response = await api.get<Product[]>("/products");
@@ -32,25 +79,19 @@ export async function getMyProducts(): Promise<Product[]> {
 export async function createProduct(
   payload: CreateProductPayload
 ): Promise<Product> {
-  const user = getUserFromToken();
-  const sellerId = payload.seller ?? payload.owner ?? user?.id ?? user?.sub;
-  const subCategoryId = payload.subCategoryId ?? payload.category;
-  const requestPayload = {
-    title: payload.title,
-    description: payload.description,
-    price: payload.price,
-    stock: payload.stock,
-    seller: sellerId,
-    subCategoryId,
-    mediaIds: payload.mediaIds ?? [],
-    attributes: payload.attributes ?? [],
-    horarioDisponible: payload.horarioDisponible,
-    ...(payload.pickupAddressId
-      ? { pickupAddressId: payload.pickupAddressId }
-      : {}),
-  };
+  const requestPayload = buildProductRequestPayload(payload);
 
   const response = await api.post<Product>("/products", requestPayload);
+
+  return response.data;
+}
+
+export async function updateProduct(
+  id: string,
+  payload: UpdateProductPayload
+): Promise<Product> {
+  const requestPayload = buildProductRequestPayload(payload);
+  const response = await api.patch<Product>(`/products/${id}`, requestPayload);
 
   return response.data;
 }

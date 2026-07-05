@@ -39,6 +39,15 @@ type CategorySuggestionForm = {
   description: string;
 };
 
+type ProductVariantForm = {
+  id: string;
+  size: string;
+  color: string;
+  price: string;
+  stock: string;
+  isActive: boolean;
+};
+
 const emptyDetailsForm: ProductDetailsForm = {
   title: "",
   description: "",
@@ -52,6 +61,17 @@ const emptyCategorySuggestionForm: CategorySuggestionForm = {
   name: "",
   description: "",
 };
+
+function createEmptyVariant(): ProductVariantForm {
+  return {
+    id: crypto.randomUUID(),
+    size: "",
+    color: "",
+    price: "",
+    stock: "",
+    isActive: true,
+  };
+}
 
 function CreateProductPage() {
   const navigate = useNavigate();
@@ -68,6 +88,7 @@ function CreateProductPage() {
   const [categorySuggestionForm, setCategorySuggestionForm] =
     useState<CategorySuggestionForm>(emptyCategorySuggestionForm);
   const [attributeValues, setAttributeValues] = useState<Record<string, string>>({});
+  const [variants, setVariants] = useState<ProductVariantForm[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoadingSubCategories, setIsLoadingSubCategories] = useState(false);
   const [isLoadingAttributes, setIsLoadingAttributes] = useState(false);
@@ -94,6 +115,23 @@ function CreateProductPage() {
     () => imageFiles.map((file) => URL.createObjectURL(file)),
     [imageFiles]
   );
+  const productAttributes = useMemo(
+    () =>
+      attributes.filter(
+        (attribute) => (attribute.usage ?? "product_attribute") === "product_attribute"
+      ),
+    [attributes]
+  );
+  const sizeAttribute = useMemo(
+    () => attributes.find((attribute) => attribute.usage === "variant_size"),
+    [attributes]
+  );
+  const colorAttribute = useMemo(
+    () => attributes.find((attribute) => attribute.usage === "variant_color"),
+    [attributes]
+  );
+  const sizeOptions = sizeAttribute?.options?.filter(Boolean) ?? [];
+  const colorOptions = colorAttribute?.options?.filter(Boolean) ?? [];
 
   useEffect(() => {
     return () => {
@@ -129,8 +167,6 @@ function CreateProductPage() {
 
   useEffect(() => {
     if (!selectedCategoryId) {
-      setSubCategories([]);
-      setSelectedSubCategoryId("");
       return;
     }
 
@@ -156,8 +192,6 @@ function CreateProductPage() {
 
   useEffect(() => {
     if (!selectedSubCategoryId) {
-      setAttributes([]);
-      setAttributeValues({});
       return;
     }
 
@@ -172,7 +206,9 @@ function CreateProductPage() {
         setAttributes(data);
         setAttributeValues(
           data.reduce<Record<string, string>>((values, attribute) => {
-            values[attribute.id] = attribute.type === "boolean" ? "false" : "";
+            if ((attribute.usage ?? "product_attribute") === "product_attribute") {
+              values[attribute.id] = attribute.type === "boolean" ? "false" : "";
+            }
             return values;
           }, {})
         );
@@ -255,6 +291,28 @@ function CreateProductPage() {
     setUploadedMedia([]);
   }
 
+  function handleAddVariant() {
+    setVariants((currentVariants) => currentVariants.concat(createEmptyVariant()));
+  }
+
+  function handleRemoveVariant(id: string) {
+    setVariants((currentVariants) =>
+      currentVariants.filter((variant) => variant.id !== id)
+    );
+  }
+
+  function handleVariantChange(
+    id: string,
+    field: keyof Omit<ProductVariantForm, "id">,
+    value: string | boolean
+  ) {
+    setVariants((currentVariants) =>
+      currentVariants.map((variant) =>
+        variant.id === id ? { ...variant, [field]: value } : variant
+      )
+    );
+  }
+
   function validateClassification() {
     if (!selectedCategoryId || !selectedSubCategoryId) {
       setError("Elegí una categoría y una subcategoría.");
@@ -290,21 +348,24 @@ function CreateProductPage() {
   }
 
   function validateDetails() {
-    const missingRequiredAttribute = attributes.find(
+    const missingRequiredAttribute = productAttributes.find(
       (attribute) => attribute.required && !attributeValues[attribute.id]?.trim()
     );
+    const hasVariants = variants.length > 0;
 
     if (
       !detailsForm.title.trim() ||
       !detailsForm.description.trim() ||
-      !detailsForm.price ||
-      !detailsForm.stock
+      (!hasVariants && (!detailsForm.price || !detailsForm.stock))
     ) {
       setError("Completá titulo, descripcion, precio y stock.");
       return false;
     }
 
-    if (Number(detailsForm.price) <= 0 || Number(detailsForm.stock) < 0) {
+    if (
+      !hasVariants &&
+      (Number(detailsForm.price) <= 0 || Number(detailsForm.stock) < 0)
+    ) {
       setError("El precio debe ser mayor a 0 y el stock no puede ser negativo.");
       return false;
     }
@@ -319,6 +380,38 @@ function CreateProductPage() {
       return false;
     }
 
+    for (const variant of variants) {
+      const size = variant.size.trim();
+      const color = variant.color.trim();
+      const price = Number(variant.price);
+      const stock = Number(variant.stock);
+
+      if (!size) {
+        setError("Todas las variantes necesitan talle.");
+        return false;
+      }
+
+      if (!Number.isFinite(price) || price <= 0) {
+        setError("El precio de cada variante debe ser mayor a 0.");
+        return false;
+      }
+
+      if (!Number.isFinite(stock) || stock < 0) {
+        setError("El stock de cada variante no puede ser negativo.");
+        return false;
+      }
+
+      if (sizeOptions.length > 0 && !sizeOptions.includes(size)) {
+        setError("El talle de cada variante debe estar dentro de las opciones.");
+        return false;
+      }
+
+      if (color && colorOptions.length > 0 && !colorOptions.includes(color)) {
+        setError("El color de cada variante debe estar dentro de las opciones.");
+        return false;
+      }
+    }
+
     setError("");
     return true;
   }
@@ -331,26 +424,45 @@ function CreateProductPage() {
     const selectedAddress = addresses.find(
       (address) => address.id === detailsForm.pickupAddressId
     );
+    const variantPayload = variants.map((variant) => ({
+      size: variant.size.trim(),
+      ...(variant.color.trim() ? { color: variant.color.trim() } : {}),
+      price: Number(variant.price),
+      stock: Number(variant.stock),
+      isActive: variant.isActive,
+    }));
+    const activeVariantPayload = variantPayload.filter(
+      (variant) => variant.isActive !== false
+    );
+    const computedPrice =
+      activeVariantPayload.length > 0
+        ? Math.min(...activeVariantPayload.map((variant) => variant.price))
+        : Number(detailsForm.price);
+    const computedStock =
+      activeVariantPayload.length > 0
+        ? activeVariantPayload.reduce((total, variant) => total + variant.stock, 0)
+        : Number(detailsForm.stock);
 
     try {
       setIsSubmiting(true);
       await createProduct({
         title: detailsForm.title.trim(),
         description: detailsForm.description.trim(),
-        price: Number(detailsForm.price),
-        stock: Number(detailsForm.stock),
+        price: computedPrice,
+        stock: computedStock,
         category: selectedSubCategoryId,
         subCategoryId: selectedSubCategoryId,
         direccionRetiro: selectedAddress ? formatUserAddress(selectedAddress) : "",
         horarioDisponible: detailsForm.horarioDisponible,
         pickupAddressId: detailsForm.pickupAddressId,
         mediaIds: uploadedMedia.map((media) => media.id).filter(Boolean) as string[],
-        attributes: attributes
+        attributes: productAttributes
           .map((attribute) => ({
             attributeId: attribute.id,
             value: attributeValues[attribute.id] ?? "",
           }))
           .filter((item) => item.value.trim() !== ""),
+        ...(variantPayload.length > 0 ? { variants: variantPayload } : {}),
       });
 
       navigate("/profile");
@@ -509,7 +621,15 @@ function CreateProductPage() {
             </label>
             <select
               value={selectedSubCategoryId}
-              onChange={(event) => setSelectedSubCategoryId(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setSelectedSubCategoryId(value);
+                if (!value) {
+                  setAttributes([]);
+                  setAttributeValues({});
+                  setVariants([]);
+                }
+              }}
               disabled={!selectedCategoryId || isLoadingSubCategories}
               className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)] disabled:bg-slate-100 disabled:text-slate-500"
             >
@@ -643,6 +763,148 @@ function CreateProductPage() {
             </div>
           )}
 
+          <div className="mt-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="m-0 text-xl font-black text-slate-950">
+                  Variantes
+                </h3>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  Crea combinaciones comprables con talle, color, precio y stock.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddVariant}
+                className="rounded-xl bg-[var(--nav-blue)] px-4 py-2 font-bold text-white transition hover:bg-[var(--nav-blue-hover)]"
+              >
+                Agregar variante
+              </button>
+            </div>
+
+            {variants.length === 0 ? (
+              <p className="mt-4 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
+                Si no agregas variantes, se usaran el precio y stock base.
+              </p>
+            ) : (
+              <div className="mt-4 space-y-4">
+                {variants.map((variant, index) => (
+                  <div
+                    key={variant.id}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <p className="font-black text-slate-950">
+                        Variante {index + 1}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariant(variant.id)}
+                        className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                      {sizeOptions.length > 0 ? (
+                        <select
+                          value={variant.size}
+                          onChange={(event) =>
+                            handleVariantChange(variant.id, "size", event.target.value)
+                          }
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                        >
+                          <option value="">Talle</option>
+                          {sizeOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          value={variant.size}
+                          onChange={(event) =>
+                            handleVariantChange(variant.id, "size", event.target.value)
+                          }
+                          placeholder="Talle"
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                        />
+                      )}
+
+                      {colorOptions.length > 0 ? (
+                        <select
+                          value={variant.color}
+                          onChange={(event) =>
+                            handleVariantChange(variant.id, "color", event.target.value)
+                          }
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                        >
+                          <option value="">Color opcional</option>
+                          {colorOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          value={variant.color}
+                          onChange={(event) =>
+                            handleVariantChange(variant.id, "color", event.target.value)
+                          }
+                          placeholder="Color opcional"
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                        />
+                      )}
+
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={variant.price}
+                        onChange={(event) =>
+                          handleVariantChange(variant.id, "price", event.target.value)
+                        }
+                        placeholder="Precio"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                      />
+
+                      <input
+                        type="number"
+                        min="0"
+                        value={variant.stock}
+                        onChange={(event) =>
+                          handleVariantChange(variant.id, "stock", event.target.value)
+                        }
+                        placeholder="Stock"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                      />
+
+                      <label className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 font-bold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={variant.isActive}
+                          onChange={(event) =>
+                            handleVariantChange(
+                              variant.id,
+                              "isActive",
+                              event.target.checked
+                            )
+                          }
+                          className="h-4 w-4"
+                        />
+                        Activa
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {uploadedMedia.length > 0 && (
             <p className="mt-4 flex items-center gap-2 rounded-xl bg-green-50 p-3 font-bold text-green-700">
               <Check size={18} />
@@ -771,13 +1033,13 @@ function CreateProductPage() {
               <p className="mt-4 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
                 Cargando atributos...
               </p>
-            ) : attributes.length === 0 ? (
+            ) : productAttributes.length === 0 ? (
               <p className="mt-4 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
                 Esta subcategoría no tiene atributos extra.
               </p>
             ) : (
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {attributes.map((attribute) => (
+                {productAttributes.map((attribute) => (
                   <label key={attribute.id} className="block">
                     <span className="mb-2 block font-bold text-slate-700">
                       {attribute.name}

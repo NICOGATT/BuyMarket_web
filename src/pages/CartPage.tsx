@@ -8,6 +8,10 @@ import {
   removeCartItem,
   updateCartItem,
 } from "../features/cart/store/cartStore";
+import {
+  formatVariantLabel,
+  getCartItemUnitPrice,
+} from "../shared/utils/productVariants";
 
 function CartPage() {
   const navigate = useNavigate();
@@ -35,7 +39,7 @@ function CartPage() {
   }, [navigate]);
 
   const total = cart.reduce(
-    (acc, item) => acc + item.product.price * item.quantity,
+    (acc, item) => acc + getCartItemUnitPrice(item) * item.quantity,
     0
   );
 
@@ -138,8 +142,14 @@ function CartPage() {
                 {item.product.title}
               </h2>
 
+              {formatVariantLabel(item.variant) && (
+                <p className="mt-1 text-sm font-bold text-slate-500">
+                  {formatVariantLabel(item.variant)}
+                </p>
+              )}
+
               <p className="break-words text-slate-500">
-                ${item.product.price.toLocaleString("es-AR")} por unidad
+                ${getCartItemUnitPrice(item).toLocaleString("es-AR")} por unidad
               </p>
             </div>
 
@@ -165,7 +175,7 @@ function CartPage() {
               </button>
 
               <strong className="col-span-4 text-left text-xl text-[var(--brand)] sm:col-span-1 sm:min-w-28 sm:text-right">
-                ${(item.product.price * item.quantity).toLocaleString("es-AR")}
+                ${(getCartItemUnitPrice(item) * item.quantity).toLocaleString("es-AR")}
               </strong>
 
               <button

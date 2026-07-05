@@ -2,43 +2,38 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, ShoppingCart, Zap } from "lucide-react";
 import { addCart, isAuthRequiredError } from "../../cart/store/cartStore";
-import type { Category } from "../../../shared/types/Category";
-import type { Product, ProductCardProps } from "../../../shared/types/Product";
+import type { ProductCardProps } from "../../../shared/types/Product";
+import { getProductCategoryName } from "../../../shared/utils/productCategories";
+import { getProductFirstImage } from "../../../shared/utils/productImages";
+import {
+  getDisplayPrice,
+  getVariantTotalStock,
+  hasProductVariants,
+} from "../../../shared/utils/productVariants";
 
-function ProductCard({
-  id,
-  title,
-  description,
-  price,
-  image,
-  categoryName,
-}: ProductCardProps) {
+function ProductCard({ product }: ProductCardProps) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const navigate = useNavigate();
-
-  function buildCartProduct(): Product {
-    return {
-      id,
-      title,
-      description,
-      price,
-      images: image ? [image] : [],
-      stock: 0,
-      category: "" as unknown as Category,
-      isActive: true,
-      owner: "",
-    };
-  }
+  const image = getProductFirstImage(product);
+  const categoryName = getProductCategoryName(product);
+  const hasVariants = hasProductVariants(product);
+  const displayPrice = getDisplayPrice(product);
+  const totalVariantStock = getVariantTotalStock(product);
 
   async function handleAddToCart() {
+    if (hasVariants) {
+      navigate(`/products/${product.id}`);
+      return;
+    }
+
     try {
       setIsAddingToCart(true);
-      await addCart(buildCartProduct());
+      await addCart(product);
       alert("Producto agregado al carrito");
     } catch (error) {
       if (isAuthRequiredError(error)) {
-        alert("Inicia sesión para agregar productos al carrito.");
+        alert("Inicia sesion para agregar productos al carrito.");
         navigate("/login");
         return;
       }
@@ -50,13 +45,18 @@ function ProductCard({
   }
 
   async function handleBuyNow() {
+    if (hasVariants) {
+      navigate(`/products/${product.id}`);
+      return;
+    }
+
     try {
       setIsBuyingNow(true);
-      await addCart(buildCartProduct());
+      await addCart(product);
       navigate("/checkout");
     } catch (error) {
       if (isAuthRequiredError(error)) {
-        alert("Inicia sesión para comprar.");
+        alert("Inicia sesion para comprar.");
         navigate("/login");
         return;
       }
@@ -73,7 +73,7 @@ function ProductCard({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
           <div className="rounded-2xl bg-white px-6 py-5 text-center shadow-xl">
             <p className="text-lg font-black text-slate-950">
-              Se está preparando tu compra
+              Se esta preparando tu compra
             </p>
             <p className="mt-1 text-sm font-semibold text-slate-500">
               Estamos agregando el producto al carrito...
@@ -89,7 +89,7 @@ function ProductCard({
         {image ? (
           <img
             src={image}
-            alt={title}
+            alt={product.title}
             className="h-full w-full object-contain p-5 transition duration-300 group-hover:scale-105"
             loading="lazy"
           />
@@ -102,48 +102,64 @@ function ProductCard({
 
       <div className="flex min-h-72 flex-1 flex-col p-5">
         <h3 className="line-clamp-2 text-lg font-black leading-snug text-[var(--text-main)]">
-          {title}
+          {product.title}
         </h3>
 
         <p className="mt-2 w-fit rounded-full bg-[var(--brand-orange-soft)] px-3 py-1 text-xs font-black text-[var(--brand-hover)]">
-          {categoryName || "Sin categoría"}
+          {categoryName || "Sin categoria"}
         </p>
 
         <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-slate-500">
-          {description || "Publicación disponible para ver detalles, comparar y comprar."}
+          {product.description ||
+            "Publicacion disponible para ver detalles, comparar y comprar."}
         </p>
 
         <div className="mt-auto pt-5">
           <span className="block text-2xl font-black text-slate-950">
-            ${price.toLocaleString("es-AR")}
+            {hasVariants ? "Desde " : ""}${displayPrice.toLocaleString("es-AR")}
           </span>
+          {totalVariantStock !== null && (
+            <span className="mt-1 block text-sm font-bold text-slate-500">
+              Stock total: {totalVariantStock}
+            </span>
+          )}
           <span className="mt-1 block text-sm font-bold text-[var(--nav-blue-hover)]">
             Compra protegida
           </span>
 
           <div className="mt-4 grid gap-2">
             <Link
-              to={`/products/${id}`}
+              to={`/products/${product.id}`}
               className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--nav-blue)] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[var(--nav-blue-hover)]"
             >
               <Eye className="h-4 w-4" />
               Ver detalles
             </Link>
             <button
+              type="button"
               onClick={handleAddToCart}
               disabled={isAddingToCart || isBuyingNow}
               className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(45,0,107,0.18)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <ShoppingCart className="h-4 w-4" />
-              {isAddingToCart ? "Agregando..." : "Agregar al carrito"}
+              {hasVariants
+                ? "Elegir variante"
+                : isAddingToCart
+                  ? "Agregando..."
+                  : "Agregar al carrito"}
             </button>
             <button
+              type="button"
               onClick={handleBuyNow}
               disabled={isAddingToCart || isBuyingNow}
               className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand-orange)] px-4 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(255,138,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-orange-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Zap className="h-4 w-4" />
-              {isBuyingNow ? "Preparando..." : "Comprar ahora"}
+              {hasVariants
+                ? "Ver opciones"
+                : isBuyingNow
+                  ? "Preparando..."
+                  : "Comprar ahora"}
             </button>
           </div>
         </div>

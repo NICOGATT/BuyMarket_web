@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, MapPin, User, X } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { addCart, isAuthRequiredError } from "../features/cart/store/cartStore";
+import {
+  addCart,
+  addProductToCart,
+  isAuthRequiredError,
+} from "../features/cart/store/cartStore";
 import { getProductById } from "../shared/services/product.service";
 import type {
   Product,
@@ -9,6 +13,12 @@ import type {
   ProductPublisher,
 } from "../shared/types/Product";
 import { getProductImageUrls } from "../shared/utils/productImages";
+import {
+  formatVariantLabel,
+  getDisplayPrice,
+  getPurchasableVariants,
+  getVariantTotalStock,
+} from "../shared/utils/productVariants";
 import { formatUserAddress } from "../shared/utils/userAddress";
 
 function getTextValue(value: unknown) {
@@ -88,6 +98,8 @@ function ProductDetailPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [buyNowError, setBuyNowError] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
 
   useEffect(() => {
     async function loadProduct() {
@@ -96,6 +108,8 @@ function ProductDetailPage() {
       const data = await getProductById(id);
       setProduct(data);
       setSelectedImageIndex(0);
+      setSelectedSize("");
+      setSelectedColor("");
     }
 
     loadProduct();
@@ -112,6 +126,29 @@ function ProductDetailPage() {
   const publisherName = getPublisherName(product);
   const productAddress = getProductAddress(product);
   const availableSchedule = getTextValue(product.horarioDisponible);
+  const purchasableVariants = getPurchasableVariants(product);
+  const hasVariants = purchasableVariants.length > 0;
+  const sizeOptions = Array.from(
+    new Set(purchasableVariants.map((variant) => variant.size))
+  );
+  const colorOptions = Array.from(
+    new Set(
+      purchasableVariants
+        .filter((variant) => variant.size === selectedSize)
+        .map((variant) => variant.color ?? "")
+    )
+  );
+  const selectedVariant =
+    hasVariants && selectedSize
+      ? purchasableVariants.find(
+          (variant) =>
+            variant.size === selectedSize &&
+            (variant.color ?? "") === selectedColor
+        ) ?? null
+      : null;
+  const displayedPrice = selectedVariant?.price ?? getDisplayPrice(product);
+  const displayedStock =
+    selectedVariant?.stock ?? getVariantTotalStock(product) ?? product.stock;
 
   function showPreviousImage() {
     setSelectedImageIndex((currentIndex) =>
@@ -128,10 +165,23 @@ function ProductDetailPage() {
   async function handleBuyNow() {
     if (!product) return;
 
+    if (hasVariants && !selectedVariant?.id) {
+      setBuyNowError("Elegí talle y color para comprar este producto.");
+      return;
+    }
+
     try {
       setIsBuyingNow(true);
       setBuyNowError("");
-      await addCart(product);
+      if (selectedVariant?.id) {
+        await addProductToCart({
+          productId: product.id,
+          variantId: selectedVariant.id,
+          quantity: 1,
+        });
+      } else {
+        await addCart(product);
+      }
       navigate("/checkout");
     } catch (error) {
       if (isAuthRequiredError(error)) {
@@ -148,10 +198,23 @@ function ProductDetailPage() {
   async function handleAddToCart() {
     if (!product) return;
 
+    if (hasVariants && !selectedVariant?.id) {
+      setBuyNowError("Elegí talle y color para agregar este producto.");
+      return;
+    }
+
     try {
       setIsAddingToCart(true);
       setBuyNowError("");
-      await addCart(product);
+      if (selectedVariant?.id) {
+        await addProductToCart({
+          productId: product.id,
+          variantId: selectedVariant.id,
+          quantity: 1,
+        });
+      } else {
+        await addCart(product);
+      }
     } catch (error) {
       if (isAuthRequiredError(error)) {
         navigate("/login");
@@ -317,8 +380,76 @@ function ProductDetailPage() {
         <p className="mt-4 break-words text-slate-600">{product.description}</p>
 
         <p className="mt-6 text-3xl font-black text-[var(--brand)] sm:text-4xl">
-          ${product.price.toLocaleString("es-AR")}
+          {hasVariants && !selectedVariant ? "Desde " : ""}$
+          {displayedPrice.toLocaleString("es-AR")}
         </p>
+
+        <p className="mt-2 text-sm font-bold text-slate-500">
+          Stock disponible: {displayedStock}
+        </p>
+
+        {hasVariants && (
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="m-0 text-lg font-black text-slate-950">
+              Variantes
+            </h2>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block font-bold text-slate-700">
+                  Talle
+                </span>
+                <select
+                  value={selectedSize}
+                  onChange={(event) => {
+                    setSelectedSize(event.target.value);
+                    setSelectedColor("");
+                    setBuyNowError("");
+                  }}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
+                >
+                  <option value="">Elegir talle</option>
+                  {sizeOptions.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block font-bold text-slate-700">
+                  Color
+                </span>
+                <select
+                  value={selectedColor}
+                  onChange={(event) => {
+                    setSelectedColor(event.target.value);
+                    setBuyNowError("");
+                  }}
+                  disabled={!selectedSize}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)] disabled:bg-slate-100 disabled:text-slate-500"
+                >
+                  <option value="">
+                    {selectedSize ? "Elegir color" : "Primero elegí talle"}
+                  </option>
+                  {colorOptions.map((color) => (
+                    <option key={color || "sin-color"} value={color}>
+                      {color || "Sin color"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {selectedVariant && (
+              <p className="mt-4 rounded-xl bg-slate-50 p-3 font-semibold text-slate-600">
+                Seleccionado: {formatVariantLabel(selectedVariant)} - $
+                {selectedVariant.price.toLocaleString("es-AR")}
+              </p>
+            )}
+          </div>
+        )}
 
         {buyNowError && (
           <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 font-semibold text-red-700">

@@ -3,6 +3,10 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { CART_CHANGE_EVENT, getCart } from "../features/cart/store/cartStore";
 import type { CartItem } from "../shared/types/Cart";
+import {
+  formatVariantLabel,
+  getCartItemUnitPrice,
+} from "../shared/utils/productVariants";
 import { getUserFromToken, logout } from "../shared/utils/auth";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -57,7 +61,7 @@ function MainLayout() {
 
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   const cartTotal = cart.reduce(
-    (acc, item) => acc + item.product.price * item.quantity,
+    (acc, item) => acc + getCartItemUnitPrice(item) * item.quantity,
     0
   );
 
@@ -167,7 +171,7 @@ function MainLayout() {
                         <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
                           {cart.map((item) => (
                             <article
-                              key={item.product.id}
+                              key={item.id ?? `${item.product.id}-${item.variant?.id ?? ""}`}
                               className="flex gap-3 rounded-xl bg-slate-50 p-3"
                             >
                               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-xs font-black text-[var(--brand)]">
@@ -177,10 +181,15 @@ function MainLayout() {
                                 <p className="truncate font-bold text-slate-900">
                                   {item.product.title}
                                 </p>
+                                {formatVariantLabel(item.variant) && (
+                                  <p className="truncate text-xs font-bold text-slate-400">
+                                    {formatVariantLabel(item.variant)}
+                                  </p>
+                                )}
                                 <p className="text-sm font-semibold text-slate-500">
                                   $
                                   {(
-                                    item.product.price * item.quantity
+                                    getCartItemUnitPrice(item) * item.quantity
                                   ).toLocaleString("es-AR")}
                                 </p>
                               </div>
@@ -264,6 +273,15 @@ function MainLayout() {
                         >
                           <ShoppingBag size={18} />
                           Mis compras
+                        </NavLink>
+
+                        <NavLink
+                          to="/profile/sales"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-slate-700 hover:bg-slate-50"
+                        >
+                          <ShoppingBag size={18} />
+                          Mis ventas
                         </NavLink>
 
                         <NavLink

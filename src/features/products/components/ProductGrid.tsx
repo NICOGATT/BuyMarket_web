@@ -1,7 +1,5 @@
 import ProductCard from "./ProductCard";
 import type { Product } from "../../../shared/types/Product";
-import { getProductFirstImage } from "../../../shared/utils/productImages";
-import { getProductCategoryName } from "../../../shared/utils/productCategories";
 
 type ProductGridProps = {
   products: Product[];
@@ -19,12 +17,7 @@ function ProductGrid({products, variant = "default"} : ProductGridProps) {
         {products.map((product) => (
             <ProductCard 
                 key={product.id}
-                id={product.id}
-                title={product.title}
-                description={product.description}
-                price={product.price}
-                image={getProductFirstImage(product)}
-                categoryName={getProductCategoryName(product)}
+                product={product}
             />
         ))}
     </div>

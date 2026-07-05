@@ -4,6 +4,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { getMyOrders } from "../shared/services/order.service";
 import type { Order } from "../shared/types/Order";
 import { getUserFromToken } from "../shared/utils/auth";
+import {
+  formatVariantLabel,
+  getOrderItemUnitPrice,
+} from "../shared/utils/productVariants";
 
 const paymentMethodLabels: Record<string, string> = {
   cash: "Efectivo",
@@ -192,6 +196,34 @@ function MyOrdersPage() {
                     </Link>
                   )}
                 </div>
+
+                {order.items?.length > 0 && (
+                  <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3">
+                    {order.items.map((item, index) => (
+                      <div
+                        key={`${item.product?.id ?? "item"}-${item.variant?.id ?? index}`}
+                        className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-slate-900">
+                            {item.product?.title ?? "Producto"}
+                          </p>
+                          {formatVariantLabel(item.variant) && (
+                            <p className="text-sm font-semibold text-slate-500">
+                              {formatVariantLabel(item.variant)}
+                            </p>
+                          )}
+                        </div>
+                        <p className="font-black text-slate-700">
+                          x{item.quantity} - $
+                          {(
+                            getOrderItemUnitPrice(item) * item.quantity
+                          ).toLocaleString("es-AR")}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </article>
             );
           })}

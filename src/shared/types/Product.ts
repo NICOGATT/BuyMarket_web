@@ -27,6 +27,23 @@ export type ProductAttributeValue = {
 export type ProductPublisher = string | User;
 export type ProductApprovalStatus = "pending" | "approved" | "rejected";
 
+export type ProductVariant = {
+  id?: string;
+  size: string;
+  color?: string | null;
+  price: number;
+  stock: number;
+  isActive: boolean;
+};
+
+export type ProductVariantPayload = {
+  size: string;
+  color?: string;
+  price: number;
+  stock: number;
+  isActive?: boolean;
+};
+
 export type Product = {
   id: string;
   title: string;
@@ -60,17 +77,13 @@ export type Product = {
   attributeValues?: ProductAttributeValue[];
   productAttributes?: ProductAttributeValue[];
   productAttributeValues?: ProductAttributeValue[];
+  variants?: ProductVariant[];
   createdAt?: string;
   updatedAt?: string;
 };
 
 export type ProductCardProps = {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  image?: string;
-  categoryName?: string;
+  product: Product;
 };
 
 export type CreateProductPayload = {
@@ -89,5 +102,12 @@ export type CreateProductPayload = {
     attributeId: string;
     value: string;
   }[];
+  variants?: ProductVariantPayload[];
   owner?: string;
+};
+
+export type UpdateProductPayload = Partial<
+  Omit<CreateProductPayload, "variants">
+> & {
+  variants?: ProductVariantPayload[];
 };

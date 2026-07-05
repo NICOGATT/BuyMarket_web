@@ -1,6 +1,6 @@
 import { api } from "./api";
 import axios from "axios";
-import type { Order } from "../types/Order";
+import type { Order, Sale } from "../types/Order";
 
 export type ShipmentType = "local" | "national";
 
@@ -34,6 +34,12 @@ export async function getMyOrders(): Promise<Order[]> {
   return response.data;
 }
 
+export async function getMySales(): Promise<Sale[]> {
+  const response = await api.get<Sale[]>("/orders/my-sales");
+
+  return response.data;
+}
+
 export async function checkoutOrder(
   payload: CheckoutOrderPayload
 ): Promise<Order> {
@@ -42,6 +48,8 @@ export async function checkoutOrder(
 
     return response.data;
   } catch (error) {
-    throw new Error(getApiErrorMessage(error, "No se pudo confirmar la compra."));
+    throw new Error(getApiErrorMessage(error, "No se pudo confirmar la compra."), {
+      cause: error,
+    });
   }
 }

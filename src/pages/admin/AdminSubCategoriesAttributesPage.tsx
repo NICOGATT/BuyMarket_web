@@ -19,12 +19,14 @@ import type {
   CreateSubCategoryAttributePayload,
   SubCategoryAttribute,
   SubCategoryAttributeType,
+  SubCategoryAttributeUsage,
 } from "../../shared/types/SubCategoryAttribute";
 import { subCategoryAttributeTypes } from "../../shared/types/SubCategoryAttribute";
 
 type AttributeFormState = {
   name: string;
   type: SubCategoryAttributeType;
+  usage: SubCategoryAttributeUsage;
   required: boolean;
   optionsText: string;
 };
@@ -32,6 +34,7 @@ type AttributeFormState = {
 const emptyAttributeForm: AttributeFormState = {
   name: "",
   type: "text",
+  usage: "product_attribute",
   required: false,
   optionsText: "",
 };
@@ -285,6 +288,7 @@ function AdminSubCategoriesAttributesPage() {
     return {
       name,
       type: attributeForm.type,
+      usage: attributeForm.usage,
       required: attributeForm.required,
       subCategoryId,
       options: attributeForm.type === "select" ? options : [],
@@ -370,6 +374,7 @@ function AdminSubCategoriesAttributesPage() {
     setAttributeForm({
       name: attribute.name,
       type: attribute.type,
+      usage: attribute.usage ?? "product_attribute",
       required: attribute.required,
       optionsText: attribute.options?.join(", ") ?? "",
     });
@@ -623,7 +628,30 @@ function AdminSubCategoriesAttributesPage() {
                   </option>
                 ))}
               </select>
+
+              <select
+                value={attributeForm.usage}
+                onChange={(event) =>
+                  setAttributeForm((currentForm) => ({
+                    ...currentForm,
+                    usage: event.target.value as SubCategoryAttributeUsage,
+                  }))
+                }
+                disabled={!selectedSubCategoryId || savingAttribute}
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100 md:col-span-2"
+              >
+                <option value="product_attribute">Caracteristica del producto</option>
+                <option value="variant_size">Talle de variante</option>
+                <option value="variant_color">Color de variante</option>
+              </select>
             </div>
+
+            {attributeForm.usage !== "product_attribute" &&
+              attributeForm.type !== "select" && (
+                <p className="rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-700">
+                  Para talles y colores se recomienda usar tipo select y cargar opciones.
+                </p>
+              )}
 
             <label className="flex items-center gap-3 font-bold text-slate-700">
               <input
@@ -764,6 +792,7 @@ function AdminSubCategoriesAttributesPage() {
                   <tr>
                     <th className="px-4 py-3">Nombre</th>
                     <th className="px-4 py-3">Tipo</th>
+                    <th className="px-4 py-3">Uso</th>
                     <th className="px-4 py-3">Opciones</th>
                     <th className="px-4 py-3">Req.</th>
                     <th className="px-4 py-3 text-right">Acciones</th>
@@ -774,7 +803,7 @@ function AdminSubCategoriesAttributesPage() {
                   {attributes.length === 0 && (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-4 py-6 text-center text-slate-500"
                       >
                         {selectedSubCategoryId
@@ -791,6 +820,13 @@ function AdminSubCategoriesAttributesPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-600">
                         {attribute.type}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-600">
+                        {attribute.usage === "variant_size"
+                          ? "Talle"
+                          : attribute.usage === "variant_color"
+                            ? "Color"
+                            : "Caracteristica"}
                       </td>
                       <td className="max-w-48 px-4 py-3 text-sm text-slate-500">
                         {attribute.type === "select" &&

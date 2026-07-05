@@ -66,7 +66,7 @@ function AdminWithdrawalsPage() {
   }
 
   useEffect(() => {
-    void loadWithdrawals();
+    void Promise.resolve().then(loadWithdrawals);
   }, []);
 
   async function handleUpdateStatus(

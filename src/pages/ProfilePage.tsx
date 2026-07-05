@@ -37,6 +37,11 @@ import {
   isEmailVerifiedLocally,
 } from "../shared/utils/auth";
 import { getProductFirstImage } from "../shared/utils/productImages";
+import {
+  getDisplayPrice,
+  getVariantTotalStock,
+  hasProductVariants,
+} from "../shared/utils/productVariants";
 import { formatUserAddress } from "../shared/utils/userAddress";
 
 type ProfileLoadState = {
@@ -570,6 +575,28 @@ function ProfilePage() {
           </NavLink>
 
           <NavLink
+            to="/profile/sales"
+            className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                <Package className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-xl font-black text-slate-950">
+                  Mis ventas
+                </span>
+                <span className="text-sm font-semibold text-slate-500">
+                  Ver productos vendidos, compradores y variantes
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
+              Ver ventas
+            </span>
+          </NavLink>
+
+          <NavLink
             to="/profile/payment-methods"
             className="flex items-center justify-between gap-4 rounded-2xl border border-cyan-100 bg-white p-5 shadow-sm transition hover:border-cyan-300 hover:bg-cyan-50"
           >
@@ -656,6 +683,9 @@ function ProfilePage() {
               <div className="mt-5 grid gap-3">
                 {profileData.products.map((product) => {
                   const image = getProductFirstImage(product);
+                  const hasVariants = hasProductVariants(product);
+                  const displayPrice = getDisplayPrice(product);
+                  const displayStock = getVariantTotalStock(product) ?? product.stock;
 
                   return (
                     <article
@@ -683,10 +713,11 @@ function ProfilePage() {
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
                           <span className="rounded-full bg-white px-3 py-1 text-sm font-black text-[var(--brand)]">
-                            ${Number(product.price).toLocaleString("es-AR")}
+                            {hasVariants ? "Desde " : ""}$
+                            {Number(displayPrice).toLocaleString("es-AR")}
                           </span>
                           <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600">
-                            Stock: {product.stock}
+                            Stock: {displayStock}
                           </span>
                           <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600">
                             {product.isActive ? "Activo" : "Inactivo"}

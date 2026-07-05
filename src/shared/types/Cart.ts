@@ -1,10 +1,13 @@
-import type { Product } from "./Product";
+import type { Product, ProductVariant } from "./Product";
 
 export type CartItem = {
   id?: string;
   product: Product;
   productId?: string;
+  variant?: ProductVariant | null;
+  variantId?: string;
   quantity: number;
+  unitPrice?: number;
 };
 
 export type Cart = {
@@ -15,6 +18,7 @@ export type Cart = {
 
 export type AddProductToCartPayload = {
   productId: string;
+  variantId?: string;
   quantity?: number;
 };
 

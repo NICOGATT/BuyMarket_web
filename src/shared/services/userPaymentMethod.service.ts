@@ -33,7 +33,8 @@ export async function createUserPaymentMethod(
     return response.data;
   } catch (error) {
     throw new Error(
-      getApiErrorMessage(error, "No se pudo guardar el medio de pago.")
+      getApiErrorMessage(error, "No se pudo guardar el medio de pago."),
+      { cause: error }
     );
   }
 }
@@ -50,7 +51,8 @@ export async function updateUserPaymentMethod(
     return response.data;
   } catch (error) {
     throw new Error(
-      getApiErrorMessage(error, "No se pudo actualizar el medio de pago.")
+      getApiErrorMessage(error, "No se pudo actualizar el medio de pago."),
+      { cause: error }
     );
   }
 }
@@ -65,7 +67,8 @@ export async function setDefaultUserPaymentMethod(
     return response.data;
   } catch (error) {
     throw new Error(
-      getApiErrorMessage(error, "No se pudo marcar como predeterminado.")
+      getApiErrorMessage(error, "No se pudo marcar como predeterminado."),
+      { cause: error }
     );
   }
 }
@@ -75,7 +78,8 @@ export async function deleteUserPaymentMethod(id: string): Promise<void> {
     await api.delete(`/user-payment-methods/${id}`);
   } catch (error) {
     throw new Error(
-      getApiErrorMessage(error, "No se pudo eliminar el medio de pago.")
+      getApiErrorMessage(error, "No se pudo eliminar el medio de pago."),
+      { cause: error }
     );
   }
 }

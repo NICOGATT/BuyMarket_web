@@ -1,4 +1,4 @@
-import type { Product } from "./Product";
+import type { Product, ProductVariant } from "./Product";
 import type { Shipment } from "./Shipment";
 import type { User } from "./User";
 
@@ -15,8 +15,9 @@ export type OrderStatus =
 
 export type OrderItem = {
   product: Product;
+  variant?: ProductVariant | null;
   quantity: number;
-  unitPrice: number;
+  unitPrice?: number;
 };
 
 export type PaymentStatus = "PENDING" | "COMPLETED" | "REJECTED";
@@ -56,5 +57,20 @@ export type Order = {
   shipment?: Shipment | null;
   shipments?: Shipment[];
   notes?: string;
+  createdAt?: string;
+};
+
+export type Sale = {
+  id: string;
+  orderId?: string;
+  product?: Product;
+  productId?: string;
+  buyer?: User;
+  quantity: number;
+  unitPrice?: number;
+  subtotal?: number;
+  total?: number;
+  status?: OrderStatus | string;
+  variant?: ProductVariant | null;
   createdAt?: string;
 };

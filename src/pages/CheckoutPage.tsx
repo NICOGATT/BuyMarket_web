@@ -16,6 +16,10 @@ import {
 } from "../shared/services/userAddress.service";
 import { getMyPaymentMethods } from "../shared/services/userPaymentMethod.service";
 import type { CartItem } from "../shared/types/Cart";
+import {
+  formatVariantLabel,
+  getCartItemUnitPrice,
+} from "../shared/utils/productVariants";
 import type { Order } from "../shared/types/Order";
 import type {
   CreateUserAddressPayload,
@@ -166,7 +170,7 @@ function CheckoutPage() {
   }, [navigate]);
 
   const total = cart.reduce(
-    (acc, item) => acc + item.product.price * item.quantity,
+    (acc, item) => acc + getCartItemUnitPrice(item) * item.quantity,
     0
   );
 
@@ -1061,12 +1065,17 @@ function CheckoutPage() {
             >
               <div className="min-w-0">
                 <p className="truncate font-bold">{item.product.title}</p>
+                {formatVariantLabel(item.variant) && (
+                  <p className="truncate text-xs font-bold text-slate-400">
+                    {formatVariantLabel(item.variant)}
+                  </p>
+                )}
                 <p className="text-sm font-semibold text-slate-300">
                   x{item.quantity}
                 </p>
               </div>
               <strong>
-                ${(item.product.price * item.quantity).toLocaleString("es-AR")}
+                ${(getCartItemUnitPrice(item) * item.quantity).toLocaleString("es-AR")}
               </strong>
             </article>
           ))}
