@@ -25,28 +25,43 @@ function getActiveVariantStats(variants?: ProductVariantPayload[]) {
 }
 
 function buildProductRequestPayload(
-  payload: CreateProductPayload | UpdateProductPayload
+  payload: CreateProductPayload | UpdateProductPayload,
+  includeDefaultSeller = false
 ) {
   const user = getUserFromToken();
-  const sellerId = payload.seller ?? payload.owner ?? user?.id ?? user?.sub;
+  const sellerId =
+    payload.seller ??
+    payload.owner ??
+    (includeDefaultSeller ? user?.id ?? user?.sub : undefined);
   const subCategoryId = payload.subCategoryId ?? payload.category;
   const variantStats = getActiveVariantStats(payload.variants);
+  const requestPayload: Record<string, unknown> = {};
 
-  return {
-    title: payload.title,
-    description: payload.description,
-    price: variantStats?.price ?? payload.price,
-    stock: variantStats?.stock ?? payload.stock,
-    seller: sellerId,
-    subCategoryId,
-    mediaIds: payload.mediaIds ?? [],
-    attributes: payload.attributes ?? [],
-    horarioDisponible: payload.horarioDisponible,
-    ...(payload.pickupAddressId
-      ? { pickupAddressId: payload.pickupAddressId }
-      : {}),
-    ...(payload.variants !== undefined ? { variants: payload.variants } : {}),
-  };
+  if (payload.title !== undefined) requestPayload.title = payload.title;
+  if (payload.description !== undefined) {
+    requestPayload.description = payload.description;
+  }
+  if (variantStats?.price !== undefined || payload.price !== undefined) {
+    requestPayload.price = variantStats?.price ?? payload.price;
+  }
+  if (variantStats?.stock !== undefined || payload.stock !== undefined) {
+    requestPayload.stock = variantStats?.stock ?? payload.stock;
+  }
+  if (sellerId) requestPayload.seller = sellerId;
+  if (subCategoryId) requestPayload.subCategoryId = subCategoryId;
+  if (payload.mediaIds !== undefined) requestPayload.mediaIds = payload.mediaIds;
+  if (payload.attributes !== undefined) {
+    requestPayload.attributes = payload.attributes;
+  }
+  if (payload.horarioDisponible !== undefined) {
+    requestPayload.horarioDisponible = payload.horarioDisponible;
+  }
+  if (payload.pickupAddressId) {
+    requestPayload.pickupAddressId = payload.pickupAddressId;
+  }
+  if (payload.variants !== undefined) requestPayload.variants = payload.variants;
+
+  return requestPayload;
 }
 
 export async function getProducts() {
@@ -79,7 +94,7 @@ export async function getMyProducts(): Promise<Product[]> {
 export async function createProduct(
   payload: CreateProductPayload
 ): Promise<Product> {
-  const requestPayload = buildProductRequestPayload(payload);
+  const requestPayload = buildProductRequestPayload(payload, true);
 
   const response = await api.post<Product>("/products", requestPayload);
 

@@ -6,6 +6,7 @@ import {
   MailCheck,
   MapPin,
   Package,
+  Pencil,
   ShieldCheck,
   ShoppingBag,
   Star,
@@ -725,12 +726,22 @@ function ProfilePage() {
                         </div>
                       </div>
 
-                      <NavLink
-                        to={`/products/${product.id}`}
-                        className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-[var(--brand-border)] hover:text-[var(--brand)]"
-                      >
-                        Ver
-                      </NavLink>
+                      <div className="flex shrink-0 flex-wrap gap-2">
+                        <NavLink
+                          to={`/products/${product.id}/edit`}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-4 font-bold text-white transition hover:bg-[var(--brand-hover)]"
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
+                          Editar
+                        </NavLink>
+
+                        <NavLink
+                          to={`/products/${product.id}`}
+                          className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-[var(--brand-border)] hover:text-[var(--brand)]"
+                        >
+                          Ver
+                        </NavLink>
+                      </div>
                     </article>
                   );
                 })}

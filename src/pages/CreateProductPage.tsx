@@ -1,18 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Check, ChevronLeft, ImagePlus, UploadCloud } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { getCategories } from "../shared/services/category.service";
 import { createCategorySuggestion } from "../shared/services/categorySuggestion.service";
 import {
   createProduct,
+  getProductById,
+  updateProduct,
   uploadProductMediaFiles,
 } from "../shared/services/product.service";
 import { getSubCategoryAttributesBySubCategory } from "../shared/services/subCategoryAttribute.service";
 import { getSubCategoriesByCategory } from "../shared/services/subcategory.service";
 import { getMyAddresses } from "../shared/services/userAddress.service";
 import type { Category } from "../shared/types/Category";
-import type { ProductMedia } from "../shared/types/Product";
+import type {
+  Product,
+  ProductAttributeValue,
+  ProductImage,
+  ProductMedia,
+} from "../shared/types/Product";
 import type { SubCategory } from "../shared/types/SubCategory";
 import type { SubCategoryAttribute } from "../shared/types/SubCategoryAttribute";
 import type { UserAddress } from "../shared/types/UserAddress";
@@ -21,6 +28,7 @@ import {
   getCategoryDisplayImageUrls,
   getCategoryInitials,
 } from "../shared/utils/categoryImages";
+import { getProductImageUrls } from "../shared/utils/productImages";
 import { formatUserAddress } from "../shared/utils/userAddress";
 
 type Step = 1 | 2 | 3;
@@ -73,13 +81,76 @@ function createEmptyVariant(): ProductVariantForm {
   };
 }
 
+function getProductSubCategoryId(product: Product) {
+  return product.subCategoryId ?? product.subcategoryId ?? product.subCategory?.id ?? product.subcategory?.id ?? "";
+}
+
+function getProductCategoryId(product: Product) {
+  const category = product.category;
+
+  if (typeof category === "string") return category;
+
+  return (
+    category?.id ??
+    product.subCategory?.categoryId ??
+    product.subcategory?.categoryId ??
+    product.subCategory?.category?.id ??
+    product.subcategory?.category?.id ??
+    ""
+  );
+}
+
+function getProductAttributeValues(product: Product): ProductAttributeValue[] {
+  return (
+    product.attributes ??
+    product.attributeValues ??
+    product.productAttributes ??
+    product.productAttributeValues ??
+    []
+  );
+}
+
+function getProductAttributeId(attribute: ProductAttributeValue) {
+  const rawAttribute = attribute as ProductAttributeValue & {
+    attributeId?: string;
+    subCategoryAttributeId?: string;
+  };
+
+  return (
+    rawAttribute.attributeId ??
+    rawAttribute.subCategoryAttributeId ??
+    attribute.attribute?.id ??
+    attribute.subCategoryAttribute?.id ??
+    ""
+  );
+}
+
+function getProductMediaItems(product: Product): ProductImage[] {
+  return [
+    ...(product.images ?? []),
+    ...(product.productMedia ?? []),
+    ...(product.media ?? []),
+  ];
+}
+
+function getProductMediaIds(product: Product) {
+  return getProductMediaItems(product)
+    .map((media) => (typeof media === "object" ? media.id : undefined))
+    .filter((id): id is string => Boolean(id));
+}
+
 function CreateProductPage() {
+  const { id: productId } = useParams();
   const navigate = useNavigate();
+  const isEditMode = Boolean(productId);
   const [step, setStep] = useState<Step>(1);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [attributes, setAttributes] = useState<SubCategoryAttribute[]>([]);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+  const [existingMediaIds, setExistingMediaIds] = useState<string[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -90,6 +161,7 @@ function CreateProductPage() {
   const [attributeValues, setAttributeValues] = useState<Record<string, string>>({});
   const [variants, setVariants] = useState<ProductVariantForm[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(isEditMode);
   const [isLoadingSubCategories, setIsLoadingSubCategories] = useState(false);
   const [isLoadingAttributes, setIsLoadingAttributes] = useState(false);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
@@ -100,6 +172,7 @@ function CreateProductPage() {
   const [error, setError] = useState("");
   const [categorySuggestionError, setCategorySuggestionError] = useState("");
   const [categorySuggestionSuccess, setCategorySuggestionSuccess] = useState("");
+  const [variantsTouched, setVariantsTouched] = useState(false);
   const [categoryImageAttempts, setCategoryImageAttempts] = useState<
     Record<string, number>
   >({});
@@ -142,31 +215,75 @@ function CreateProductPage() {
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [categoriesData, addressesData] = await Promise.all([
+        const [categoriesData, addressesData, productData] = await Promise.all([
           getCategories(),
           getMyAddresses().catch(() => []),
+          productId ? getProductById(productId) : Promise.resolve(null),
         ]);
         const defaultAddress = addressesData.find((address) => address.isDefault);
 
         setCategories(categoriesData);
         setAddresses(addressesData);
-        setDetailsForm((prev) => ({
-          ...prev,
-          pickupAddressId: defaultAddress?.id ?? "",
-        }));
+        if (productData) {
+          const subCategoryId = getProductSubCategoryId(productData);
+          const categoryId = getProductCategoryId(productData);
+
+          setEditingProduct(productData);
+          setExistingImageUrls(getProductImageUrls(productData));
+          setExistingMediaIds(getProductMediaIds(productData));
+          setSelectedCategoryId(categoryId);
+          setSelectedSubCategoryId(subCategoryId);
+          setSubCategories(
+            productData.subCategory
+              ? [productData.subCategory]
+              : productData.subcategory
+                ? [productData.subcategory]
+                : []
+          );
+          setDetailsForm({
+            title: productData.title ?? "",
+            description: productData.description ?? "",
+            price: String(productData.price ?? ""),
+            stock: String(productData.stock ?? ""),
+            horarioDisponible: productData.horarioDisponible ?? "",
+            pickupAddressId: productData.pickupAddress?.id ?? defaultAddress?.id ?? "",
+          });
+          setVariants(
+            (productData.variants ?? []).map((variant) => ({
+              id: variant.id ?? crypto.randomUUID(),
+              size: variant.size ?? "",
+              color: variant.color ?? "",
+              price: String(variant.price ?? ""),
+              stock: String(variant.stock ?? ""),
+              isActive: variant.isActive !== false,
+            }))
+          );
+          setVariantsTouched(false);
+          setStep(3);
+        } else {
+          setDetailsForm((prev) => ({
+            ...prev,
+            pickupAddressId: defaultAddress?.id ?? "",
+          }));
+        }
       } catch {
-        setError("No se pudieron cargar los datos para publicar.");
+        setError(
+          isEditMode
+            ? "No se pudieron cargar los datos del producto."
+            : "No se pudieron cargar los datos para publicar."
+        );
       } finally {
         setIsLoadingCategories(false);
         setIsLoadingAddresses(false);
+        setIsLoadingProduct(false);
       }
     }
 
     loadInitialData();
-  }, []);
+  }, [isEditMode, productId]);
 
   useEffect(() => {
-    if (!selectedCategoryId) {
+    if (!selectedCategoryId || isEditMode) {
       return;
     }
 
@@ -180,6 +297,8 @@ function CreateProductPage() {
         setSelectedSubCategoryId("");
         setAttributes([]);
         setAttributeValues({});
+        setVariants([]);
+        setVariantsTouched(false);
       } catch {
         setError("No se pudieron cargar las subcategorías.");
       } finally {
@@ -188,7 +307,7 @@ function CreateProductPage() {
     }
 
     loadSubCategories();
-  }, [selectedCategoryId]);
+  }, [isEditMode, selectedCategoryId]);
 
   useEffect(() => {
     if (!selectedSubCategoryId) {
@@ -204,10 +323,18 @@ function CreateProductPage() {
           selectedSubCategoryId
         );
         setAttributes(data);
+        const currentProductAttributes = editingProduct
+          ? getProductAttributeValues(editingProduct)
+          : [];
         setAttributeValues(
           data.reduce<Record<string, string>>((values, attribute) => {
             if ((attribute.usage ?? "product_attribute") === "product_attribute") {
-              values[attribute.id] = attribute.type === "boolean" ? "false" : "";
+              const productAttribute = currentProductAttributes.find(
+                (item) => getProductAttributeId(item) === attribute.id
+              );
+              values[attribute.id] =
+                productAttribute?.value ??
+                (attribute.type === "boolean" ? "false" : "");
             }
             return values;
           }, {})
@@ -220,7 +347,7 @@ function CreateProductPage() {
     }
 
     loadAttributes();
-  }, [selectedSubCategoryId]);
+  }, [editingProduct, selectedSubCategoryId]);
 
   function handleDetailsChange(
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -293,12 +420,14 @@ function CreateProductPage() {
 
   function handleAddVariant() {
     setVariants((currentVariants) => currentVariants.concat(createEmptyVariant()));
+    setVariantsTouched(true);
   }
 
   function handleRemoveVariant(id: string) {
     setVariants((currentVariants) =>
       currentVariants.filter((variant) => variant.id !== id)
     );
+    setVariantsTouched(true);
   }
 
   function handleVariantChange(
@@ -311,6 +440,7 @@ function CreateProductPage() {
         variant.id === id ? { ...variant, [field]: value } : variant
       )
     );
+    setVariantsTouched(true);
   }
 
   function validateClassification() {
@@ -324,6 +454,11 @@ function CreateProductPage() {
   }
 
   async function handleContinueFromMedia() {
+    if (isEditMode && imageFiles.length === 0) {
+      setStep(3);
+      return;
+    }
+
     if (imageFiles.length === 0) {
       setError("Subí al menos una imagen del producto.");
       return;
@@ -442,10 +577,16 @@ function CreateProductPage() {
       activeVariantPayload.length > 0
         ? activeVariantPayload.reduce((total, variant) => total + variant.stock, 0)
         : Number(detailsForm.stock);
+    const uploadedMediaIds = uploadedMedia
+      .map((media) => media.id)
+      .filter(Boolean) as string[];
+    const mediaIds = isEditMode
+      ? Array.from(new Set(existingMediaIds.concat(uploadedMediaIds)))
+      : uploadedMediaIds;
 
     try {
       setIsSubmiting(true);
-      await createProduct({
+      const payload = {
         title: detailsForm.title.trim(),
         description: detailsForm.description.trim(),
         price: computedPrice,
@@ -455,20 +596,30 @@ function CreateProductPage() {
         direccionRetiro: selectedAddress ? formatUserAddress(selectedAddress) : "",
         horarioDisponible: detailsForm.horarioDisponible,
         pickupAddressId: detailsForm.pickupAddressId,
-        mediaIds: uploadedMedia.map((media) => media.id).filter(Boolean) as string[],
+        ...(!isEditMode || uploadedMediaIds.length > 0 ? { mediaIds } : {}),
         attributes: productAttributes
           .map((attribute) => ({
             attributeId: attribute.id,
             value: attributeValues[attribute.id] ?? "",
           }))
           .filter((item) => item.value.trim() !== ""),
-        ...(variantPayload.length > 0 ? { variants: variantPayload } : {}),
-      });
+        ...(!isEditMode || variantsTouched ? { variants: variantPayload } : {}),
+      };
+
+      if (isEditMode && productId) {
+        await updateProduct(productId, payload);
+      } else {
+        await createProduct(payload);
+      }
 
       navigate("/profile");
     } catch (submitError) {
       console.log(submitError);
-      setError("No se pudo publicar el producto.");
+      setError(
+        isEditMode
+          ? "No se pudo guardar el producto."
+          : "No se pudo publicar el producto."
+      );
     } finally {
       setIsSubmiting(false);
     }
@@ -537,6 +688,14 @@ function CreateProductPage() {
     );
   }
 
+  if (isEditMode && isLoadingProduct) {
+    return (
+      <p className="rounded-2xl bg-white p-6 font-semibold text-slate-500 shadow-sm">
+        Cargando producto...
+      </p>
+    );
+  }
+
   return (
     <section className="mx-auto max-w-5xl space-y-6">
       <div>
@@ -545,8 +704,17 @@ function CreateProductPage() {
             Nueva publicación
           </p>
           <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">
-            Publicar producto
+            {isEditMode ? "Editar producto" : "Publicar producto"}
           </h1>
+          {isEditMode && (
+            <p className="mt-2 font-semibold text-slate-500">
+              {selectedCategory?.name ?? "Categoria"} /{" "}
+              {selectedSubCategory?.name ??
+                editingProduct?.subCategory?.name ??
+                editingProduct?.subcategory?.name ??
+                "Subcategoria"}
+            </p>
+          )}
         </div>
       </div>
 
@@ -556,7 +724,7 @@ function CreateProductPage() {
         </p>
       )}
 
-      {step === 1 && (
+      {!isEditMode && step === 1 && (
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="m-0 text-2xl font-black text-slate-950">
             Elegí dónde encaja
@@ -624,11 +792,10 @@ function CreateProductPage() {
               onChange={(event) => {
                 const value = event.target.value;
                 setSelectedSubCategoryId(value);
-                if (!value) {
-                  setAttributes([]);
-                  setAttributeValues({});
-                  setVariants([]);
-                }
+                setAttributes([]);
+                setAttributeValues({});
+                setVariants([]);
+                setVariantsTouched(false);
               }}
               disabled={!selectedCategoryId || isLoadingSubCategories}
               className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)] disabled:bg-slate-100 disabled:text-slate-500"
@@ -715,7 +882,7 @@ function CreateProductPage() {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <button
             type="button"
-            onClick={() => setStep(1)}
+            onClick={() => setStep(isEditMode ? 3 : 1)}
             className="mb-5 inline-flex items-center gap-2 font-bold text-slate-600 transition hover:text-[var(--brand)]"
           >
             <ChevronLeft size={18} />
@@ -728,6 +895,28 @@ function CreateProductPage() {
           <p className="mt-1 font-semibold text-slate-500">
             {selectedCategory?.name} / {selectedSubCategory?.name}
           </p>
+
+          {existingImageUrls.length > 0 && (
+            <div className="mt-5">
+              <p className="mb-3 text-sm font-black uppercase text-slate-500">
+                Imagenes actuales
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {existingImageUrls.map((imageUrl) => (
+                  <div
+                    key={imageUrl}
+                    className="aspect-square overflow-hidden rounded-2xl bg-slate-100"
+                  >
+                    <img
+                      src={imageUrl}
+                      alt="Imagen actual"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <label className="mt-6 flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition hover:border-[var(--brand-border)] hover:bg-[var(--brand-soft)]">
             <ImagePlus className="h-10 w-10 text-[var(--brand)]" aria-hidden="true" />
@@ -800,8 +989,9 @@ function CreateProductPage() {
             Datos del producto
           </h2>
           <p className="mt-1 font-semibold text-slate-500">
-            {uploadedMedia.length} imagen{uploadedMedia.length === 1 ? "" : "es"} lista
-            {uploadedMedia.length === 1 ? "" : "s"}.
+            {existingImageUrls.length + uploadedMedia.length} imagen
+            {existingImageUrls.length + uploadedMedia.length === 1 ? "" : "es"} lista
+            {existingImageUrls.length + uploadedMedia.length === 1 ? "" : "s"}.
           </p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -1052,8 +1242,20 @@ function CreateProductPage() {
             )}
           </div>
 
-          {uploadedMedia.length > 0 && (
+          {(existingImageUrls.length > 0 || uploadedMedia.length > 0) && (
             <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {existingImageUrls.map((imageUrl) => (
+                <div
+                  key={imageUrl}
+                  className="aspect-square overflow-hidden rounded-2xl bg-slate-100"
+                >
+                  <img
+                    src={imageUrl}
+                    alt="Imagen actual"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ))}
               {uploadedMedia.map((media) => {
                 const url = buildImageUrl(media.url);
 
@@ -1084,7 +1286,13 @@ function CreateProductPage() {
             disabled={isSubmiting}
             className="mt-8 w-full rounded-xl bg-[var(--brand)] px-6 py-4 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
           >
-            {isSubmiting ? "Publicando..." : "Publicar producto"}
+            {isSubmiting
+              ? isEditMode
+                ? "Guardando..."
+                : "Publicando..."
+              : isEditMode
+                ? "Guardar cambios"
+                : "Publicar producto"}
           </button>
         </form>
       )}

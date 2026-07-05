@@ -59,6 +59,14 @@ const router = createBrowserRouter([
                 )
             }, 
             {
+                path : "products/:id/edit",
+                element : (
+                    <ProtectedRoute>
+                        <CreateProductPage />
+                    </ProtectedRoute>
+                )
+            },
+            {
                 path : "register", 
                 element : <RegisterPage/>
             }, 
