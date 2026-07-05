@@ -763,148 +763,6 @@ function CreateProductPage() {
             </div>
           )}
 
-          <div className="mt-8">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="m-0 text-xl font-black text-slate-950">
-                  Variantes
-                </h3>
-                <p className="mt-1 text-sm font-semibold text-slate-500">
-                  Crea combinaciones comprables con talle, color, precio y stock.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleAddVariant}
-                className="rounded-xl bg-[var(--nav-blue)] px-4 py-2 font-bold text-white transition hover:bg-[var(--nav-blue-hover)]"
-              >
-                Agregar variante
-              </button>
-            </div>
-
-            {variants.length === 0 ? (
-              <p className="mt-4 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
-                Si no agregas variantes, se usaran el precio y stock base.
-              </p>
-            ) : (
-              <div className="mt-4 space-y-4">
-                {variants.map((variant, index) => (
-                  <div
-                    key={variant.id}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <p className="font-black text-slate-950">
-                        Variante {index + 1}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveVariant(variant.id)}
-                        className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50"
-                      >
-                        Quitar
-                      </button>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                      {sizeOptions.length > 0 ? (
-                        <select
-                          value={variant.size}
-                          onChange={(event) =>
-                            handleVariantChange(variant.id, "size", event.target.value)
-                          }
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                        >
-                          <option value="">Talle</option>
-                          {sizeOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          value={variant.size}
-                          onChange={(event) =>
-                            handleVariantChange(variant.id, "size", event.target.value)
-                          }
-                          placeholder="Talle"
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                        />
-                      )}
-
-                      {colorOptions.length > 0 ? (
-                        <select
-                          value={variant.color}
-                          onChange={(event) =>
-                            handleVariantChange(variant.id, "color", event.target.value)
-                          }
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                        >
-                          <option value="">Color opcional</option>
-                          {colorOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          value={variant.color}
-                          onChange={(event) =>
-                            handleVariantChange(variant.id, "color", event.target.value)
-                          }
-                          placeholder="Color opcional"
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                        />
-                      )}
-
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={variant.price}
-                        onChange={(event) =>
-                          handleVariantChange(variant.id, "price", event.target.value)
-                        }
-                        placeholder="Precio"
-                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                      />
-
-                      <input
-                        type="number"
-                        min="0"
-                        value={variant.stock}
-                        onChange={(event) =>
-                          handleVariantChange(variant.id, "stock", event.target.value)
-                        }
-                        placeholder="Stock"
-                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                      />
-
-                      <label className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 font-bold text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={variant.isActive}
-                          onChange={(event) =>
-                            handleVariantChange(
-                              variant.id,
-                              "isActive",
-                              event.target.checked
-                            )
-                          }
-                          className="h-4 w-4"
-                        />
-                        Activa
-                      </label>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
           {uploadedMedia.length > 0 && (
             <p className="mt-4 flex items-center gap-2 rounded-xl bg-green-50 p-3 font-bold text-green-700">
               <Check size={18} />
@@ -1047,6 +905,148 @@ function CreateProductPage() {
                     </span>
                     {renderAttributeInput(attribute)}
                   </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="m-0 text-xl font-black text-slate-950">
+                  Variantes
+                </h3>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  Crea combinaciones comprables con talle, color, precio y stock.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddVariant}
+                className="rounded-xl bg-[var(--nav-blue)] px-4 py-2 font-bold text-white transition hover:bg-[var(--nav-blue-hover)]"
+              >
+                Agregar variante
+              </button>
+            </div>
+
+            {variants.length === 0 ? (
+              <p className="mt-4 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
+                Si no agregas variantes, se usaran el precio y stock base.
+              </p>
+            ) : (
+              <div className="mt-4 space-y-4">
+                {variants.map((variant, index) => (
+                  <div
+                    key={variant.id}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <p className="font-black text-slate-950">
+                        Variante {index + 1}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariant(variant.id)}
+                        className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                      {sizeOptions.length > 0 ? (
+                        <select
+                          value={variant.size}
+                          onChange={(event) =>
+                            handleVariantChange(variant.id, "size", event.target.value)
+                          }
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                        >
+                          <option value="">Talle</option>
+                          {sizeOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          value={variant.size}
+                          onChange={(event) =>
+                            handleVariantChange(variant.id, "size", event.target.value)
+                          }
+                          placeholder="Talle"
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                        />
+                      )}
+
+                      {colorOptions.length > 0 ? (
+                        <select
+                          value={variant.color}
+                          onChange={(event) =>
+                            handleVariantChange(variant.id, "color", event.target.value)
+                          }
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                        >
+                          <option value="">Color opcional</option>
+                          {colorOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          value={variant.color}
+                          onChange={(event) =>
+                            handleVariantChange(variant.id, "color", event.target.value)
+                          }
+                          placeholder="Color opcional"
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                        />
+                      )}
+
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={variant.price}
+                        onChange={(event) =>
+                          handleVariantChange(variant.id, "price", event.target.value)
+                        }
+                        placeholder="Precio"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                      />
+
+                      <input
+                        type="number"
+                        min="0"
+                        value={variant.stock}
+                        onChange={(event) =>
+                          handleVariantChange(variant.id, "stock", event.target.value)
+                        }
+                        placeholder="Stock"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                      />
+
+                      <label className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 font-bold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={variant.isActive}
+                          onChange={(event) =>
+                            handleVariantChange(
+                              variant.id,
+                              "isActive",
+                              event.target.checked
+                            )
+                          }
+                          className="h-4 w-4"
+                        />
+                        Activa
+                      </label>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
