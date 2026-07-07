@@ -34,14 +34,19 @@ export type ProductVariant = {
   price: number;
   stock: number;
   isActive: boolean;
+  attributes?: ProductAttributeValue[];
 };
 
 export type ProductVariantPayload = {
-  size: string;
+  size?: string;
   color?: string;
   price: number;
   stock: number;
   isActive?: boolean;
+  attributes?: {
+    attributeId: string;
+    value: string;
+  }[];
 };
 
 export type Product = {

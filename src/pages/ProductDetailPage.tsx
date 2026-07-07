@@ -11,6 +11,7 @@ import type {
   Product,
   ProductAttributeValue,
   ProductPublisher,
+  ProductVariant,
 } from "../shared/types/Product";
 import { getProductImageUrls } from "../shared/utils/productImages";
 import {
@@ -89,6 +90,29 @@ function getProductFeatures(product: Product) {
     .filter((feature) => feature.name && feature.value);
 }
 
+function getVariantFeatures(variant?: ProductVariant | null) {
+  return (variant?.attributes ?? [])
+    .map((attribute) => {
+      const name =
+        attribute.attribute?.name ??
+        attribute.subCategoryAttribute?.name ??
+        attribute.name ??
+        "";
+      const value = getTextValue(attribute.value);
+
+      return {
+        id:
+          attribute.id ??
+          attribute.attribute?.id ??
+          attribute.subCategoryAttribute?.id ??
+          name,
+        name: name.trim(),
+        value: value === "true" ? "Si" : value === "false" ? "No" : value,
+      };
+    })
+    .filter((feature) => feature.name && feature.value);
+}
+
 function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -127,7 +151,7 @@ function ProductDetailPage() {
   const productAddress = getProductAddress(product);
   const availableSchedule = getTextValue(product.horarioDisponible);
   const purchasableVariants = getPurchasableVariants(product);
-  const hasVariants = purchasableVariants.length > 0;
+  const hasVariants = (product.variants ?? []).length > 0;
   const sizeOptions = Array.from(
     new Set(purchasableVariants.map((variant) => variant.size))
   );
@@ -149,6 +173,7 @@ function ProductDetailPage() {
   const displayedPrice = selectedVariant?.price ?? getDisplayPrice(product);
   const displayedStock =
     selectedVariant?.stock ?? getVariantTotalStock(product) ?? product.stock;
+  const selectedVariantFeatures = getVariantFeatures(selectedVariant);
 
   function showPreviousImage() {
     setSelectedImageIndex((currentIndex) =>
@@ -447,6 +472,29 @@ function ProductDetailPage() {
                 Seleccionado: {formatVariantLabel(selectedVariant)} - $
                 {selectedVariant.price.toLocaleString("es-AR")}
               </p>
+            )}
+
+            {selectedVariantFeatures.length > 0 && (
+              <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                <h3 className="m-0 text-base font-black text-slate-950">
+                  Caracteristicas de la variante
+                </h3>
+                <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {selectedVariantFeatures.map((feature) => (
+                    <div
+                      key={`${feature.id}-${feature.name}`}
+                      className="rounded-xl bg-white p-3"
+                    >
+                      <dt className="text-xs font-black uppercase text-slate-500">
+                        {feature.name}
+                      </dt>
+                      <dd className="m-0 mt-1 font-bold text-slate-900">
+                        {feature.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
             )}
           </div>
         )}

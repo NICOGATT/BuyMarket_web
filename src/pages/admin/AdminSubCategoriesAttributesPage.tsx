@@ -18,6 +18,7 @@ import type { SubCategory } from "../../shared/types/SubCategory";
 import type {
   CreateSubCategoryAttributePayload,
   SubCategoryAttribute,
+  SubCategoryAttributeAppliesTo,
   SubCategoryAttributeType,
   SubCategoryAttributeUsage,
 } from "../../shared/types/SubCategoryAttribute";
@@ -26,6 +27,7 @@ import { subCategoryAttributeTypes } from "../../shared/types/SubCategoryAttribu
 type AttributeFormState = {
   name: string;
   type: SubCategoryAttributeType;
+  appliesTo: SubCategoryAttributeAppliesTo;
   usage: SubCategoryAttributeUsage;
   required: boolean;
   optionsText: string;
@@ -34,6 +36,7 @@ type AttributeFormState = {
 const emptyAttributeForm: AttributeFormState = {
   name: "",
   type: "text",
+  appliesTo: "PRODUCT",
   usage: "product_attribute",
   required: false,
   optionsText: "",
@@ -288,6 +291,7 @@ function AdminSubCategoriesAttributesPage() {
     return {
       name,
       type: attributeForm.type,
+      appliesTo: attributeForm.appliesTo,
       usage: attributeForm.usage,
       required: attributeForm.required,
       subCategoryId,
@@ -374,6 +378,7 @@ function AdminSubCategoriesAttributesPage() {
     setAttributeForm({
       name: attribute.name,
       type: attribute.type,
+      appliesTo: attribute.appliesTo ?? "PRODUCT",
       usage: attribute.usage ?? "product_attribute",
       required: attribute.required,
       optionsText: attribute.options?.join(", ") ?? "",
@@ -630,6 +635,21 @@ function AdminSubCategoriesAttributesPage() {
               </select>
 
               <select
+                value={attributeForm.appliesTo}
+                onChange={(event) =>
+                  setAttributeForm((currentForm) => ({
+                    ...currentForm,
+                    appliesTo: event.target.value as SubCategoryAttributeAppliesTo,
+                  }))
+                }
+                disabled={!selectedSubCategoryId || savingAttribute}
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
+              >
+                <option value="PRODUCT">Caracteristica del producto</option>
+                <option value="VARIANT">Caracteristica de variante</option>
+              </select>
+
+              <select
                 value={attributeForm.usage}
                 onChange={(event) =>
                   setAttributeForm((currentForm) => ({
@@ -638,15 +658,17 @@ function AdminSubCategoriesAttributesPage() {
                   }))
                 }
                 disabled={!selectedSubCategoryId || savingAttribute}
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100 md:col-span-2"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
               >
                 <option value="product_attribute">Caracteristica del producto</option>
                 <option value="variant_size">Talle de variante</option>
                 <option value="variant_color">Color de variante</option>
+                <option value="variant_measure">Medida por talle</option>
               </select>
             </div>
 
-            {attributeForm.usage !== "product_attribute" &&
+            {(attributeForm.usage === "variant_size" ||
+              attributeForm.usage === "variant_color") &&
               attributeForm.type !== "select" && (
                 <p className="rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-700">
                   Para talles y colores se recomienda usar tipo select y cargar opciones.
@@ -792,6 +814,7 @@ function AdminSubCategoriesAttributesPage() {
                   <tr>
                     <th className="px-4 py-3">Nombre</th>
                     <th className="px-4 py-3">Tipo</th>
+                    <th className="px-4 py-3">Aplica a</th>
                     <th className="px-4 py-3">Uso</th>
                     <th className="px-4 py-3">Opciones</th>
                     <th className="px-4 py-3">Req.</th>
@@ -803,7 +826,7 @@ function AdminSubCategoriesAttributesPage() {
                   {attributes.length === 0 && (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="px-4 py-6 text-center text-slate-500"
                       >
                         {selectedSubCategoryId
@@ -822,10 +845,17 @@ function AdminSubCategoriesAttributesPage() {
                         {attribute.type}
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold text-slate-600">
+                        {attribute.appliesTo === "VARIANT"
+                          ? "Variante"
+                          : "Producto"}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-600">
                         {attribute.usage === "variant_size"
                           ? "Talle"
                           : attribute.usage === "variant_color"
                             ? "Color"
+                            : attribute.usage === "variant_measure"
+                              ? "Medida por talle"
                             : "Caracteristica"}
                       </td>
                       <td className="max-w-48 px-4 py-3 text-sm text-slate-500">

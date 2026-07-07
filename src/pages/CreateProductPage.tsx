@@ -49,11 +49,10 @@ type CategorySuggestionForm = {
 
 type ProductVariantForm = {
   id: string;
-  size: string;
-  color: string;
   price: string;
   stock: string;
   isActive: boolean;
+  attributes: Record<string, string>;
 };
 
 const emptyDetailsForm: ProductDetailsForm = {
@@ -73,12 +72,36 @@ const emptyCategorySuggestionForm: CategorySuggestionForm = {
 function createEmptyVariant(): ProductVariantForm {
   return {
     id: crypto.randomUUID(),
-    size: "",
-    color: "",
     price: "",
     stock: "",
     isActive: true,
+    attributes: {},
   };
+}
+
+function getAttributeAppliesTo(attribute: SubCategoryAttribute) {
+  return attribute.appliesTo;
+}
+
+function isLegacyVariantSizeAttribute(attribute: SubCategoryAttribute) {
+  return attribute.usage === "variant_size";
+}
+
+function isLegacyVariantColorAttribute(attribute: SubCategoryAttribute) {
+  return attribute.usage === "variant_color";
+}
+
+function getVariantDisplayLabel(
+  variant: ProductVariantForm,
+  variantAttributes: SubCategoryAttribute[]
+) {
+  const legacySize = variantAttributes.find(isLegacyVariantSizeAttribute);
+  const legacyColor = variantAttributes.find(isLegacyVariantColorAttribute);
+
+  return [legacySize, legacyColor]
+    .map((attribute) => (attribute ? variant.attributes[attribute.id]?.trim() : ""))
+    .filter(Boolean)
+    .join(" / ");
 }
 
 function getProductSubCategoryId(product: Product) {
@@ -190,21 +213,21 @@ function CreateProductPage() {
   );
   const productAttributes = useMemo(
     () =>
-      attributes.filter(
-        (attribute) => (attribute.usage ?? "product_attribute") === "product_attribute"
-      ),
+      attributes.filter((attribute) => getAttributeAppliesTo(attribute) === "PRODUCT"),
     [attributes]
   );
-  const sizeAttribute = useMemo(
-    () => attributes.find((attribute) => attribute.usage === "variant_size"),
+  const variantAttributes = useMemo(
+    () => attributes.filter((attribute) => getAttributeAppliesTo(attribute) === "VARIANT"),
     [attributes]
   );
-  const colorAttribute = useMemo(
-    () => attributes.find((attribute) => attribute.usage === "variant_color"),
-    [attributes]
+  const legacySizeAttribute = useMemo(
+    () => variantAttributes.find(isLegacyVariantSizeAttribute),
+    [variantAttributes]
   );
-  const sizeOptions = sizeAttribute?.options?.filter(Boolean) ?? [];
-  const colorOptions = colorAttribute?.options?.filter(Boolean) ?? [];
+  const legacyColorAttribute = useMemo(
+    () => variantAttributes.find(isLegacyVariantColorAttribute),
+    [variantAttributes]
+  );
 
   useEffect(() => {
     return () => {
@@ -251,11 +274,19 @@ function CreateProductPage() {
           setVariants(
             (productData.variants ?? []).map((variant) => ({
               id: variant.id ?? crypto.randomUUID(),
-              size: variant.size ?? "",
-              color: variant.color ?? "",
               price: String(variant.price ?? ""),
               stock: String(variant.stock ?? ""),
               isActive: variant.isActive !== false,
+              attributes: (variant.attributes ?? []).reduce<Record<string, string>>(
+                (values, attribute) => {
+                  const attributeId = getProductAttributeId(attribute);
+                  if (attributeId) {
+                    values[attributeId] = attribute.value ?? "";
+                  }
+                  return values;
+                },
+                {}
+              ),
             }))
           );
           setVariantsTouched(false);
@@ -328,7 +359,7 @@ function CreateProductPage() {
           : [];
         setAttributeValues(
           data.reduce<Record<string, string>>((values, attribute) => {
-            if ((attribute.usage ?? "product_attribute") === "product_attribute") {
+            if (getAttributeAppliesTo(attribute) === "PRODUCT") {
               const productAttribute = currentProductAttributes.find(
                 (item) => getProductAttributeId(item) === attribute.id
               );
@@ -339,6 +370,31 @@ function CreateProductPage() {
             return values;
           }, {})
         );
+
+        if (editingProduct?.variants?.length) {
+          const sizeAttribute = data.find(isLegacyVariantSizeAttribute);
+          const colorAttribute = data.find(isLegacyVariantColorAttribute);
+
+          setVariants((currentVariants) =>
+            currentVariants.map((variant, index) => {
+              const sourceVariant = editingProduct.variants?.[index];
+              if (!sourceVariant) return variant;
+
+              return {
+                ...variant,
+                attributes: {
+                  ...variant.attributes,
+                  ...(sizeAttribute && !variant.attributes[sizeAttribute.id]
+                    ? { [sizeAttribute.id]: sourceVariant.size ?? "" }
+                    : {}),
+                  ...(colorAttribute && !variant.attributes[colorAttribute.id]
+                    ? { [colorAttribute.id]: sourceVariant.color ?? "" }
+                    : {}),
+                },
+              };
+            })
+          );
+        }
       } catch {
         setError("No se pudieron cargar los atributos de la subcategoría.");
       } finally {
@@ -432,12 +488,33 @@ function CreateProductPage() {
 
   function handleVariantChange(
     id: string,
-    field: keyof Omit<ProductVariantForm, "id">,
+    field: Exclude<keyof ProductVariantForm, "id" | "attributes">,
     value: string | boolean
   ) {
     setVariants((currentVariants) =>
       currentVariants.map((variant) =>
         variant.id === id ? { ...variant, [field]: value } : variant
+      )
+    );
+    setVariantsTouched(true);
+  }
+
+  function handleVariantAttributeChange(
+    variantId: string,
+    attributeId: string,
+    value: string
+  ) {
+    setVariants((currentVariants) =>
+      currentVariants.map((variant) =>
+        variant.id === variantId
+          ? {
+              ...variant,
+              attributes: {
+                ...variant.attributes,
+                [attributeId]: value,
+              },
+            }
+          : variant
       )
     );
     setVariantsTouched(true);
@@ -516,15 +593,8 @@ function CreateProductPage() {
     }
 
     for (const variant of variants) {
-      const size = variant.size.trim();
-      const color = variant.color.trim();
       const price = Number(variant.price);
       const stock = Number(variant.stock);
-
-      if (!size) {
-        setError("Todas las variantes necesitan talle.");
-        return false;
-      }
 
       if (!Number.isFinite(price) || price <= 0) {
         setError("El precio de cada variante debe ser mayor a 0.");
@@ -536,13 +606,17 @@ function CreateProductPage() {
         return false;
       }
 
-      if (sizeOptions.length > 0 && !sizeOptions.includes(size)) {
-        setError("El talle de cada variante debe estar dentro de las opciones.");
-        return false;
-      }
+      const missingRequiredVariantAttribute = variantAttributes.find(
+        (attribute) =>
+          attribute.required && !variant.attributes[attribute.id]?.trim()
+      );
 
-      if (color && colorOptions.length > 0 && !colorOptions.includes(color)) {
-        setError("El color de cada variante debe estar dentro de las opciones.");
+      if (missingRequiredVariantAttribute) {
+        const variantLabel =
+          getVariantDisplayLabel(variant, variantAttributes) || variant.id;
+        setError(
+          `Completá ${missingRequiredVariantAttribute.name} para la variante ${variantLabel}.`
+        );
         return false;
       }
     }
@@ -559,13 +633,28 @@ function CreateProductPage() {
     const selectedAddress = addresses.find(
       (address) => address.id === detailsForm.pickupAddressId
     );
-    const variantPayload = variants.map((variant) => ({
-      size: variant.size.trim(),
-      ...(variant.color.trim() ? { color: variant.color.trim() } : {}),
-      price: Number(variant.price),
-      stock: Number(variant.stock),
-      isActive: variant.isActive,
-    }));
+    const variantPayload = variants.map((variant) => {
+      const legacySize = legacySizeAttribute
+        ? variant.attributes[legacySizeAttribute.id]?.trim()
+        : "";
+      const legacyColor = legacyColorAttribute
+        ? variant.attributes[legacyColorAttribute.id]?.trim()
+        : "";
+
+      return {
+        ...(legacySize ? { size: legacySize } : {}),
+        ...(legacyColor ? { color: legacyColor } : {}),
+        price: Number(variant.price),
+        stock: Number(variant.stock),
+        isActive: variant.isActive,
+        attributes: variantAttributes
+          .map((attribute) => ({
+            attributeId: attribute.id,
+            value: variant.attributes[attribute.id] ?? "",
+          }))
+          .filter((attribute) => attribute.value.trim() !== ""),
+      };
+    });
     const activeVariantPayload = variantPayload.filter(
       (variant) => variant.isActive !== false
     );
@@ -625,21 +714,20 @@ function CreateProductPage() {
     }
   }
 
-  function renderAttributeInput(attribute: SubCategoryAttribute) {
-    const value = attributeValues[attribute.id] ?? "";
+  function renderAttributeControl(
+    attribute: SubCategoryAttribute,
+    value: string,
+    onChange: (value: string) => void,
+    surfaceClassName = "bg-slate-50"
+  ) {
     const commonClass =
-      "w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]";
+      "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]";
 
     if (attribute.type === "select") {
       return (
         <select
           value={value}
-          onChange={(event) =>
-            setAttributeValues((prev) => ({
-              ...prev,
-              [attribute.id]: event.target.value,
-            }))
-          }
+          onChange={(event) => onChange(event.target.value)}
           required={attribute.required}
           className={commonClass}
         >
@@ -655,16 +743,13 @@ function CreateProductPage() {
 
     if (attribute.type === "boolean") {
       return (
-        <label className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 font-bold text-slate-700">
+        <label
+          className={`flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 ${surfaceClassName}`}
+        >
           <input
             type="checkbox"
             checked={value === "true"}
-            onChange={(event) =>
-              setAttributeValues((prev) => ({
-                ...prev,
-                [attribute.id]: String(event.target.checked),
-              }))
-            }
+            onChange={(event) => onChange(String(event.target.checked))}
             className="h-4 w-4"
           />
           Si
@@ -676,15 +761,34 @@ function CreateProductPage() {
       <input
         type={attribute.type === "number" ? "number" : "text"}
         value={value}
-        onChange={(event) =>
-          setAttributeValues((prev) => ({
-            ...prev,
-            [attribute.id]: event.target.value,
-          }))
-        }
+        onChange={(event) => onChange(event.target.value)}
         required={attribute.required}
         className={commonClass}
       />
+    );
+  }
+
+  function renderAttributeInput(attribute: SubCategoryAttribute) {
+    return renderAttributeControl(
+      attribute,
+      attributeValues[attribute.id] ?? "",
+      (value) =>
+        setAttributeValues((prev) => ({
+          ...prev,
+          [attribute.id]: value,
+        }))
+    );
+  }
+
+  function renderVariantAttributeInput(
+    variant: ProductVariantForm,
+    attribute: SubCategoryAttribute
+  ) {
+    return renderAttributeControl(
+      attribute,
+      variant.attributes[attribute.id] ?? "",
+      (value) => handleVariantAttributeChange(variant.id, attribute.id, value),
+      "bg-white"
     );
   }
 
@@ -1144,58 +1248,16 @@ function CreateProductPage() {
                       </button>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                      {sizeOptions.length > 0 ? (
-                        <select
-                          value={variant.size}
-                          onChange={(event) =>
-                            handleVariantChange(variant.id, "size", event.target.value)
-                          }
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                        >
-                          <option value="">Talle</option>
-                          {sizeOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          value={variant.size}
-                          onChange={(event) =>
-                            handleVariantChange(variant.id, "size", event.target.value)
-                          }
-                          placeholder="Talle"
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                        />
-                      )}
-
-                      {colorOptions.length > 0 ? (
-                        <select
-                          value={variant.color}
-                          onChange={(event) =>
-                            handleVariantChange(variant.id, "color", event.target.value)
-                          }
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                        >
-                          <option value="">Color opcional</option>
-                          {colorOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          value={variant.color}
-                          onChange={(event) =>
-                            handleVariantChange(variant.id, "color", event.target.value)
-                          }
-                          placeholder="Color opcional"
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                        />
-                      )}
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {variantAttributes.map((attribute) => (
+                        <label key={attribute.id} className="block">
+                          <span className="mb-2 block font-bold text-slate-700">
+                            {attribute.name}
+                            {attribute.required ? " *" : ""}
+                          </span>
+                          {renderVariantAttributeInput(variant, attribute)}
+                        </label>
+                      ))}
 
                       <input
                         type="number"

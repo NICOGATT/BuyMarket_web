@@ -13,7 +13,7 @@ function AdminLayout() {
   return (
     <div className="min-h-screen bg-transparent text-left">
       <aside className="border-b border-white/10 bg-[radial-gradient(circle_at_82%_8%,rgba(255,138,0,0.22),transparent_28%),linear-gradient(180deg,var(--nav-blue),#082744_58%,var(--brand))] p-4 text-white shadow-[0_24px_80px_rgba(18,60,105,0.26)] lg:fixed lg:left-0 lg:top-0 lg:h-screen lg:w-72 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-white/10 lg:p-6">
-        <h1 className="m-0 text-2xl font-black text-white">BuyAdmin</h1>
+        <h1 className="m-0 text-2xl font-black !text-white">BuyAdmin</h1>
         <p className="mt-2 text-sm font-semibold text-white/60">
           Operacion y control
         </p>
