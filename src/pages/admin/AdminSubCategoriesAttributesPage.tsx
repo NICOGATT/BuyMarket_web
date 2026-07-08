@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 import { getCategories } from "../../shared/services/category.service";
 import {
@@ -37,10 +38,38 @@ const emptyAttributeForm: AttributeFormState = {
   name: "",
   type: "text",
   appliesTo: "PRODUCT",
-  usage: "product_attribute",
+  usage: "PRODUCT_ATTRIBUTE",
   required: false,
   optionsText: "",
 };
+
+function getUsageLabel(usage: SubCategoryAttributeUsage) {
+  if (usage === "PRODUCT_ATTRIBUTE") return "Atributo de producto";
+  if (usage === "VARIANT_ATTRIBUTE") return "Atributo de variante";
+  if (usage === "VARIANT_SIZE") return "Talle";
+  return "Color";
+}
+
+function getAppliesToLabel(appliesTo: SubCategoryAttributeAppliesTo) {
+  return appliesTo === "PRODUCT" ? "Producto" : "Variante";
+}
+
+function getDefaultUsageForAppliesTo(
+  appliesTo: SubCategoryAttributeAppliesTo
+): SubCategoryAttributeUsage {
+  return appliesTo === "PRODUCT" ? "PRODUCT_ATTRIBUTE" : "VARIANT_ATTRIBUTE";
+}
+
+function getRequestErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const message = error.response?.data?.message;
+
+    if (Array.isArray(message)) return message.join(" ");
+    if (typeof message === "string") return message;
+  }
+
+  return fallback;
+}
 
 function AdminSubCategoriesAttributesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -288,11 +317,23 @@ function AdminSubCategoriesAttributesPage() {
       return null;
     }
 
+    const appliesTo =
+      attributeForm.usage === "VARIANT_SIZE" ||
+      attributeForm.usage === "VARIANT_COLOR"
+        ? "VARIANT"
+        : attributeForm.appliesTo;
+    const usage =
+      appliesTo === "PRODUCT"
+        ? "PRODUCT_ATTRIBUTE"
+        : attributeForm.usage === "PRODUCT_ATTRIBUTE"
+          ? "VARIANT_ATTRIBUTE"
+          : attributeForm.usage;
+
     return {
       name,
       type: attributeForm.type,
-      appliesTo: attributeForm.appliesTo,
-      usage: attributeForm.usage,
+      appliesTo,
+      usage,
       required: attributeForm.required,
       subCategoryId,
       options: attributeForm.type === "select" ? options : [],
@@ -363,8 +404,10 @@ function AdminSubCategoriesAttributesPage() {
       }
 
       resetAttributeForm();
-    } catch {
-      setError("No se pudo guardar el atributo.");
+    } catch (saveError) {
+      setError(
+        getRequestErrorMessage(saveError, "No se pudo guardar el atributo.")
+      );
     } finally {
       setSavingAttribute(false);
     }
@@ -379,7 +422,9 @@ function AdminSubCategoriesAttributesPage() {
       name: attribute.name,
       type: attribute.type,
       appliesTo: attribute.appliesTo ?? "PRODUCT",
-      usage: attribute.usage ?? "product_attribute",
+      usage:
+        attribute.usage ??
+        getDefaultUsageForAppliesTo(attribute.appliesTo ?? "PRODUCT"),
       required: attribute.required,
       optionsText: attribute.options?.join(", ") ?? "",
     });
@@ -636,39 +681,52 @@ function AdminSubCategoriesAttributesPage() {
 
               <select
                 value={attributeForm.appliesTo}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const appliesTo = event.target
+                    .value as SubCategoryAttributeAppliesTo;
                   setAttributeForm((currentForm) => ({
                     ...currentForm,
-                    appliesTo: event.target.value as SubCategoryAttributeAppliesTo,
-                  }))
-                }
+                    appliesTo,
+                    usage: getDefaultUsageForAppliesTo(appliesTo),
+                  }));
+                }}
                 disabled={!selectedSubCategoryId || savingAttribute}
                 className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
               >
-                <option value="PRODUCT">Caracteristica del producto</option>
-                <option value="VARIANT">Caracteristica de variante</option>
+                <option value="PRODUCT">Producto</option>
+                <option value="VARIANT">Variante</option>
               </select>
 
               <select
                 value={attributeForm.usage}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const usage = event.target.value as SubCategoryAttributeUsage;
                   setAttributeForm((currentForm) => ({
                     ...currentForm,
-                    usage: event.target.value as SubCategoryAttributeUsage,
-                  }))
-                }
+                    usage,
+                    appliesTo:
+                      usage === "VARIANT_SIZE" || usage === "VARIANT_COLOR"
+                        ? "VARIANT"
+                        : currentForm.appliesTo,
+                  }));
+                }}
                 disabled={!selectedSubCategoryId || savingAttribute}
                 className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
               >
-                <option value="product_attribute">Caracteristica del producto</option>
-                <option value="variant_size">Talle de variante</option>
-                <option value="variant_color">Color de variante</option>
-                <option value="variant_measure">Medida por talle</option>
+                {attributeForm.appliesTo === "PRODUCT" ? (
+                  <option value="PRODUCT_ATTRIBUTE">Atributo de producto</option>
+                ) : (
+                  <>
+                    <option value="VARIANT_ATTRIBUTE">Atributo de variante</option>
+                    <option value="VARIANT_SIZE">Talle</option>
+                    <option value="VARIANT_COLOR">Color</option>
+                  </>
+                )}
               </select>
             </div>
 
-            {(attributeForm.usage === "variant_size" ||
-              attributeForm.usage === "variant_color") &&
+            {(attributeForm.usage === "VARIANT_SIZE" ||
+              attributeForm.usage === "VARIANT_COLOR") &&
               attributeForm.type !== "select" && (
                 <p className="rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-700">
                   Para talles y colores se recomienda usar tipo select y cargar opciones.
@@ -845,18 +903,10 @@ function AdminSubCategoriesAttributesPage() {
                         {attribute.type}
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold text-slate-600">
-                        {attribute.appliesTo === "VARIANT"
-                          ? "Variante"
-                          : "Producto"}
+                        {getAppliesToLabel(attribute.appliesTo)}
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold text-slate-600">
-                        {attribute.usage === "variant_size"
-                          ? "Talle"
-                          : attribute.usage === "variant_color"
-                            ? "Color"
-                            : attribute.usage === "variant_measure"
-                              ? "Medida por talle"
-                            : "Caracteristica"}
+                        {getUsageLabel(attribute.usage)}
                       </td>
                       <td className="max-w-48 px-4 py-3 text-sm text-slate-500">
                         {attribute.type === "select" &&

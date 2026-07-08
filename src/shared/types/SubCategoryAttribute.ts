@@ -10,25 +10,25 @@ export const subCategoryAttributeTypes = [
 export type SubCategoryAttributeType =
   (typeof subCategoryAttributeTypes)[number];
 
+export type SubCategoryAttributeAppliesTo = "PRODUCT" | "VARIANT";
+
 export const subCategoryAttributeUsages = [
-  "product_attribute",
-  "variant_size",
-  "variant_color",
-  "variant_measure",
+  "PRODUCT_ATTRIBUTE",
+  "VARIANT_ATTRIBUTE",
+  "VARIANT_SIZE",
+  "VARIANT_COLOR",
 ] as const;
 
 export type SubCategoryAttributeUsage =
   (typeof subCategoryAttributeUsages)[number];
-
-export type SubCategoryAttributeAppliesTo = "PRODUCT" | "VARIANT";
 
 export type SubCategoryAttribute = {
   id: string;
   name: string;
   type: SubCategoryAttributeType;
   required: boolean;
-  appliesTo?: SubCategoryAttributeAppliesTo;
-  usage?: SubCategoryAttributeUsage;
+  appliesTo: SubCategoryAttributeAppliesTo;
+  usage: SubCategoryAttributeUsage;
   options?: string[];
   subCategoryId: string;
   subCategory?: SubCategory;
@@ -38,8 +38,8 @@ export type CreateSubCategoryAttributePayload = {
   name: string;
   type: SubCategoryAttributeType;
   required: boolean;
-  appliesTo?: SubCategoryAttributeAppliesTo;
-  usage?: SubCategoryAttributeUsage;
+  appliesTo: SubCategoryAttributeAppliesTo;
+  usage: SubCategoryAttributeUsage;
   options?: string[];
   subCategoryId: string;
 };

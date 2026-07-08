@@ -18,6 +18,8 @@ export type ProductImage = string | ProductMedia;
 
 export type ProductAttributeValue = {
   id?: string;
+  attributeId?: string;
+  subCategoryAttributeId?: string;
   name?: string;
   value?: string;
   attribute?: SubCategoryAttribute;
@@ -38,7 +40,7 @@ export type ProductVariant = {
 };
 
 export type ProductVariantPayload = {
-  size?: string;
+  size: string;
   color?: string;
   price: number;
   stock: number;

@@ -49,6 +49,8 @@ type CategorySuggestionForm = {
 
 type ProductVariantForm = {
   id: string;
+  size: string;
+  color: string;
   price: string;
   stock: string;
   isActive: boolean;
@@ -72,6 +74,8 @@ const emptyCategorySuggestionForm: CategorySuggestionForm = {
 function createEmptyVariant(): ProductVariantForm {
   return {
     id: crypto.randomUUID(),
+    size: "",
+    color: "",
     price: "",
     stock: "",
     isActive: true,
@@ -83,23 +87,16 @@ function getAttributeAppliesTo(attribute: SubCategoryAttribute) {
   return attribute.appliesTo;
 }
 
-function isLegacyVariantSizeAttribute(attribute: SubCategoryAttribute) {
-  return attribute.usage === "variant_size";
+function isVariantSizeAttribute(attribute: SubCategoryAttribute) {
+  return attribute.usage === "VARIANT_SIZE";
 }
 
-function isLegacyVariantColorAttribute(attribute: SubCategoryAttribute) {
-  return attribute.usage === "variant_color";
+function isVariantColorAttribute(attribute: SubCategoryAttribute) {
+  return attribute.usage === "VARIANT_COLOR";
 }
 
-function getVariantDisplayLabel(
-  variant: ProductVariantForm,
-  variantAttributes: SubCategoryAttribute[]
-) {
-  const legacySize = variantAttributes.find(isLegacyVariantSizeAttribute);
-  const legacyColor = variantAttributes.find(isLegacyVariantColorAttribute);
-
-  return [legacySize, legacyColor]
-    .map((attribute) => (attribute ? variant.attributes[attribute.id]?.trim() : ""))
+function getVariantDisplayLabel(variant: ProductVariantForm) {
+  return [variant.size.trim(), variant.color.trim()]
     .filter(Boolean)
     .join(" / ");
 }
@@ -216,18 +213,30 @@ function CreateProductPage() {
       attributes.filter((attribute) => getAttributeAppliesTo(attribute) === "PRODUCT"),
     [attributes]
   );
-  const variantAttributes = useMemo(
-    () => attributes.filter((attribute) => getAttributeAppliesTo(attribute) === "VARIANT"),
+  const sizeAttribute = useMemo(
+    () => attributes.find(isVariantSizeAttribute),
     [attributes]
   );
-  const legacySizeAttribute = useMemo(
-    () => variantAttributes.find(isLegacyVariantSizeAttribute),
-    [variantAttributes]
+  const colorAttribute = useMemo(
+    () => attributes.find(isVariantColorAttribute),
+    [attributes]
   );
-  const legacyColorAttribute = useMemo(
-    () => variantAttributes.find(isLegacyVariantColorAttribute),
-    [variantAttributes]
+  const variantAttributes = useMemo(
+    () =>
+      attributes.filter(
+        (attribute) =>
+          getAttributeAppliesTo(attribute) === "VARIANT" &&
+          !isVariantSizeAttribute(attribute) &&
+          !isVariantColorAttribute(attribute)
+      ),
+    [attributes]
   );
+  const unclassifiedAttributes = useMemo(
+    () => attributes.filter((attribute) => !getAttributeAppliesTo(attribute)),
+    [attributes]
+  );
+  const sizeOptions = sizeAttribute?.options?.filter(Boolean) ?? [];
+  const colorOptions = colorAttribute?.options?.filter(Boolean) ?? [];
 
   useEffect(() => {
     return () => {
@@ -274,6 +283,8 @@ function CreateProductPage() {
           setVariants(
             (productData.variants ?? []).map((variant) => ({
               id: variant.id ?? crypto.randomUUID(),
+              size: variant.size ?? "",
+              color: variant.color ?? "",
               price: String(variant.price ?? ""),
               stock: String(variant.stock ?? ""),
               isActive: variant.isActive !== false,
@@ -324,6 +335,12 @@ function CreateProductPage() {
 
       try {
         const data = await getSubCategoriesByCategory(selectedCategoryId);
+        if (import.meta.env.DEV) {
+          console.debug("Subcategorias cargadas", {
+            categoryId: selectedCategoryId,
+            subCategories: data,
+          });
+        }
         setSubCategories(data);
         setSelectedSubCategoryId("");
         setAttributes([]);
@@ -353,6 +370,12 @@ function CreateProductPage() {
         const data = await getSubCategoryAttributesBySubCategory(
           selectedSubCategoryId
         );
+        if (import.meta.env.DEV) {
+          console.debug("Atributos de subcategoria cargados", {
+            subCategoryId: selectedSubCategoryId,
+            attributes: data,
+          });
+        }
         setAttributes(data);
         const currentProductAttributes = editingProduct
           ? getProductAttributeValues(editingProduct)
@@ -371,30 +394,6 @@ function CreateProductPage() {
           }, {})
         );
 
-        if (editingProduct?.variants?.length) {
-          const sizeAttribute = data.find(isLegacyVariantSizeAttribute);
-          const colorAttribute = data.find(isLegacyVariantColorAttribute);
-
-          setVariants((currentVariants) =>
-            currentVariants.map((variant, index) => {
-              const sourceVariant = editingProduct.variants?.[index];
-              if (!sourceVariant) return variant;
-
-              return {
-                ...variant,
-                attributes: {
-                  ...variant.attributes,
-                  ...(sizeAttribute && !variant.attributes[sizeAttribute.id]
-                    ? { [sizeAttribute.id]: sourceVariant.size ?? "" }
-                    : {}),
-                  ...(colorAttribute && !variant.attributes[colorAttribute.id]
-                    ? { [colorAttribute.id]: sourceVariant.color ?? "" }
-                    : {}),
-                },
-              };
-            })
-          );
-        }
       } catch {
         setError("No se pudieron cargar los atributos de la subcategoría.");
       } finally {
@@ -593,8 +592,30 @@ function CreateProductPage() {
     }
 
     for (const variant of variants) {
+      const size = variant.size.trim();
+      const color = variant.color.trim();
       const price = Number(variant.price);
       const stock = Number(variant.stock);
+
+      if (!size) {
+        setError("Todas las variantes necesitan talle.");
+        return false;
+      }
+
+      if (sizeOptions.length > 0 && !sizeOptions.includes(size)) {
+        setError("El talle de cada variante debe estar dentro de las opciones.");
+        return false;
+      }
+
+      if (colorAttribute?.required && !color) {
+        setError("Todas las variantes necesitan color.");
+        return false;
+      }
+
+      if (color && colorOptions.length > 0 && !colorOptions.includes(color)) {
+        setError("El color de cada variante debe estar dentro de las opciones.");
+        return false;
+      }
 
       if (!Number.isFinite(price) || price <= 0) {
         setError("El precio de cada variante debe ser mayor a 0.");
@@ -612,8 +633,7 @@ function CreateProductPage() {
       );
 
       if (missingRequiredVariantAttribute) {
-        const variantLabel =
-          getVariantDisplayLabel(variant, variantAttributes) || variant.id;
+        const variantLabel = getVariantDisplayLabel(variant) || variant.id;
         setError(
           `Completá ${missingRequiredVariantAttribute.name} para la variante ${variantLabel}.`
         );
@@ -633,28 +653,19 @@ function CreateProductPage() {
     const selectedAddress = addresses.find(
       (address) => address.id === detailsForm.pickupAddressId
     );
-    const variantPayload = variants.map((variant) => {
-      const legacySize = legacySizeAttribute
-        ? variant.attributes[legacySizeAttribute.id]?.trim()
-        : "";
-      const legacyColor = legacyColorAttribute
-        ? variant.attributes[legacyColorAttribute.id]?.trim()
-        : "";
-
-      return {
-        ...(legacySize ? { size: legacySize } : {}),
-        ...(legacyColor ? { color: legacyColor } : {}),
-        price: Number(variant.price),
-        stock: Number(variant.stock),
-        isActive: variant.isActive,
-        attributes: variantAttributes
-          .map((attribute) => ({
-            attributeId: attribute.id,
-            value: variant.attributes[attribute.id] ?? "",
-          }))
-          .filter((attribute) => attribute.value.trim() !== ""),
-      };
-    });
+    const variantPayload = variants.map((variant) => ({
+      size: variant.size.trim(),
+      ...(variant.color.trim() ? { color: variant.color.trim() } : {}),
+      price: Number(variant.price),
+      stock: Number(variant.stock),
+      isActive: variant.isActive,
+      attributes: variantAttributes
+        .map((attribute) => ({
+          attributeId: attribute.id,
+          value: variant.attributes[attribute.id] ?? "",
+        }))
+        .filter((attribute) => attribute.value.trim() !== ""),
+    }));
     const activeVariantPayload = variantPayload.filter(
       (variant) => variant.isActive !== false
     );
@@ -1181,6 +1192,21 @@ function CreateProductPage() {
               Caracteristicas del producto
             </h3>
 
+            {unclassifiedAttributes.length > 0 && (
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 font-semibold text-amber-800">
+                <p className="font-black">
+                  Hay atributos sin clasificar en esta subcategoria.
+                </p>
+                <p className="mt-1 text-sm">
+                  No se van a mostrar hasta que tengan appliesTo PRODUCT o
+                  VARIANT:{" "}
+                  {unclassifiedAttributes
+                    .map((attribute) => attribute.name)
+                    .join(", ")}
+                </p>
+              </div>
+            )}
+
             {isLoadingAttributes ? (
               <p className="mt-4 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
                 Cargando atributos...
@@ -1230,6 +1256,14 @@ function CreateProductPage() {
               </p>
             ) : (
               <div className="mt-4 space-y-4">
+                {!sizeAttribute && !colorAttribute && variantAttributes.length === 0 && (
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 font-semibold text-amber-800">
+                    Esta subcategoria no tiene atributos de variante. Si esperabas
+                    ver Talle, Color o medidas, revisa que esos atributos tengan
+                    appliesTo VARIANT.
+                  </p>
+                )}
+
                 {variants.map((variant, index) => (
                   <div
                     key={variant.id}
@@ -1249,6 +1283,85 @@ function CreateProductPage() {
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <label className="block">
+                        <span className="mb-2 block font-bold text-slate-700">
+                          {sizeAttribute?.name ?? "Talle"} *
+                        </span>
+                        {sizeOptions.length > 0 ? (
+                          <select
+                            value={variant.size}
+                            onChange={(event) =>
+                              handleVariantChange(
+                                variant.id,
+                                "size",
+                                event.target.value
+                              )
+                            }
+                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                          >
+                            <option value="">Seleccionar</option>
+                            {sizeOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            value={variant.size}
+                            onChange={(event) =>
+                              handleVariantChange(
+                                variant.id,
+                                "size",
+                                event.target.value
+                              )
+                            }
+                            placeholder={sizeAttribute?.name ?? "Talle"}
+                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                          />
+                        )}
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-2 block font-bold text-slate-700">
+                          {colorAttribute?.name ?? "Color"}
+                          {colorAttribute?.required ? " *" : ""}
+                        </span>
+                        {colorOptions.length > 0 ? (
+                          <select
+                            value={variant.color}
+                            onChange={(event) =>
+                              handleVariantChange(
+                                variant.id,
+                                "color",
+                                event.target.value
+                              )
+                            }
+                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                          >
+                            <option value="">Color opcional</option>
+                            {colorOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            value={variant.color}
+                            onChange={(event) =>
+                              handleVariantChange(
+                                variant.id,
+                                "color",
+                                event.target.value
+                              )
+                            }
+                            placeholder={colorAttribute?.name ?? "Color opcional"}
+                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                          />
+                        )}
+                      </label>
+
                       {variantAttributes.map((attribute) => (
                         <label key={attribute.id} className="block">
                           <span className="mb-2 block font-bold text-slate-700">

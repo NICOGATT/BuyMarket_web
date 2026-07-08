@@ -103,6 +103,8 @@ function getVariantFeatures(variant?: ProductVariant | null) {
       return {
         id:
           attribute.id ??
+          attribute.attributeId ??
+          attribute.subCategoryAttributeId ??
           attribute.attribute?.id ??
           attribute.subCategoryAttribute?.id ??
           name,
