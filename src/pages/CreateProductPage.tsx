@@ -51,6 +51,7 @@ type ProductVariantForm = {
   id: string;
   size: string;
   color: string;
+  colorHex: string;
   price: string;
   stock: string;
   isActive: boolean;
@@ -76,6 +77,7 @@ function createEmptyVariant(): ProductVariantForm {
     id: crypto.randomUUID(),
     size: "",
     color: "",
+    colorHex: "#94a3b8",
     price: "",
     stock: "",
     isActive: true,
@@ -236,7 +238,6 @@ function CreateProductPage() {
     [attributes]
   );
   const sizeOptions = sizeAttribute?.options?.filter(Boolean) ?? [];
-  const colorOptions = colorAttribute?.options?.filter(Boolean) ?? [];
 
   useEffect(() => {
     return () => {
@@ -285,6 +286,7 @@ function CreateProductPage() {
               id: variant.id ?? crypto.randomUUID(),
               size: variant.size ?? "",
               color: variant.color ?? "",
+              colorHex: variant.colorHex ?? "#94a3b8",
               price: String(variant.price ?? ""),
               stock: String(variant.stock ?? ""),
               isActive: variant.isActive !== false,
@@ -612,11 +614,6 @@ function CreateProductPage() {
         return false;
       }
 
-      if (color && colorOptions.length > 0 && !colorOptions.includes(color)) {
-        setError("El color de cada variante debe estar dentro de las opciones.");
-        return false;
-      }
-
       if (!Number.isFinite(price) || price <= 0) {
         setError("El precio de cada variante debe ser mayor a 0.");
         return false;
@@ -656,6 +653,7 @@ function CreateProductPage() {
     const variantPayload = variants.map((variant) => ({
       size: variant.size.trim(),
       ...(variant.color.trim() ? { color: variant.color.trim() } : {}),
+      ...(variant.colorHex.trim() ? { colorHex: variant.colorHex.trim() } : {}),
       price: Number(variant.price),
       stock: Number(variant.stock),
       isActive: variant.isActive,
@@ -1327,26 +1325,7 @@ function CreateProductPage() {
                           {colorAttribute?.name ?? "Color"}
                           {colorAttribute?.required ? " *" : ""}
                         </span>
-                        {colorOptions.length > 0 ? (
-                          <select
-                            value={variant.color}
-                            onChange={(event) =>
-                              handleVariantChange(
-                                variant.id,
-                                "color",
-                                event.target.value
-                              )
-                            }
-                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                          >
-                            <option value="">Color opcional</option>
-                            {colorOptions.map((option) => (
-                              <option key={option} value={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
+                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                           <input
                             value={variant.color}
                             onChange={(event) =>
@@ -1359,7 +1338,27 @@ function CreateProductPage() {
                             placeholder={colorAttribute?.name ?? "Color opcional"}
                             className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
                           />
-                        )}
+                          <label className="flex h-12 min-w-28 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3">
+                            <span
+                              className="h-6 w-6 rounded-full border border-slate-300"
+                              style={{ backgroundColor: variant.colorHex }}
+                              aria-hidden="true"
+                            />
+                            <input
+                              type="color"
+                              value={variant.colorHex}
+                              onChange={(event) =>
+                                handleVariantChange(
+                                  variant.id,
+                                  "colorHex",
+                                  event.target.value
+                                )
+                              }
+                              aria-label="Elegir muestra de color"
+                              className="h-8 w-10 cursor-pointer border-0 bg-transparent p-0"
+                            />
+                          </label>
+                        </div>
                       </label>
 
                       {variantAttributes.map((attribute) => (

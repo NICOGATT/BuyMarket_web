@@ -33,6 +33,7 @@ export type ProductVariant = {
   id?: string;
   size: string;
   color?: string | null;
+  colorHex?: string | null;
   price: number;
   stock: number;
   isActive: boolean;
@@ -42,6 +43,7 @@ export type ProductVariant = {
 export type ProductVariantPayload = {
   size: string;
   color?: string;
+  colorHex?: string;
   price: number;
   stock: number;
   isActive?: boolean;

@@ -115,6 +115,14 @@ function getVariantFeatures(variant?: ProductVariant | null) {
     .filter((feature) => feature.name && feature.value);
 }
 
+function getVariantColorLabel(variant: ProductVariant) {
+  return variant.color?.trim() || "Sin color";
+}
+
+function getVariantColorSwatch(variant: ProductVariant) {
+  return variant.colorHex?.trim() || "#e2e8f0";
+}
+
 function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -157,13 +165,14 @@ function ProductDetailPage() {
   const sizeOptions = Array.from(
     new Set(purchasableVariants.map((variant) => variant.size))
   );
-  const colorOptions = Array.from(
-    new Set(
-      purchasableVariants
-        .filter((variant) => variant.size === selectedSize)
-        .map((variant) => variant.color ?? "")
-    )
-  );
+  const colorOptions = purchasableVariants
+    .filter((variant) => variant.size === selectedSize)
+    .filter(
+      (variant, index, variantsForSize) =>
+        variantsForSize.findIndex(
+          (item) => (item.color ?? "") === (variant.color ?? "")
+        ) === index
+    );
   const selectedVariant =
     hasVariants && selectedSize
       ? purchasableVariants.find(
@@ -444,29 +453,46 @@ function ProductDetailPage() {
                 </select>
               </label>
 
-              <label className="block">
+              <div className="block">
                 <span className="mb-2 block font-bold text-slate-700">
                   Color
                 </span>
-                <select
-                  value={selectedColor}
-                  onChange={(event) => {
-                    setSelectedColor(event.target.value);
-                    setBuyNowError("");
-                  }}
-                  disabled={!selectedSize}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)] disabled:bg-slate-100 disabled:text-slate-500"
-                >
-                  <option value="">
-                    {selectedSize ? "Elegir color" : "Primero elegí talle"}
-                  </option>
-                  {colorOptions.map((color) => (
-                    <option key={color || "sin-color"} value={color}>
-                      {color || "Sin color"}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                {selectedSize ? (
+                  <div className="flex flex-wrap gap-2">
+                    {colorOptions.map((variant) => {
+                      const colorValue = variant.color ?? "";
+                      const isSelected = selectedColor === colorValue;
+
+                      return (
+                        <button
+                          key={`${variant.size}-${colorValue || "sin-color"}`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedColor(colorValue);
+                            setBuyNowError("");
+                          }}
+                          className={`flex min-h-12 items-center gap-2 rounded-xl border px-3 py-2 font-bold transition ${
+                            isSelected
+                              ? "border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--brand)]"
+                              : "border-slate-300 bg-white text-slate-700 hover:border-[var(--brand-border)]"
+                          }`}
+                        >
+                          <span
+                            className="h-6 w-6 rounded-full border border-slate-300"
+                            style={{ backgroundColor: getVariantColorSwatch(variant) }}
+                            aria-hidden="true"
+                          />
+                          <span>{getVariantColorLabel(variant)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="rounded-xl bg-slate-100 px-4 py-3 font-semibold text-slate-500">
+                    Primero elegí talle
+                  </p>
+                )}
+              </div>
             </div>
 
             {selectedVariant && (
