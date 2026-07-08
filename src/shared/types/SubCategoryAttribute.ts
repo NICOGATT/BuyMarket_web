@@ -13,10 +13,10 @@ export type SubCategoryAttributeType =
 export type SubCategoryAttributeAppliesTo = "PRODUCT" | "VARIANT";
 
 export const subCategoryAttributeUsages = [
-  "PRODUCT_ATTRIBUTE",
-  "VARIANT_ATTRIBUTE",
-  "VARIANT_SIZE",
-  "VARIANT_COLOR",
+  "product_attribute",
+  "variant_attribute",
+  "variant_size",
+  "variant_color",
 ] as const;
 
 export type SubCategoryAttributeUsage =

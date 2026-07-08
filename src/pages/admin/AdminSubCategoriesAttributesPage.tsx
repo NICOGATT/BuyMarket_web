@@ -38,15 +38,15 @@ const emptyAttributeForm: AttributeFormState = {
   name: "",
   type: "text",
   appliesTo: "PRODUCT",
-  usage: "PRODUCT_ATTRIBUTE",
+  usage: "product_attribute",
   required: false,
   optionsText: "",
 };
 
 function getUsageLabel(usage: SubCategoryAttributeUsage) {
-  if (usage === "PRODUCT_ATTRIBUTE") return "Atributo de producto";
-  if (usage === "VARIANT_ATTRIBUTE") return "Atributo de variante";
-  if (usage === "VARIANT_SIZE") return "Talle";
+  if (usage === "product_attribute") return "Atributo de producto";
+  if (usage === "variant_attribute") return "Atributo de variante";
+  if (usage === "variant_size") return "Talle";
   return "Color";
 }
 
@@ -57,7 +57,7 @@ function getAppliesToLabel(appliesTo: SubCategoryAttributeAppliesTo) {
 function getDefaultUsageForAppliesTo(
   appliesTo: SubCategoryAttributeAppliesTo
 ): SubCategoryAttributeUsage {
-  return appliesTo === "PRODUCT" ? "PRODUCT_ATTRIBUTE" : "VARIANT_ATTRIBUTE";
+  return appliesTo === "PRODUCT" ? "product_attribute" : "variant_attribute";
 }
 
 function getRequestErrorMessage(error: unknown, fallback: string) {
@@ -318,15 +318,15 @@ function AdminSubCategoriesAttributesPage() {
     }
 
     const appliesTo =
-      attributeForm.usage === "VARIANT_SIZE" ||
-      attributeForm.usage === "VARIANT_COLOR"
+      attributeForm.usage === "variant_size" ||
+      attributeForm.usage === "variant_color"
         ? "VARIANT"
         : attributeForm.appliesTo;
     const usage =
       appliesTo === "PRODUCT"
-        ? "PRODUCT_ATTRIBUTE"
-        : attributeForm.usage === "PRODUCT_ATTRIBUTE"
-          ? "VARIANT_ATTRIBUTE"
+        ? "product_attribute"
+        : attributeForm.usage === "product_attribute"
+          ? "variant_attribute"
           : attributeForm.usage;
 
     return {
@@ -705,7 +705,7 @@ function AdminSubCategoriesAttributesPage() {
                     ...currentForm,
                     usage,
                     appliesTo:
-                      usage === "VARIANT_SIZE" || usage === "VARIANT_COLOR"
+                      usage === "variant_size" || usage === "variant_color"
                         ? "VARIANT"
                         : currentForm.appliesTo,
                   }));
@@ -714,19 +714,19 @@ function AdminSubCategoriesAttributesPage() {
                 className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] disabled:cursor-not-allowed disabled:bg-slate-100"
               >
                 {attributeForm.appliesTo === "PRODUCT" ? (
-                  <option value="PRODUCT_ATTRIBUTE">Atributo de producto</option>
+                  <option value="product_attribute">Atributo de producto</option>
                 ) : (
                   <>
-                    <option value="VARIANT_ATTRIBUTE">Atributo de variante</option>
-                    <option value="VARIANT_SIZE">Talle</option>
-                    <option value="VARIANT_COLOR">Color</option>
+                    <option value="variant_attribute">Atributo de variante</option>
+                    <option value="variant_size">Talle</option>
+                    <option value="variant_color">Color</option>
                   </>
                 )}
               </select>
             </div>
 
-            {(attributeForm.usage === "VARIANT_SIZE" ||
-              attributeForm.usage === "VARIANT_COLOR") &&
+            {(attributeForm.usage === "variant_size" ||
+              attributeForm.usage === "variant_color") &&
               attributeForm.type !== "select" && (
                 <p className="rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-700">
                   Para talles y colores se recomienda usar tipo select y cargar opciones.

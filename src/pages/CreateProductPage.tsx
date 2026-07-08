@@ -88,11 +88,11 @@ function getAttributeAppliesTo(attribute: SubCategoryAttribute) {
 }
 
 function isVariantSizeAttribute(attribute: SubCategoryAttribute) {
-  return attribute.usage === "VARIANT_SIZE";
+  return attribute.usage === "variant_size";
 }
 
 function isVariantColorAttribute(attribute: SubCategoryAttribute) {
-  return attribute.usage === "VARIANT_COLOR";
+  return attribute.usage === "variant_color";
 }
 
 function getVariantDisplayLabel(variant: ProductVariantForm) {
