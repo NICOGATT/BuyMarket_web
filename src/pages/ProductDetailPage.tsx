@@ -20,7 +20,6 @@ import {
   getPurchasableVariants,
   getVariantTotalStock,
 } from "../shared/utils/productVariants";
-import { formatUserAddress } from "../shared/utils/userAddress";
 
 function getTextValue(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -57,10 +56,14 @@ function getPublisherName(product: Product) {
 }
 
 function getProductAddress(product: Product) {
-  const address = getTextValue(product.direccionRetiro);
+  const pickupCity = product.pickupAddress?.city?.trim();
+  if (pickupCity) return pickupCity;
 
+  const address = getTextValue(product.direccionRetiro);
+  const [, city] = address.split(",").map((part) => part.trim());
+
+  if (city) return city;
   if (address) return address;
-  if (product.pickupAddress) return formatUserAddress(product.pickupAddress);
 
   return "";
 }

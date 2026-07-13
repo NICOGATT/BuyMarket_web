@@ -8,7 +8,6 @@ import {
   Truck,
 } from "lucide-react";
 import HeroSection from "../features/home/components/HeroSection";
-import CategoryProductSections from "../features/products/components/CategoryProductSections";
 import FeaturedProducts from "../features/products/components/FeaturedProducts";
 import { getCategories } from "../shared/services/category.service";
 import type { Category } from "../shared/types/Category";
@@ -16,17 +15,6 @@ import {
   getCategoryDisplayImageUrls,
   getCategoryInitials,
 } from "../shared/utils/categoryImages";
-
-const popularSearches = [
-  "iPhone",
-  "Notebook",
-  "Zapatillas",
-  "Silla gamer",
-  "Smart TV",
-  "Auriculares",
-  "Mesa",
-  "PlayStation",
-];
 
 const benefits = [
   {
@@ -84,7 +72,7 @@ function HomeCategories() {
         const data = await getCategories();
         setCategories(data.slice(0, 6));
       } catch {
-        setError("No pudimos cargar las categorías populares.");
+        setError("No pudimos cargar las categorías.");
       } finally {
         setIsLoading(false);
       }
@@ -109,7 +97,7 @@ function HomeCategories() {
             Explorá por categoría
           </span>
           <h2 className="mt-3 text-2xl font-black text-slate-950 sm:text-3xl">
-            Categorías populares
+            Categorías
           </h2>
           <p className="mt-2 max-w-2xl font-semibold text-slate-500">
             Accesos rápidos a categorías reales de BuyMarket, con sus imágenes
@@ -186,33 +174,6 @@ function HomeCategories() {
   );
 }
 
-function PopularSearches() {
-  return (
-    <section className="grid gap-6 rounded-2xl border border-white/80 bg-[radial-gradient(circle_at_12%_12%,rgba(255,138,0,0.18),transparent_32%),linear-gradient(135deg,#EEF8FF,#F6F0FF_58%,#FFF1D8)] p-4 shadow-[0_20px_60px_rgba(18,60,105,0.08)] sm:rounded-[32px] sm:p-7 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-      <div>
-        <h2 className="text-2xl font-black text-slate-950 sm:text-3xl">
-          Más buscados
-        </h2>
-        <p className="mt-2 font-semibold text-slate-500">
-          Tendencias rápidas para entrar directo a productos con alta intención
-          de compra.
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-3">
-        {popularSearches.map((term) => (
-          <Link
-            key={term}
-            to={`/products?search=${encodeURIComponent(term)}`}
-            className="rounded-2xl border border-white bg-white/82 px-4 py-3 font-black text-[var(--nav-blue)] shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-[var(--brand-orange-border)] hover:bg-white hover:text-[var(--brand)]"
-          >
-            {term}
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function BenefitsSection() {
   return (
     <section>
@@ -251,9 +212,7 @@ function HomePage() {
       <HeroSection />
       <HomeCategories />
       <FeaturedProducts />
-      <PopularSearches />
       <BenefitsSection />
-      <CategoryProductSections />
     </div>
   );
 }
