@@ -1,5 +1,5 @@
 import { CreditCard, Mail, MapPin, PackagePlus, Search, ShoppingBag, ShoppingCart, Truck, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { CART_CHANGE_EVENT, getCart } from "../features/cart/store/cartStore";
 import type { CartItem } from "../shared/types/Cart";
@@ -10,6 +10,24 @@ import {
 import { getUserFromToken, logout } from "../shared/utils/auth";
 import { getCategories } from "../shared/services/category.service";
 import type { Category } from "../shared/types/Category";
+
+const priorityCategoryAliases = [
+  ["mascotas"],
+  ["tecno", "tecnologia"],
+  ["computacion"],
+  ["indumentaria"],
+  ["calzados", "calzado"],
+  ["deco/bazar", "deco y bazar", "deco-bazar", "deco bazar"],
+  ["belleza"],
+];
+
+function normalizeCategoryName(name: string) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es")
+    .replace(/[^a-z0-9]/g, "");
+}
 
 function MainLayout() {
   const [user, setUser] = useState(getUserFromToken());
@@ -73,6 +91,30 @@ function MainLayout() {
     (acc, item) => acc + getCartItemUnitPrice(item) * item.quantity,
     0
   );
+  const priorityCategories = useMemo(() => {
+    const usedCategoryIds = new Set<string>();
+    const normalizedCategories = categories.map((category) => ({
+      category,
+      normalizedName: normalizeCategoryName(category.name),
+    }));
+
+    return priorityCategoryAliases.flatMap((aliases) => {
+      const normalizedAliases = aliases.map(normalizeCategoryName);
+      const match = normalizedAliases
+        .map((alias) =>
+          normalizedCategories.find(
+            ({ category, normalizedName }) =>
+              !usedCategoryIds.has(category.id) && normalizedName === alias
+          )
+        )
+        .find(Boolean);
+
+      if (!match) return [];
+
+      usedCategoryIds.add(match.category.id);
+      return [match.category];
+    });
+  }, [categories]);
 
   function handleLogout() {
     logout();
@@ -320,23 +362,29 @@ function MainLayout() {
             </div>
           </div>
 
-          <nav aria-label="Categorías de productos" className="flex items-center justify-center gap-1 overflow-x-auto border-t border-white/10 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {categories.map((category) => (
-              <NavLink
-                key={category.id}
-                to={`/products?category=${encodeURIComponent(category.id)}`}
-                className="shrink-0 rounded-full border border-white/14 bg-white/10 px-1.5 py-0.5 text-[9px] font-bold leading-4 text-white/85 transition hover:border-cyan-200/70 hover:bg-white/18 hover:text-white sm:px-2 sm:text-[10px]"
-              >
-                {category.name}
-              </NavLink>
-            ))}
+          <div className="relative flex items-center gap-1 border-t border-white/10 py-2">
+            <nav
+              aria-label="Categorías principales de productos"
+              className="flex min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {priorityCategories.map((category) => (
+                <NavLink
+                  key={category.id}
+                  to={`/products?category=${encodeURIComponent(category.id)}`}
+                  className="shrink-0 rounded-full border border-white/14 bg-white/10 px-2.5 py-1 text-xs font-bold leading-4 text-white/85 transition hover:border-cyan-200/70 hover:bg-white/18 hover:text-white sm:px-3 sm:text-sm"
+                >
+                  {category.name}
+                </NavLink>
+              ))}
+            </nav>
+
             <NavLink
               to="/products"
-              className="sticky right-0 shrink-0 rounded-full bg-white px-2 py-0.5 text-[9px] font-black leading-4 text-[var(--nav-blue)] shadow-[0_0_14px_rgba(7,24,50,0.45)] transition hover:bg-cyan-50 sm:text-[10px]"
+              className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-black leading-4 text-[var(--nav-blue)] shadow-[0_0_14px_rgba(7,24,50,0.45)] transition hover:bg-cyan-50 sm:px-3 sm:text-sm"
             >
               Ver más
             </NavLink>
-          </nav>
+          </div>
         </div>
       </header>
 
