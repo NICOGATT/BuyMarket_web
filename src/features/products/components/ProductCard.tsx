@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, ShoppingCart, Zap } from "lucide-react";
+import { Eye, Share2, ShoppingCart, Zap } from "lucide-react";
 import { addCart, isAuthRequiredError } from "../../cart/store/cartStore";
 import type { ProductCardProps } from "../../../shared/types/Product";
 import { getProductCategoryName } from "../../../shared/utils/productCategories";
@@ -10,10 +10,12 @@ import {
   getVariantTotalStock,
   hasProductVariants,
 } from "../../../shared/utils/productVariants";
+import ShareProductModal from "./ShareProductModal";
 
 function ProductCard({ product }: ProductCardProps) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const navigate = useNavigate();
   const image = getProductFirstImage(product);
   const categoryName = getProductCategoryName(product);
@@ -82,10 +84,26 @@ function ProductCard({ product }: ProductCardProps) {
         </div>
       )}
 
+      <ShareProductModal
+        productId={product.id}
+        productTitle={product.title}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+      />
+
       <div className="relative aspect-[4/3] overflow-hidden border-b border-white/70 bg-[radial-gradient(circle_at_18%_12%,rgba(34,199,243,0.22),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(255,138,0,0.22),transparent_32%),linear-gradient(135deg,#F8FBFF,#F5EFFF)]">
         <span className="absolute left-4 top-4 z-10 rounded-full bg-white/88 px-3 py-1 text-xs font-black text-[var(--brand)] shadow-sm backdrop-blur">
           Destacado
         </span>
+        <button
+          type="button"
+          onClick={() => setIsShareModalOpen(true)}
+          aria-label={`Compartir ${product.title}`}
+          title="Compartir producto"
+          className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/90 text-[var(--brand)] shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand-soft)]"
+        >
+          <Share2 className="h-5 w-5" aria-hidden="true" />
+        </button>
         {image ? (
           <img
             src={image}

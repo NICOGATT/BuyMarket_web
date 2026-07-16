@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock, MapPin, User, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Share2,
+  User,
+  X,
+} from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import ShareProductModal from "../features/products/components/ShareProductModal";
 import {
   addCart,
   addProductToCart,
@@ -135,6 +144,7 @@ function ProductDetailPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [buyNowError, setBuyNowError] = useState("");
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
 
@@ -413,9 +423,21 @@ function ProductDetailPage() {
       </div>
 
       <div className="min-w-0">
-        <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">
-          {product.title}
-        </h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="m-0 min-w-0 break-words text-3xl font-black text-slate-950 sm:text-4xl">
+            {product.title}
+          </h1>
+          <button
+            type="button"
+            onClick={() => setIsShareModalOpen(true)}
+            aria-label={`Compartir ${product.title}`}
+            title="Compartir producto"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--brand)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--brand-border)] hover:bg-[var(--brand-soft)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand-soft)]"
+          >
+            <Share2 className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
         <p className="mt-4 break-words text-slate-600">{product.description}</p>
 
         <p className="mt-6 text-3xl font-black text-[var(--brand)] sm:text-4xl">
@@ -569,6 +591,13 @@ function ProductDetailPage() {
           </div>
         </div>
       )}
+
+      <ShareProductModal
+        productId={product.id}
+        productTitle={product.title}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+      />
 
       {isModalOpen && selectedImage && (
         <div
