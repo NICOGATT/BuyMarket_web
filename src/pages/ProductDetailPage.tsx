@@ -23,6 +23,7 @@ import type {
   ProductVariant,
 } from "../shared/types/Product";
 import { getProductImageUrls } from "../shared/utils/productImages";
+import { formatPrice } from "../shared/utils/price";
 import {
   getDisplayPrice,
   getPurchasableVariants,
@@ -457,7 +458,7 @@ function ProductDetailPage() {
 
         <p className="mt-6 text-3xl font-black text-[var(--brand)] sm:text-4xl">
           {hasVariants && !selectedVariant ? "Desde " : ""}$
-          {displayedPrice.toLocaleString("es-AR")}
+          {formatPrice(displayedPrice)}
         </p>
 
         <p className="mt-2 text-sm font-bold text-slate-500">
@@ -541,7 +542,7 @@ function ProductDetailPage() {
             {selectedVariant && (
               <p className="mt-4 rounded-xl bg-slate-50 p-3 font-semibold text-slate-600">
                 Seleccionado: {getSelectedVariantLabel(selectedVariant)} - $
-                {selectedVariant.price.toLocaleString("es-AR")}
+                {formatPrice(selectedVariant.price)}
               </p>
             )}
 

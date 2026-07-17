@@ -29,6 +29,10 @@ import {
   getCategoryInitials,
 } from "../shared/utils/categoryImages";
 import { getProductImageUrls } from "../shared/utils/productImages";
+import {
+  normalizePriceInput,
+  parsePriceInput,
+} from "../shared/utils/price";
 import { formatUserAddress } from "../shared/utils/userAddress";
 
 type Step = 1 | 2 | 3;
@@ -417,6 +421,17 @@ function CreateProductPage() {
     }));
   }
 
+  function handleDetailsPriceBlur() {
+    const normalizedPrice = normalizePriceInput(detailsForm.price);
+
+    if (normalizedPrice === null) return;
+
+    setDetailsForm((currentDetails) => ({
+      ...currentDetails,
+      price: normalizedPrice,
+    }));
+  }
+
   function handleCategorySuggestionChange(
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) {
@@ -500,6 +515,14 @@ function CreateProductPage() {
     setVariantsTouched(true);
   }
 
+  function handleVariantPriceBlur(variant: ProductVariantForm) {
+    const normalizedPrice = normalizePriceInput(variant.price);
+
+    if (normalizedPrice === null) return;
+
+    handleVariantChange(variant.id, "price", normalizedPrice);
+  }
+
   function handleVariantAttributeChange(
     variantId: string,
     attributeId: string,
@@ -579,12 +602,20 @@ function CreateProductPage() {
       return false;
     }
 
-    if (
-      !hasVariants &&
-      (Number(detailsForm.price) <= 0 || Number(detailsForm.stock) < 0)
-    ) {
-      setError("El precio debe ser mayor a 0 y el stock no puede ser negativo.");
-      return false;
+    if (!hasVariants) {
+      const price = parsePriceInput(detailsForm.price);
+
+      if (price === null || price <= 0) {
+        setError(
+          "El precio debe ser mayor a 0 y tener hasta dos decimales (punto o coma)."
+        );
+        return false;
+      }
+
+      if (Number(detailsForm.stock) < 0) {
+        setError("El stock no puede ser negativo.");
+        return false;
+      }
     }
 
     if (hasVariants && !variants.some((variant) => variant.isActive)) {
@@ -605,7 +636,7 @@ function CreateProductPage() {
     for (const variant of variants) {
       const size = variant.size.trim();
       const color = variant.color.trim();
-      const price = Number(variant.price);
+      const price = parsePriceInput(variant.price);
       const stock = Number(variant.stock);
 
       if (!size) {
@@ -623,8 +654,10 @@ function CreateProductPage() {
         return false;
       }
 
-      if (!Number.isFinite(price) || price <= 0) {
-        setError("El precio de cada variante debe ser mayor a 0.");
+      if (price === null || price <= 0) {
+        setError(
+          "El precio de cada variante debe ser mayor a 0 y tener hasta dos decimales (punto o coma)."
+        );
         return false;
       }
 
@@ -663,7 +696,7 @@ function CreateProductPage() {
       size: variant.size.trim(),
       ...(variant.color.trim() ? { color: variant.color.trim() } : {}),
       ...(variant.colorHex.trim() ? { colorHex: variant.colorHex.trim() } : {}),
-      price: Number(variant.price),
+      price: parsePriceInput(variant.price)!,
       stock: Number(variant.stock),
       isActive: variant.isActive,
       attributes: variantAttributes
@@ -687,7 +720,7 @@ function CreateProductPage() {
         description: detailsForm.description.trim(),
         ...(variants.length === 0
           ? {
-              price: Number(detailsForm.price),
+              price: parsePriceInput(detailsForm.price)!,
               stock: Number(detailsForm.stock),
             }
           : {}),
@@ -1130,12 +1163,12 @@ function CreateProductPage() {
               <>
                 <input
                   name="price"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="Precio"
                   value={detailsForm.price}
                   onChange={handleDetailsChange}
+                  onBlur={handleDetailsPriceBlur}
                   className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
                 />
 
@@ -1383,13 +1416,13 @@ function CreateProductPage() {
                       ))}
 
                       <input
-                        type="number"
-                        min="0"
-                        step="0.01"
+                        type="text"
+                        inputMode="decimal"
                         value={variant.price}
                         onChange={(event) =>
                           handleVariantChange(variant.id, "price", event.target.value)
                         }
+                        onBlur={() => handleVariantPriceBlur(variant)}
                         placeholder="Precio"
                         className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
                       />
