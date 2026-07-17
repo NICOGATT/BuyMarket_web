@@ -24,7 +24,6 @@ import type {
 } from "../shared/types/Product";
 import { getProductImageUrls } from "../shared/utils/productImages";
 import {
-  formatVariantLabel,
   getDisplayPrice,
   getPurchasableVariants,
   getVariantTotalStock,
@@ -128,11 +127,26 @@ function getVariantFeatures(variant?: ProductVariant | null) {
 }
 
 function getVariantColorLabel(variant: ProductVariant) {
-  return variant.color?.trim() || "Sin color";
+  return (
+    variant.color?.trim() ||
+    variant.colorHex?.trim().toUpperCase() ||
+    "Sin color"
+  );
 }
 
 function getVariantColorSwatch(variant: ProductVariant) {
   return variant.colorHex?.trim() || "#e2e8f0";
+}
+
+function getVariantColorIdentity(variant: ProductVariant) {
+  const color = variant.color?.trim().toLocaleLowerCase() || "";
+  const colorHex = variant.colorHex?.trim().toLocaleLowerCase() || "";
+
+  return `${color}|${colorHex}`;
+}
+
+function getSelectedVariantLabel(variant: ProductVariant) {
+  return [variant.size, getVariantColorLabel(variant)].filter(Boolean).join(" / ");
 }
 
 function ProductDetailPage() {
@@ -146,7 +160,7 @@ function ProductDetailPage() {
   const [buyNowError, setBuyNowError] = useState("");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedVariantId, setSelectedVariantId] = useState("");
 
   useEffect(() => {
     async function loadProduct() {
@@ -156,7 +170,7 @@ function ProductDetailPage() {
       setProduct(data);
       setSelectedImageIndex(0);
       setSelectedSize("");
-      setSelectedColor("");
+      setSelectedVariantId("");
     }
 
     loadProduct();
@@ -183,15 +197,16 @@ function ProductDetailPage() {
     .filter(
       (variant, index, variantsForSize) =>
         variantsForSize.findIndex(
-          (item) => (item.color ?? "") === (variant.color ?? "")
+          (item) =>
+            getVariantColorIdentity(item) === getVariantColorIdentity(variant)
         ) === index
     );
   const selectedVariant =
-    hasVariants && selectedSize
+    hasVariants && selectedSize && selectedVariantId
       ? purchasableVariants.find(
           (variant) =>
             variant.size === selectedSize &&
-            (variant.color ?? "") === selectedColor
+            variant.id === selectedVariantId
         ) ?? null
       : null;
   const displayedPrice = selectedVariant?.price ?? getDisplayPrice(product);
@@ -464,7 +479,7 @@ function ProductDetailPage() {
                   value={selectedSize}
                   onChange={(event) => {
                     setSelectedSize(event.target.value);
-                    setSelectedColor("");
+                    setSelectedVariantId("");
                     setBuyNowError("");
                   }}
                   className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
@@ -485,21 +500,24 @@ function ProductDetailPage() {
                 {selectedSize ? (
                   <div className="flex flex-wrap gap-2">
                     {colorOptions.map((variant) => {
-                      const colorValue = variant.color ?? "";
-                      const isSelected = selectedColor === colorValue;
+                      const isSelected = selectedVariantId === variant.id;
 
                       return (
                         <button
-                          key={`${variant.size}-${colorValue || "sin-color"}`}
+                          key={
+                            variant.id ??
+                            `${variant.size}-${getVariantColorIdentity(variant)}`
+                          }
                           type="button"
                           onClick={() => {
-                            setSelectedColor(colorValue);
+                            setSelectedVariantId(variant.id ?? "");
                             setBuyNowError("");
                           }}
+                          disabled={!variant.id}
                           className={`flex min-h-12 items-center gap-2 rounded-xl border px-3 py-2 font-bold transition ${
                             isSelected
                               ? "border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--brand)]"
-                              : "border-slate-300 bg-white text-slate-700 hover:border-[var(--brand-border)]"
+                              : "border-slate-300 bg-white text-slate-700 hover:border-[var(--brand-border)] disabled:cursor-not-allowed disabled:opacity-60"
                           }`}
                         >
                           <span
@@ -522,7 +540,7 @@ function ProductDetailPage() {
 
             {selectedVariant && (
               <p className="mt-4 rounded-xl bg-slate-50 p-3 font-semibold text-slate-600">
-                Seleccionado: {formatVariantLabel(selectedVariant)} - $
+                Seleccionado: {getSelectedVariantLabel(selectedVariant)} - $
                 {selectedVariant.price.toLocaleString("es-AR")}
               </p>
             )}
