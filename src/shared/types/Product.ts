@@ -98,8 +98,8 @@ export type ProductCardProps = {
 export type CreateProductPayload = {
   title: string;
   description: string;
-  price: number;
-  stock: number;
+  price?: number;
+  stock?: number;
   category: string;
   seller?: string;
   subCategoryId?: string;

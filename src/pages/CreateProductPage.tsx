@@ -571,7 +571,11 @@ function CreateProductPage() {
       !detailsForm.description.trim() ||
       (!hasVariants && (!detailsForm.price || !detailsForm.stock))
     ) {
-      setError("Completá titulo, descripcion, precio y stock.");
+      setError(
+        hasVariants
+          ? "Completá titulo y descripcion."
+          : "Completá titulo, descripcion, precio y stock."
+      );
       return false;
     }
 
@@ -580,6 +584,11 @@ function CreateProductPage() {
       (Number(detailsForm.price) <= 0 || Number(detailsForm.stock) < 0)
     ) {
       setError("El precio debe ser mayor a 0 y el stock no puede ser negativo.");
+      return false;
+    }
+
+    if (hasVariants && !variants.some((variant) => variant.isActive)) {
+      setError("El producto debe tener al menos una variante activa.");
       return false;
     }
 
@@ -664,17 +673,6 @@ function CreateProductPage() {
         }))
         .filter((attribute) => attribute.value.trim() !== ""),
     }));
-    const activeVariantPayload = variantPayload.filter(
-      (variant) => variant.isActive !== false
-    );
-    const computedPrice =
-      activeVariantPayload.length > 0
-        ? Math.min(...activeVariantPayload.map((variant) => variant.price))
-        : Number(detailsForm.price);
-    const computedStock =
-      activeVariantPayload.length > 0
-        ? activeVariantPayload.reduce((total, variant) => total + variant.stock, 0)
-        : Number(detailsForm.stock);
     const uploadedMediaIds = uploadedMedia
       .map((media) => media.id)
       .filter(Boolean) as string[];
@@ -687,8 +685,12 @@ function CreateProductPage() {
       const payload = {
         title: detailsForm.title.trim(),
         description: detailsForm.description.trim(),
-        price: computedPrice,
-        stock: computedStock,
+        ...(variants.length === 0
+          ? {
+              price: Number(detailsForm.price),
+              stock: Number(detailsForm.stock),
+            }
+          : {}),
         category: selectedSubCategoryId,
         subCategoryId: selectedSubCategoryId,
         direccionRetiro: selectedAddress ? formatUserAddress(selectedAddress) : "",
@@ -1124,26 +1126,35 @@ function CreateProductPage() {
               className="min-h-32 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)] sm:col-span-2"
             />
 
-            <input
-              name="price"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="Precio"
-              value={detailsForm.price}
-              onChange={handleDetailsChange}
-              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
-            />
+            {variants.length === 0 ? (
+              <>
+                <input
+                  name="price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Precio"
+                  value={detailsForm.price}
+                  onChange={handleDetailsChange}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
+                />
 
-            <input
-              name="stock"
-              type="number"
-              min="0"
-              placeholder="Stock"
-              value={detailsForm.stock}
-              onChange={handleDetailsChange}
-              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
-            />
+                <input
+                  name="stock"
+                  type="number"
+                  min="0"
+                  placeholder="Stock"
+                  value={detailsForm.stock}
+                  onChange={handleDetailsChange}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
+                />
+              </>
+            ) : (
+              <p className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-800 sm:col-span-2">
+                El precio y el stock del producto se calculan automáticamente
+                desde las variantes activas.
+              </p>
+            )}
 
             <select
               name="pickupAddressId"
