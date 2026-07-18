@@ -150,6 +150,47 @@ function getSelectedVariantLabel(variant: ProductVariant) {
   return [variant.size, getVariantColorLabel(variant)].filter(Boolean).join(" / ");
 }
 
+type DynamicCharacteristic = {
+  id?: string;
+  name: string;
+  value: string;
+};
+
+function getDynamicCharacteristics(
+  productFeatures: ReturnType<typeof getProductFeatures>,
+  variant?: ProductVariant | null
+) {
+  const variantFeatures: DynamicCharacteristic[] = variant
+    ? [
+        {
+          id: "variant-size",
+          name: "Talle",
+          value: variant.size?.trim() || "No informado",
+        },
+        {
+          id: "variant-color",
+          name: "Color",
+          value: getVariantColorLabel(variant),
+        },
+        ...getVariantFeatures(variant),
+      ]
+    : [];
+
+  const characteristics: DynamicCharacteristic[] = [
+    ...variantFeatures,
+    ...productFeatures,
+  ];
+
+  return characteristics.filter(
+    (feature, index, allFeatures) =>
+      allFeatures.findIndex(
+        (item) =>
+          item.name.trim().toLocaleLowerCase() ===
+          feature.name.trim().toLocaleLowerCase()
+      ) === index
+  );
+}
+
 function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -213,7 +254,7 @@ function ProductDetailPage() {
   const displayedPrice = selectedVariant?.price ?? getDisplayPrice(product);
   const displayedStock =
     selectedVariant?.stock ?? getVariantTotalStock(product) ?? product.stock;
-  const selectedVariantFeatures = getVariantFeatures(selectedVariant);
+  const characteristics = getDynamicCharacteristics(features, selectedVariant);
 
   function showPreviousImage() {
     setSelectedImageIndex((currentIndex) =>
@@ -414,11 +455,11 @@ function ProductDetailPage() {
             Caracteristicas
           </h2>
 
-          {features.length > 0 ? (
+          {characteristics.length > 0 ? (
             <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-              {features.map((feature) => (
+              {characteristics.map((feature) => (
                 <div
-                  key={`${feature.name}-${feature.value}`}
+                  key={feature.id ?? `${feature.name}-${feature.value}`}
                   className="rounded-2xl bg-slate-50 p-4"
                 >
                   <dt className="text-sm font-black uppercase text-slate-500">
@@ -430,9 +471,15 @@ function ProductDetailPage() {
                 </div>
               ))}
             </dl>
-          ) : (
+          ) : !hasVariants ? (
             <p className="mt-4 rounded-2xl bg-slate-50 p-4 font-semibold text-slate-500">
               Este producto no tiene caracteristicas significativas.
+            </p>
+          ) : null}
+
+          {hasVariants && !selectedVariant && (
+            <p className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 font-semibold text-blue-800">
+              Elegí un talle y un color para ver las características de esa variante.
             </p>
           )}
         </div>
@@ -546,28 +593,6 @@ function ProductDetailPage() {
               </p>
             )}
 
-            {selectedVariantFeatures.length > 0 && (
-              <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-                <h3 className="m-0 text-base font-black text-slate-950">
-                  Caracteristicas de la variante
-                </h3>
-                <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {selectedVariantFeatures.map((feature) => (
-                    <div
-                      key={`${feature.id}-${feature.name}`}
-                      className="rounded-xl bg-white p-3"
-                    >
-                      <dt className="text-xs font-black uppercase text-slate-500">
-                        {feature.name}
-                      </dt>
-                      <dd className="m-0 mt-1 font-bold text-slate-900">
-                        {feature.value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
           </div>
         )}
 
