@@ -13,9 +13,11 @@ import type {
   UserPaymentMethod,
 } from "../shared/types/UserPaymentMethod";
 import { getUserFromToken } from "../shared/utils/auth";
+import { getPaymentCapabilities } from "../shared/services/payment.service";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   mercado_pago: "Mercado Pago",
+  getnet_qr: "Pago con QR",
   transfer: "Transferencia",
   cash: "Efectivo",
 };
@@ -69,6 +71,7 @@ function MyPaymentMethodsPage() {
   const [form, setForm] = useState<CreateUserPaymentMethodPayload>(emptyForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGetnetQrEnabled, setIsGetnetQrEnabled] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -82,9 +85,17 @@ function MyPaymentMethodsPage() {
       try {
         setIsLoading(true);
         setError("");
-        const data = await getMyPaymentMethods();
+        const [data, capabilities] = await Promise.all([
+          getMyPaymentMethods(),
+          getPaymentCapabilities().catch(() => ({ getnetQrEnabled: false })),
+        ]);
+        setIsGetnetQrEnabled(capabilities.getnetQrEnabled);
         setPaymentMethods(
-          data.filter((paymentMethod) => paymentMethod.isActive !== false)
+          data.filter(
+            (paymentMethod) =>
+              paymentMethod.isActive !== false &&
+              (paymentMethod.method !== "getnet_qr" || capabilities.getnetQrEnabled)
+          )
         );
       } catch {
         setError("No se pudieron cargar tus medios de pago.");
@@ -353,6 +364,9 @@ function MyPaymentMethodsPage() {
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
               >
                 <option value="mercado_pago">Mercado Pago</option>
+                {isGetnetQrEnabled && (
+                  <option value="getnet_qr">Pago con QR</option>
+                )}
                 <option value="transfer">Transferencia</option>
               </select>
             </label>

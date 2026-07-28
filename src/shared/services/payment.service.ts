@@ -9,12 +9,42 @@ export type MercadoPagoPreference = {
   sandboxInitPoint?: string;
 };
 
-export type TransferPaymentStatusResponse = {
+export type ManualPaymentStatusResponse = {
   orderId: string;
   orderStatus: OrderStatus;
   paymentStatus: string;
   message: string;
 };
+
+export type TransferPaymentStatusResponse = ManualPaymentStatusResponse;
+
+export type PaymentCapabilities = {
+  getnetQrEnabled: boolean;
+};
+
+export type GetnetQrPayment = {
+  orderId: string;
+  paymentAttemptId: string;
+  qrPayload: string;
+  expiresAt: string;
+  paymentStatus: "PENDING";
+};
+
+export async function getPaymentCapabilities(): Promise<PaymentCapabilities> {
+  const response = await api.get<PaymentCapabilities>("/payments/capabilities");
+
+  return response.data;
+}
+
+export async function createGetnetQrPayment(
+  orderId: string
+): Promise<GetnetQrPayment> {
+  const response = await api.post<GetnetQrPayment>(
+    `/payments/getnet-qr/create/${orderId}`
+  );
+
+  return response.data;
+}
 
 export async function createMercadoPagoPreference(
   orderId: string
@@ -60,10 +90,23 @@ export async function uploadTransferProof(
   }
 }
 
+export async function approveManualPayment(
+  orderId: string
+): Promise<ManualPaymentStatusResponse> {
+  const response = await api.patch<ManualPaymentStatusResponse>(
+    `/payments/admin/manual/${orderId}/status`,
+    {
+      status: "COMPLETED",
+    }
+  );
+
+  return response.data;
+}
+
 export async function approveTransferPayment(
   orderId: string
-): Promise<TransferPaymentStatusResponse> {
-  const response = await api.patch<TransferPaymentStatusResponse>(
+): Promise<ManualPaymentStatusResponse> {
+  const response = await api.patch<ManualPaymentStatusResponse>(
     `/payments/admin/transfer/${orderId}/status`,
     {
       status: "COMPLETED",

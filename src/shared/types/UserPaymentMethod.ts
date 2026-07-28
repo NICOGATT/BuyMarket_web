@@ -1,4 +1,8 @@
-export type PaymentMethod = "mercado_pago" | "cash" | "transfer";
+export type PaymentMethod =
+  | "mercado_pago"
+  | "getnet_qr"
+  | "cash"
+  | "transfer";
 
 export type UserPaymentMethod = {
   id: string;

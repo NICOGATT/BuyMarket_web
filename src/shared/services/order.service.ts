@@ -6,7 +6,7 @@ export type ShipmentType = "local" | "national";
 
 export type CheckoutOrderPayload = {
   deliveryAddress: string;
-  paymentMethod?: "mercado_pago" | "cash" | "transfer";
+  paymentMethod?: "mercado_pago" | "getnet_qr" | "cash" | "transfer";
   paymentMethodId?: string;
   notes?: string;
 };
@@ -30,6 +30,12 @@ export async function getAdminOrders(): Promise<Order[]> {
 
 export async function getMyOrders(): Promise<Order[]> {
   const response = await api.get<Order[]>("/orders/my-orders");
+
+  return response.data;
+}
+
+export async function getOrderById(orderId: string): Promise<Order> {
+  const response = await api.get<Order>(`/orders/${orderId}`);
 
   return response.data;
 }

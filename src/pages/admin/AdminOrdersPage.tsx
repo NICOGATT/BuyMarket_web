@@ -2,14 +2,17 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { API_URL } from "../../shared/services/api";
 import { getAdminOrders } from "../../shared/services/order.service";
-import { approveTransferPayment } from "../../shared/services/payment.service";
+import { approveManualPayment } from "../../shared/services/payment.service";
 import type { Order } from "../../shared/types/Order";
 
 const paymentMethodLabels: Record<string, string> = {
   cash: "Efectivo",
   transfer: "Transferencia",
   mercado_pago: "Mercado Pago",
+  getnet_qr: "Pago con QR",
 };
+
+const manualPaymentMethods = ["transfer", "getnet_qr"];
 
 function toPublicFileUrl(value?: string) {
   if (!value) return "";
@@ -18,7 +21,7 @@ function toPublicFileUrl(value?: string) {
   return `${API_URL}${value.startsWith("/") ? value : `/${value}`}`;
 }
 
-function getTransferProofUrl(order: Order) {
+function getPaymentProofUrl(order: Order) {
   const payment = order.payment;
   const proofUrl =
     payment?.proofUrl ??
@@ -70,20 +73,35 @@ function AdminOrdersPage() {
     loadOrders();
   }, []);
 
-  async function handleApproveTransfer(orderId: string) {
+  async function handleApproveManualPayment(order: Order) {
     try {
-      setApprovingOrderId(orderId);
+      setApprovingOrderId(order.id);
       setError("");
-      const result = await approveTransferPayment(orderId);
+      const result = await approveManualPayment(order.id);
       setOrders((prev) =>
-        prev.map((order) =>
-          order.id === orderId
-            ? { ...order, status: result.orderStatus ?? "paid" }
-            : order
+        prev.map((currentOrder) =>
+          currentOrder.id === order.id
+            ? {
+                ...currentOrder,
+                status: result.orderStatus ?? "paid",
+                payment: currentOrder.payment
+                  ? {
+                      ...currentOrder.payment,
+                      status: result.paymentStatus === "COMPLETED"
+                        ? "COMPLETED"
+                        : currentOrder.payment.status,
+                    }
+                  : currentOrder.payment,
+              }
+            : currentOrder
         )
       );
     } catch {
-      setError("No se pudo aprobar la transferencia.");
+      setError(
+        order.paymentMethod === "getnet_qr"
+          ? "No se pudo aprobar el pago QR."
+          : "No se pudo aprobar la transferencia."
+      );
     } finally {
       setApprovingOrderId(null);
     }
@@ -138,7 +156,10 @@ function AdminOrdersPage() {
 
             <tbody className="divide-y divide-slate-200">
               {orders.map((order) => {
-                const transferProofUrl = getTransferProofUrl(order);
+                const paymentProofUrl = getPaymentProofUrl(order);
+                const isManualPayment = manualPaymentMethods.includes(
+                  order.paymentMethod ?? ""
+                );
 
                 return (
                   <tr key={order.id}>
@@ -166,21 +187,21 @@ function AdminOrdersPage() {
                     </td>
 
                     <td className="px-6 py-4">
-                      {order.paymentMethod === "transfer" && transferProofUrl ? (
+                      {isManualPayment && paymentProofUrl ? (
                         <a
-                          href={transferProofUrl}
+                          href={paymentProofUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-[var(--brand)] transition hover:border-[var(--brand-border)] hover:bg-[var(--brand-soft)]"
                         >
                           <img
-                            src={transferProofUrl}
-                            alt="Comprobante de transferencia"
+                            src={paymentProofUrl}
+                            alt="Comprobante de pago"
                             className="h-10 w-10 rounded-lg object-cover"
                           />
                           Ver comprobante
                         </a>
-                      ) : order.paymentMethod === "transfer" ? (
+                      ) : isManualPayment ? (
                         <span className="text-sm font-semibold text-amber-600">
                           Sin comprobante
                         </span>
@@ -204,17 +225,21 @@ function AdminOrdersPage() {
                     </td>
 
                     <td className="px-6 py-4">
-                      {order.paymentMethod === "transfer" &&
-                      order.status === "pending" ? (
+                      {isManualPayment &&
+                      order.status === "pending" &&
+                      (order.paymentMethod !== "getnet_qr" ||
+                        Boolean(paymentProofUrl)) ? (
                         <button
                           type="button"
-                          onClick={() => handleApproveTransfer(order.id)}
+                          onClick={() => handleApproveManualPayment(order)}
                           disabled={approvingOrderId === order.id}
                           className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-green-300"
                         >
                           {approvingOrderId === order.id
                             ? "Aprobando..."
-                          : "Aprobar transferencia"}
+                          : order.paymentMethod === "getnet_qr"
+                            ? "Aprobar pago QR"
+                            : "Aprobar transferencia"}
                         </button>
                       ) : canCreateShipment(order) ? (
                         <Link

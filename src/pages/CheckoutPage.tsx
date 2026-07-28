@@ -8,6 +8,7 @@ import {
 import { checkoutOrder } from "../shared/services/order.service";
 import {
   createMercadoPagoPreference,
+  getPaymentCapabilities,
   uploadTransferProof,
 } from "../shared/services/payment.service";
 import {
@@ -74,6 +75,7 @@ const transferProofMaxSize = 5 * 1024 * 1024;
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   mercado_pago: "Mercado Pago",
+  getnet_qr: "Pago con QR",
   cash: "Efectivo",
   transfer: "Transferencia",
 };
@@ -126,15 +128,18 @@ function CheckoutPage() {
   useEffect(() => {
     async function loadCheckout() {
       try {
-        const [cartData, addressesData, paymentMethodsData] = await Promise.all([
+        const [cartData, addressesData, paymentMethodsData, capabilities] = await Promise.all([
           getCart(),
           getMyAddresses().catch(() => []),
           getMyPaymentMethods().catch(() => []),
+          getPaymentCapabilities().catch(() => ({ getnetQrEnabled: false })),
         ]);
         const defaultAddress = addressesData.find((address) => address.isDefault);
         const selectedAddress = defaultAddress ?? addressesData[0];
         const activePaymentMethods = paymentMethodsData.filter(
-          (paymentMethod) => paymentMethod.isActive !== false
+          (paymentMethod) =>
+            paymentMethod.isActive !== false &&
+            (paymentMethod.method !== "getnet_qr" || capabilities.getnetQrEnabled)
         );
         const defaultPaymentMethod = activePaymentMethods.find(
           (paymentMethod) => paymentMethod.isDefault
@@ -467,7 +472,13 @@ function CheckoutPage() {
       return;
     }
 
-    if (paymentMethods.length > 0 && !getSelectedPaymentMethod()) {
+    const isManualGetnetQr = selectedPaymentMethodId === "manual:getnet_qr";
+
+    if (
+      paymentMethods.length > 0 &&
+      !getSelectedPaymentMethod() &&
+      !isManualGetnetQr
+    ) {
       setError("Selecciona un medio de pago guardado.");
       return;
     }
@@ -501,6 +512,14 @@ function CheckoutPage() {
         window.dispatchEvent(new Event(CART_CHANGE_EVENT));
         setTransferOrder(order);
         void saveCheckoutAddressIfNeeded(shipmentResult.addressPayload);
+        return;
+      }
+
+      if (checkoutPaymentMethod === "getnet_qr") {
+        setCart([]);
+        window.dispatchEvent(new Event(CART_CHANGE_EVENT));
+        void saveCheckoutAddressIfNeeded(shipmentResult.addressPayload);
+        navigate(`/checkout/getnet-qr/${order.id}`);
         return;
       }
 
@@ -995,6 +1014,11 @@ function CheckoutPage() {
                       ...prev,
                       paymentMethod: paymentMethod.method,
                     }));
+                  } else if (paymentMethodId === "manual:getnet_qr") {
+                    setForm((prev) => ({
+                      ...prev,
+                      paymentMethod: "getnet_qr",
+                    }));
                   }
                 }}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
@@ -1006,6 +1030,7 @@ function CheckoutPage() {
                     {paymentMethod.isDefault ? " (predeterminado)" : ""}
                   </option>
                 ))}
+                <option value="manual:getnet_qr">Pago con QR</option>
               </select>
             </label>
           ) : (
@@ -1020,6 +1045,7 @@ function CheckoutPage() {
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
               >
                 <option value="mercado_pago">Mercado Pago</option>
+                <option value="getnet_qr">Pago con QR</option>
                 <option value="cash">Efectivo</option>
                 <option value="transfer">Transferencia</option>
               </select>
@@ -1047,9 +1073,13 @@ function CheckoutPage() {
           {isSubmitting
             ? checkoutPaymentMethod === "mercado_pago"
               ? "Abriendo Mercado Pago..."
+              : checkoutPaymentMethod === "getnet_qr"
+                ? "Creando orden..."
               : "Confirmando..."
             : checkoutPaymentMethod === "mercado_pago"
               ? "Pagar con Mercado Pago"
+              : checkoutPaymentMethod === "getnet_qr"
+                ? "Pagar con QR"
               : "Confirmar compra"}
         </button>
       </form>

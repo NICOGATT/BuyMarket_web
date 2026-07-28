@@ -13,6 +13,7 @@ const paymentMethodLabels: Record<string, string> = {
   cash: "Efectivo",
   transfer: "Transferencia",
   mercado_pago: "Mercado Pago",
+  getnet_qr: "Pago con QR",
 };
 
 const orderStatusLabels: Record<string, string> = {

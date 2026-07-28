@@ -10,6 +10,7 @@ import RegisterPage from "../../pages/RegisterPage";
 import CartPage from "../../pages/CartPage";
 import CheckoutPage from "../../pages/CheckoutPage";
 import CheckoutReturnPage from "../../pages/CheckoutReturnPage";
+import GetnetQrCheckoutPage from "../../pages/GetnetQrCheckoutPage";
 import ProfilePage from "../../pages/ProfilePage";
 import VerifyEmailPage from "../../pages/VerifyEmailPage";
 import MyOrdersPage from "../../pages/MyOrdersPage";
@@ -83,6 +84,14 @@ const router = createBrowserRouter([
                 element : (
                     <ProtectedRoute>
                         <CheckoutPage/>
+                    </ProtectedRoute>
+                )
+            },
+            {
+                path : "checkout/getnet-qr/:orderId",
+                element : (
+                    <ProtectedRoute>
+                        <GetnetQrCheckoutPage/>
                     </ProtectedRoute>
                 )
             },
