@@ -147,7 +147,7 @@ function HomeCategories() {
                       src={imageUrl}
                       alt={category.name}
                       onError={() => handleCategoryImageError(category.id)}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      className="h-full w-full object-contain transition duration-300 group-hover:scale-105"
                       loading="lazy"
                     />
                   ) : (

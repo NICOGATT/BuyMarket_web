@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, Share2, ShoppingCart, Zap } from "lucide-react";
-import { addCart, isAuthRequiredError } from "../../cart/store/cartStore";
+import { Share2, ShoppingCart, Zap } from "lucide-react";
+import {
+  addCart,
+  addProductToCart,
+  isAuthRequiredError,
+} from "../../cart/store/cartStore";
 import type { ProductCardProps } from "../../../shared/types/Product";
 import { getProductCategoryName } from "../../../shared/utils/productCategories";
 import { getProductFirstImage } from "../../../shared/utils/productImages";
@@ -11,11 +15,17 @@ import {
   hasProductVariants,
 } from "../../../shared/utils/productVariants";
 import ShareProductModal from "./ShareProductModal";
+import VariantPickerModal from "./VariantPickerModal";
 
 function ProductCard({ product }: ProductCardProps) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isVariantPickerOpen, setIsVariantPickerOpen] = useState(false);
+  const [variantPickerKey, setVariantPickerKey] = useState(0);
+  const [variantPickerMode, setVariantPickerMode] = useState<"cart" | "buy">(
+    "cart"
+  );
   const navigate = useNavigate();
   const image = getProductFirstImage(product);
   const categoryName = getProductCategoryName(product);
@@ -23,9 +33,15 @@ function ProductCard({ product }: ProductCardProps) {
   const displayPrice = getDisplayPrice(product);
   const totalVariantStock = getVariantTotalStock(product);
 
+  function openVariantPicker(mode: "cart" | "buy") {
+    setVariantPickerMode(mode);
+    setVariantPickerKey((key) => key + 1);
+    setIsVariantPickerOpen(true);
+  }
+
   async function handleAddToCart() {
     if (hasVariants) {
-      navigate(`/products/${product.id}`);
+      openVariantPicker("cart");
       return;
     }
 
@@ -48,7 +64,7 @@ function ProductCard({ product }: ProductCardProps) {
 
   async function handleBuyNow() {
     if (hasVariants) {
-      navigate(`/products/${product.id}`);
+      openVariantPicker("buy");
       return;
     }
 
@@ -66,6 +82,51 @@ function ProductCard({ product }: ProductCardProps) {
       alert("No se pudo preparar tu compra.");
     } finally {
       setIsBuyingNow(false);
+    }
+  }
+
+  async function handleVariantConfirm(variantId: string) {
+    setIsVariantPickerOpen(false);
+
+    const isBuy = variantPickerMode === "buy";
+
+    try {
+      if (isBuy) {
+        setIsBuyingNow(true);
+      } else {
+        setIsAddingToCart(true);
+      }
+
+      await addProductToCart({
+        productId: product.id,
+        variantId,
+        quantity: 1,
+      });
+
+      if (isBuy) {
+        navigate("/checkout");
+      } else {
+        alert("Producto agregado al carrito");
+      }
+    } catch (error) {
+      if (isAuthRequiredError(error)) {
+        alert(
+          isBuy
+            ? "Inicia sesion para comprar."
+            : "Inicia sesion para agregar productos al carrito."
+        );
+        navigate("/login");
+        return;
+      }
+
+      alert(
+        isBuy
+          ? "No se pudo preparar tu compra."
+          : "No se pudo agregar el producto al carrito."
+      );
+    } finally {
+      setIsBuyingNow(false);
+      setIsAddingToCart(false);
     }
   }
 
@@ -91,37 +152,60 @@ function ProductCard({ product }: ProductCardProps) {
         onClose={() => setIsShareModalOpen(false)}
       />
 
-      <div className="relative aspect-[4/3] overflow-hidden border-b border-white/70 bg-[radial-gradient(circle_at_18%_12%,rgba(34,199,243,0.22),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(255,138,0,0.22),transparent_32%),linear-gradient(135deg,#F8FBFF,#F5EFFF)]">
-        <span className="absolute left-4 top-4 z-10 rounded-full bg-white/88 px-3 py-1 text-xs font-black text-[var(--brand)] shadow-sm backdrop-blur">
-          Destacado
-        </span>
+      <VariantPickerModal
+        key={variantPickerKey}
+        product={product}
+        isOpen={isVariantPickerOpen}
+        mode={variantPickerMode}
+        onClose={() => setIsVariantPickerOpen(false)}
+        onConfirm={handleVariantConfirm}
+      />
+
+      <div className="relative aspect-[4/3] overflow-hidden border-b border-white/70 bg-white">
         <button
           type="button"
           onClick={() => setIsShareModalOpen(true)}
           aria-label={`Compartir ${product.title}`}
           title="Compartir producto"
-          className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/90 text-[var(--brand)] shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand-soft)]"
+          className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center text-[var(--nav-blue-hover)] transition hover:-translate-y-0.5 hover:text-[var(--brand)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand-soft)]"
         >
           <Share2 className="h-5 w-5" aria-hidden="true" />
         </button>
         {image ? (
-          <img
-            src={image}
-            alt={product.title}
-            className="h-full w-full object-contain p-5 transition duration-300 group-hover:scale-105"
-            loading="lazy"
-          />
+          <Link
+            to={`/products/${product.id}`}
+            aria-label={`Ver ${product.title}`}
+            className="block h-full w-full"
+          >
+            <img
+              src={image}
+              alt={product.title}
+              className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.03]"
+              loading="lazy"
+            />
+          </Link>
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-sm font-bold text-slate-400">
+          <Link
+            to={`/products/${product.id}`}
+            aria-label={`Ver ${product.title}`}
+            className="flex h-full w-full items-center justify-center text-sm font-bold text-slate-400"
+          >
             Sin imagen
-          </div>
+          </Link>
         )}
       </div>
 
       <div className="flex min-h-72 flex-1 flex-col p-5">
-        <h3 className="line-clamp-2 text-lg font-black leading-snug text-[var(--text-main)]">
+        <span className="mb-1.5 text-xs font-black text-[var(--nav-blue-hover)]">
+          Destacado
+        </span>
+
+        <Link
+          to={`/products/${product.id}`}
+          className="line-clamp-2 text-lg font-black leading-snug text-[var(--text-main)] transition hover:text-[var(--brand)]"
+        >
           {product.title}
-        </h3>
+        </Link>
 
         <p className="mt-2 w-fit rounded-full bg-[var(--brand-orange-soft)] px-3 py-1 text-xs font-black text-[var(--brand-hover)]">
           {categoryName || "Sin categoria"}
@@ -146,13 +230,6 @@ function ProductCard({ product }: ProductCardProps) {
           </span>
 
           <div className="mt-4 grid gap-2">
-            <Link
-              to={`/products/${product.id}`}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--nav-blue)] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[var(--nav-blue-hover)]"
-            >
-              <Eye className="h-4 w-4" />
-              Ver detalles
-            </Link>
             <button
               type="button"
               onClick={handleAddToCart}
@@ -160,11 +237,7 @@ function ProductCard({ product }: ProductCardProps) {
               className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(45,0,107,0.18)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <ShoppingCart className="h-4 w-4" />
-              {hasVariants
-                ? "Elegir variante"
-                : isAddingToCart
-                  ? "Agregando..."
-                  : "Agregar al carrito"}
+              {isAddingToCart ? "Agregando..." : "Agregar al carrito"}
             </button>
             <button
               type="button"
@@ -173,11 +246,7 @@ function ProductCard({ product }: ProductCardProps) {
               className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand-orange)] px-4 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(255,138,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-orange-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Zap className="h-4 w-4" />
-              {hasVariants
-                ? "Ver opciones"
-                : isBuyingNow
-                  ? "Preparando..."
-                  : "Comprar ahora"}
+              {isBuyingNow ? "Preparando..." : "Comprar ahora"}
             </button>
           </div>
         </div>

@@ -62,6 +62,8 @@ type ProductVariantForm = {
   attributes: Record<string, string>;
 };
 
+const defaultVariantColorPreview = "#94a3b8";
+
 const emptyDetailsForm: ProductDetailsForm = {
   title: "",
   description: "",
@@ -81,7 +83,7 @@ function createEmptyVariant(): ProductVariantForm {
     id: crypto.randomUUID(),
     size: "",
     color: "",
-    colorHex: "#94a3b8",
+    colorHex: "",
     price: "",
     stock: "",
     isActive: true,
@@ -242,6 +244,7 @@ function CreateProductPage() {
     [attributes]
   );
   const sizeOptions = sizeAttribute?.options?.filter(Boolean) ?? [];
+  const colorOptions = colorAttribute?.options?.filter(Boolean) ?? [];
 
   useEffect(() => {
     return () => {
@@ -290,7 +293,7 @@ function CreateProductPage() {
               id: variant.id ?? crypto.randomUUID(),
               size: variant.size ?? "",
               color: variant.color ?? "",
-              colorHex: variant.colorHex ?? "#94a3b8",
+              colorHex: variant.colorHex ?? "",
               price: String(variant.price ?? ""),
               stock: String(variant.stock ?? ""),
               isActive: variant.isActive !== false,
@@ -636,6 +639,7 @@ function CreateProductPage() {
     for (const variant of variants) {
       const size = variant.size.trim();
       const color = variant.color.trim();
+      const colorHex = variant.colorHex.trim();
       const price = parsePriceInput(variant.price);
       const stock = Number(variant.stock);
 
@@ -649,8 +653,24 @@ function CreateProductPage() {
         return false;
       }
 
-      if (colorAttribute?.required && !color) {
-        setError("Todas las variantes necesitan color.");
+      if (colorAttribute?.required && (!color || !colorHex)) {
+        setError(
+          "Todas las variantes necesitan un nombre de color y una muestra elegida con el picker."
+        );
+        return false;
+      }
+
+      if (Boolean(color) !== Boolean(colorHex)) {
+        setError(
+          color
+            ? "Selecciona en el picker la muestra correspondiente al color de cada variante."
+            : "Ingresa el nombre correspondiente a la muestra de color de cada variante."
+        );
+        return false;
+      }
+
+      if (color && colorOptions.length > 0 && !colorOptions.includes(color)) {
+        setError("El color de cada variante debe estar dentro de las opciones.");
         return false;
       }
 
@@ -694,8 +714,12 @@ function CreateProductPage() {
     );
     const variantPayload = variants.map((variant) => ({
       size: variant.size.trim(),
-      ...(variant.color.trim() ? { color: variant.color.trim() } : {}),
-      ...(variant.colorHex.trim() ? { colorHex: variant.colorHex.trim() } : {}),
+      ...(variant.color.trim() && variant.colorHex.trim()
+        ? {
+            color: variant.color.trim(),
+            colorHex: variant.colorHex.trim(),
+          }
+        : {}),
       price: parsePriceInput(variant.price)!,
       stock: Number(variant.stock),
       isActive: variant.isActive,
@@ -745,7 +769,13 @@ function CreateProductPage() {
         await createProduct(payload);
       }
 
-      navigate("/profile");
+      navigate("/profile", {
+        state: {
+          productSuccess: isEditMode
+            ? "Producto editado correctamente."
+            : "Producto creado correctamente.",
+        },
+      });
     } catch (submitError) {
       console.log(submitError);
       setError(
@@ -1298,6 +1328,14 @@ function CreateProductPage() {
               </p>
             ) : (
               <div className="mt-4 space-y-4">
+                {colorOptions.length > 0 && (
+                  <datalist id="product-variant-color-options">
+                    {colorOptions.map((option) => (
+                      <option key={option} value={option} />
+                    ))}
+                  </datalist>
+                )}
+
                 {!sizeAttribute && !colorAttribute && variantAttributes.length === 0 && (
                   <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 font-semibold text-amber-800">
                     Esta subcategoria no tiene atributos de variante. Si esperabas
@@ -1372,6 +1410,11 @@ function CreateProductPage() {
                         <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                           <input
                             value={variant.color}
+                            list={
+                              colorOptions.length > 0
+                                ? "product-variant-color-options"
+                                : undefined
+                            }
                             onChange={(event) =>
                               handleVariantChange(
                                 variant.id,
@@ -1385,12 +1428,26 @@ function CreateProductPage() {
                           <label className="flex h-12 min-w-28 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3">
                             <span
                               className="h-6 w-6 rounded-full border border-slate-300"
-                              style={{ backgroundColor: variant.colorHex }}
+                              style={{
+                                backgroundColor:
+                                  variant.colorHex || defaultVariantColorPreview,
+                              }}
                               aria-hidden="true"
                             />
                             <input
                               type="color"
-                              value={variant.colorHex}
+                              value={
+                                variant.colorHex || defaultVariantColorPreview
+                              }
+                              onClick={() => {
+                                if (!variant.colorHex) {
+                                  handleVariantChange(
+                                    variant.id,
+                                    "colorHex",
+                                    defaultVariantColorPreview
+                                  );
+                                }
+                              }}
                               onChange={(event) =>
                                 handleVariantChange(
                                   variant.id,

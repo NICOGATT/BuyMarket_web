@@ -4,21 +4,21 @@ const returnContent = {
   success: {
     title: "Pago recibido",
     message:
-      "Mercado Pago nos avisara el estado final de la operacion. Si el pago fue aprobado, la orden se actualiza automaticamente.",
+      "El proveedor de pago nos avisara el estado final de la operacion. Si el pago fue aprobado, la orden se actualiza automaticamente.",
     className: "border-green-200 bg-green-50 text-green-900",
     buttonClassName: "bg-green-700 hover:bg-green-800",
   },
   failure: {
     title: "Pago no completado",
     message:
-      "La compra quedo sin pago confirmado. Podes volver al carrito o intentar nuevamente desde Mercado Pago.",
+      "La compra quedo sin pago confirmado. Podes volver a productos o revisar el estado desde tu perfil.",
     className: "border-red-200 bg-red-50 text-red-900",
     buttonClassName: "bg-red-700 hover:bg-red-800",
   },
   pending: {
     title: "Pago pendiente",
     message:
-      "Mercado Pago esta procesando el pago. La orden se actualizara cuando llegue la confirmacion.",
+      "El proveedor esta procesando el pago. La orden se actualizara cuando llegue la confirmacion.",
     className: "border-amber-200 bg-amber-50 text-amber-900",
     buttonClassName: "bg-amber-700 hover:bg-amber-800",
   },

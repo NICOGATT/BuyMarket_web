@@ -53,7 +53,7 @@ function HeroSection() {
           <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/12 px-3 py-2 text-xs font-bold text-cyan-50 shadow-sm backdrop-blur-xl sm:px-4 sm:text-sm">
             <Sparkles className="h-4 w-4 shrink-0" />
             <span className="truncate">
-              Marketplace argentino para comprar y vender mejor
+              La forma más rápida de comprar y vender online en Argentina
             </span>
           </span>
 
@@ -109,7 +109,7 @@ function HeroSection() {
               {brandAdCarousel.map((brand, index) => (
                 <Link
                   key={`${brand.name}-${index}`}
-                  to={`/products?search=${encodeURIComponent(brand.name)}`}
+                  to={`/products?brand=${encodeURIComponent(brand.name)}`}
                   className="group w-44 shrink-0 rounded-3xl border border-white/18 bg-white/90 p-3 text-[var(--text-main)] shadow-[0_16px_38px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white sm:w-52"
                 >
                   <span

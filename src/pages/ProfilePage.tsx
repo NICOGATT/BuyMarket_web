@@ -43,7 +43,11 @@ import {
   getVariantTotalStock,
   hasProductVariants,
 } from "../shared/utils/productVariants";
-import { formatUserAddress } from "../shared/utils/userAddress";
+import {
+  buildAddressPayload,
+  emptyAddressForm,
+  formatUserAddress,
+} from "../shared/utils/userAddress";
 
 type ProfileLoadState = {
   wallet: Wallet | null;
@@ -53,19 +57,9 @@ type ProfileLoadState = {
   products: Product[];
 };
 
-const emptyAddressForm: CreateUserAddressPayload = {
-  label: "",
-  receiverName: "",
-  phone: "",
-  street: "",
-  number: "",
-  floor: "",
-  apartment: "",
-  city: "",
-  province: "",
-  postalCode: "",
-  reference: "",
-  isDefault: false,
+type ProfileNavigationState = {
+  emailVerified?: boolean;
+  productSuccess?: string;
 };
 
 const emptyWithdrawalForm = {
@@ -100,45 +94,12 @@ function formatDate(value?: string) {
   }).format(new Date(value));
 }
 
-function buildAddressPayload(
-  form: CreateUserAddressPayload,
-  defaultReceiverName: string
-): CreateUserAddressPayload | string {
-  const receiverName = form.receiverName?.trim() || defaultReceiverName.trim();
-  const payload: CreateUserAddressPayload = {
-    label: form.label.trim(),
-    receiverName,
-    phone: form.phone.trim(),
-    street: form.street.trim(),
-    number: form.number.trim(),
-    city: form.city.trim(),
-    province: form.province.trim(),
-    postalCode: form.postalCode.trim(),
-    isDefault: Boolean(form.isDefault),
-  };
-
-  if (!payload.label) return "Ingresa una etiqueta para la direccion.";
-  if (!payload.phone) return "Ingresa un telefono de contacto.";
-  if (!payload.street) return "Ingresa la calle.";
-  if (!payload.number) return "Ingresa el numero.";
-  if (!payload.city) return "Ingresa la ciudad o localidad.";
-  if (!payload.province) return "Ingresa la provincia.";
-  if (!payload.postalCode) return "Ingresa el codigo postal.";
-
-  const floor = form.floor?.trim();
-  const apartment = form.apartment?.trim();
-  const reference = form.reference?.trim();
-
-  if (floor) payload.floor = floor;
-  if (apartment) payload.apartment = apartment;
-  if (reference) payload.reference = reference;
-
-  return payload;
-}
-
 function ProfilePage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const navigationState = location.state as ProfileNavigationState | null;
+  const productSuccessFromNavigation = navigationState?.productSuccess ?? "";
+  const [productSuccess] = useState(() => productSuccessFromNavigation);
   const [user] = useState(() => getUserFromToken());
   const [profileData, setProfileData] = useState<ProfileLoadState>({
     wallet: null,
@@ -163,6 +124,31 @@ function ProfilePage() {
   const [verificationSuccess, setVerificationSuccess] = useState("");
   const [verificationError, setVerificationError] = useState("");
   const [accountUser, setAccountUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    if (!productSuccessFromNavigation) return;
+
+    navigate(location.pathname, {
+      replace: true,
+      state: {
+        emailVerified: navigationState?.emailVerified,
+      },
+    });
+  }, [
+    location.pathname,
+    navigate,
+    navigationState?.emailVerified,
+    productSuccessFromNavigation,
+  ]);
+
+  useEffect(() => {
+    if (location.hash !== "#addresses") return;
+
+    const section = document.getElementById("addresses");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.hash]);
 
   useEffect(() => {
     if (!user) {
@@ -404,7 +390,7 @@ function ProfilePage() {
   const walletStatus = profileData.wallet?.isActive === false ? "Inactiva" : "Activa";
   const pendingBalance = Number(profileData.wallet?.pendingBalance ?? 0);
   const emailVerifiedFromNavigation =
-    (location.state as { emailVerified?: boolean } | null)?.emailVerified === true;
+    navigationState?.emailVerified === true;
   const isEmailVerified =
     isEmailVerifiedFromUser(accountUser) ||
     isEmailVerifiedFromUser(user) ||
@@ -430,6 +416,12 @@ function ProfilePage() {
           Publicar producto
         </NavLink>
       </div>
+
+      {productSuccess && (
+        <p className="rounded-2xl border border-green-200 bg-green-50 p-4 font-bold text-green-800">
+          {productSuccess}
+        </p>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
@@ -749,7 +741,7 @@ function ProfilePage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section id="addresses" className="scroll-mt-32 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-[var(--brand)]" aria-hidden="true" />
               <h2 className="m-0 text-xl font-black text-slate-950">

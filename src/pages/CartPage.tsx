@@ -8,10 +8,23 @@ import {
   removeCartItem,
   updateCartItem,
 } from "../features/cart/store/cartStore";
-import {
-  formatVariantLabel,
-  getCartItemUnitPrice,
-} from "../shared/utils/productVariants";
+import { getCartItemUnitPrice } from "../shared/utils/productVariants";
+
+function getCartItemVariantDetails(item: CartItem) {
+  const variantId = item.variant?.id ?? item.variantId;
+  const productVariant = item.product.variants?.find(
+    (variant) => variant.id === variantId
+  );
+  const size = item.variant?.size?.trim() || productVariant?.size?.trim() || "";
+  const color =
+    item.variant?.color?.trim() ||
+    productVariant?.color?.trim() ||
+    item.variant?.colorHex?.trim().toUpperCase() ||
+    productVariant?.colorHex?.trim().toUpperCase() ||
+    "";
+
+  return { size, color };
+}
 
 function CartPage() {
   const navigate = useNavigate();
@@ -132,63 +145,82 @@ function CartPage() {
       </div>
 
       <div className="space-y-4">
-        {cart.map((item) => (
-          <article
-            key={item.id ?? item.product.id}
-            className="flex min-w-0 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5"
-          >
-            <div className="min-w-0">
-              <h2 className="break-words text-lg font-black text-slate-900 sm:text-xl">
-                {item.product.title}
-              </h2>
+        {cart.map((item) => {
+          const { size, color } = getCartItemVariantDetails(item);
 
-              {formatVariantLabel(item.variant) && (
-                <p className="mt-1 text-sm font-bold text-slate-500">
-                  {formatVariantLabel(item.variant)}
+          return (
+            <article
+              key={item.id ?? item.product.id}
+              className="flex min-w-0 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5"
+            >
+              <div className="min-w-0">
+                <h2 className="break-words text-lg font-black text-slate-900 sm:text-xl">
+                  {item.product.title}
+                </h2>
+
+                {(size || color) && (
+                  <div className="mt-2 flex flex-wrap gap-2 text-sm font-bold text-slate-600">
+                    {size && (
+                      <span className="rounded-lg bg-slate-100 px-3 py-1">
+                        Talle: {size}
+                      </span>
+                    )}
+                    {color && (
+                      <span className="rounded-lg bg-slate-100 px-3 py-1">
+                        Color: {color}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <p className="mt-2 break-words text-slate-500">
+                  ${getCartItemUnitPrice(item).toLocaleString("es-AR")} por unidad
                 </p>
-              )}
+              </div>
 
-              <p className="break-words text-slate-500">
-                ${getCartItemUnitPrice(item).toLocaleString("es-AR")} por unidad
-              </p>
-            </div>
+              <div className="grid grid-cols-[auto_auto_auto_1fr] items-center gap-3 sm:flex sm:flex-wrap sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
+                  disabled={
+                    !item.id ||
+                    item.quantity <= 1 ||
+                    updatingItemId === item.id
+                  }
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  -
+                </button>
+                <span className="min-w-8 text-center font-black">
+                  {item.quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
+                  disabled={!item.id || updatingItemId === item.id}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  +
+                </button>
 
-            <div className="grid grid-cols-[auto_auto_auto_1fr] items-center gap-3 sm:flex sm:flex-wrap sm:justify-end">
-              <button
-                type="button"
-                onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
-                disabled={!item.id || item.quantity <= 1 || updatingItemId === item.id}
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                -
-              </button>
-              <span className="min-w-8 text-center font-black">
-                {item.quantity}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
-                disabled={!item.id || updatingItemId === item.id}
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                +
-              </button>
+                <strong className="col-span-4 text-left text-xl text-[var(--brand)] sm:col-span-1 sm:min-w-28 sm:text-right">
+                  ${(getCartItemUnitPrice(item) * item.quantity).toLocaleString(
+                    "es-AR"
+                  )}
+                </strong>
 
-              <strong className="col-span-4 text-left text-xl text-[var(--brand)] sm:col-span-1 sm:min-w-28 sm:text-right">
-                ${(getCartItemUnitPrice(item) * item.quantity).toLocaleString("es-AR")}
-              </strong>
-
-              <button
-                type="button"
-                onClick={() => handleRemoveItem(item)}
-                disabled={!item.id || updatingItemId === item.id}
-                className="col-span-4 rounded-xl bg-red-50 px-4 py-2 font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1"
-              >
-                Eliminar
-              </button>
-            </div>
-          </article>
-        ))}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveItem(item)}
+                  disabled={!item.id || updatingItemId === item.id}
+                  className="col-span-4 rounded-xl bg-red-50 px-4 py-2 font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       <div className="mt-6 rounded-2xl bg-slate-950 p-5 text-white sm:mt-auto sm:p-6">

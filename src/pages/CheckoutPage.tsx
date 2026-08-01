@@ -483,15 +483,17 @@ function CheckoutPage() {
       return;
     }
 
+    const checkoutPaymentMethod = getCheckoutPaymentMethod();
+
     try {
       setIsSubmitting(true);
       setError("");
+      setCreatedOrder(null);
       setMercadoPagoOrder(null);
       setTransferOrder(null);
       setTransferProofFile(null);
       setIsTransferNotified(false);
       const selectedPaymentMethod = getSelectedPaymentMethod();
-      const checkoutPaymentMethod = selectedPaymentMethod?.method ?? form.paymentMethod;
       const order = await checkoutOrder({
         deliveryAddress: shipmentResult.deliveryAddress,
         paymentMethodId: selectedPaymentMethod?.id,
@@ -533,7 +535,7 @@ function CheckoutPage() {
       }
 
       setError(
-        mercadoPagoOrder
+        checkoutPaymentMethod === "mercado_pago"
           ? "No se pudo abrir Mercado Pago. Intentalo nuevamente."
           : submitError instanceof Error
             ? submitError.message
