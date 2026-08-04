@@ -1,4 +1,5 @@
 import type { Wallet } from "./Wallet";
+import type { Plan } from "./Plan";
 
 export type User = {
   id: string;
@@ -11,4 +12,5 @@ export type User = {
   createdAt?: string;
   wallet?: Wallet | null;
   walletId?: string | null;
+  plan?: Plan | null;
 };

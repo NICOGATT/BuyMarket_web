@@ -275,6 +275,92 @@ function AdminUsersPage() {
           </div>
         </article>
       </div>
+
+      <article className="mt-6 min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="mb-5">
+          <h2 className="m-0 text-xl font-black text-slate-950">
+            Usuarios y planes
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Plan comercial y comisión asignada a cada cuenta.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="min-w-[820px] text-left">
+            <thead className="bg-slate-50 text-sm text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Usuario</th>
+                <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">Rol</th>
+                <th className="px-4 py-3">Plan</th>
+                <th className="px-4 py-3">Comisión</th>
+                <th className="px-4 py-3 text-right">Estado</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-200">
+              {users.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-8 text-center text-slate-500"
+                  >
+                    No hay usuarios registrados.
+                  </td>
+                </tr>
+              )}
+
+              {users.map((user) => (
+                <tr key={user.id}>
+                  <td className="px-4 py-3 font-bold text-slate-950">
+                    {getUserName(user)}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">{user.email}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {user.role || "user"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {user.plan ? (
+                      <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-sm font-bold text-[var(--brand-hover)]">
+                        {user.plan.name}
+                      </span>
+                    ) : (
+                      <span className="text-sm font-semibold text-slate-400">
+                        Sin plan
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-slate-600">
+                    {user.plan
+                      ? `${Number(
+                          user.plan.commissionPercentage
+                        ).toLocaleString("es-AR")}%`
+                      : "-"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {user.plan ? (
+                      <span
+                        className={`rounded-full px-3 py-1 text-sm font-bold ${
+                          user.plan.isActive
+                            ? "bg-green-100 text-green-700"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        {user.plan.isActive ? "Activo" : "Inactivo"}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-700">
+                        Pendiente
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </article>
     </section>
   );
 }
