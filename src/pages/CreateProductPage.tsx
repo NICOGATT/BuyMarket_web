@@ -4,6 +4,7 @@ import { Check, ChevronLeft, ImagePlus, UploadCloud } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getCategories } from "../shared/services/category.service";
 import { createCategorySuggestion } from "../shared/services/categorySuggestion.service";
+import { getColors } from "../shared/services/color.service";
 import {
   createProduct,
   getProductById,
@@ -14,6 +15,7 @@ import { getSubCategoryAttributesBySubCategory } from "../shared/services/subCat
 import { getSubCategoriesByCategory } from "../shared/services/subcategory.service";
 import { getMyAddresses } from "../shared/services/userAddress.service";
 import type { Category } from "../shared/types/Category";
+import type { Color } from "../shared/types/Color";
 import type {
   Product,
   ProductAttributeValue,
@@ -109,6 +111,14 @@ function getVariantDisplayLabel(variant: ProductVariantForm) {
     .join(" / ");
 }
 
+function normalizeColorName(name: string) {
+  return name
+    .trim()
+    .toLocaleLowerCase("es-AR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function getProductSubCategoryId(product: Product) {
   return product.subCategoryId ?? product.subcategoryId ?? product.subCategory?.id ?? product.subcategory?.id ?? "";
 }
@@ -176,6 +186,7 @@ function CreateProductPage() {
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [attributes, setAttributes] = useState<SubCategoryAttribute[]>([]);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [catalogColors, setCatalogColors] = useState<Color[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [existingMediaIds, setExistingMediaIds] = useState<string[]>([]);
@@ -193,11 +204,16 @@ function CreateProductPage() {
   const [isLoadingSubCategories, setIsLoadingSubCategories] = useState(false);
   const [isLoadingAttributes, setIsLoadingAttributes] = useState(false);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
+  const [isLoadingColors, setIsLoadingColors] = useState(true);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [isSubmiting, setIsSubmiting] = useState(false);
   const [isSendingCategorySuggestion, setIsSendingCategorySuggestion] =
     useState(false);
   const [error, setError] = useState("");
+  const [colorCatalogError, setColorCatalogError] = useState("");
+  const [openColorVariantId, setOpenColorVariantId] = useState<string | null>(
+    null
+  );
   const [categorySuggestionError, setCategorySuggestionError] = useState("");
   const [categorySuggestionSuccess, setCategorySuggestionSuccess] = useState("");
   const [variantsTouched, setVariantsTouched] = useState(false);
@@ -244,7 +260,13 @@ function CreateProductPage() {
     [attributes]
   );
   const sizeOptions = sizeAttribute?.options?.filter(Boolean) ?? [];
-  const colorOptions = colorAttribute?.options?.filter(Boolean) ?? [];
+  const catalogColorsByName = useMemo(
+    () =>
+      new Map(
+        catalogColors.map((color) => [normalizeColorName(color.name), color])
+      ),
+    [catalogColors]
+  );
 
   useEffect(() => {
     return () => {
@@ -255,12 +277,25 @@ function CreateProductPage() {
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [categoriesData, addressesData, productData] = await Promise.all([
+        const [categoriesData, addressesData, productData, colorsResult] =
+          await Promise.all([
           getCategories(),
           getMyAddresses().catch(() => []),
           productId ? getProductById(productId) : Promise.resolve(null),
-        ]);
+            getColors()
+              .then((colors) => ({ colors, failed: false }))
+              .catch(() => ({ colors: [] as Color[], failed: true })),
+          ]);
         const defaultAddress = addressesData.find((address) => address.isDefault);
+
+        setCatalogColors(colorsResult.colors);
+        setColorCatalogError(
+          colorsResult.failed
+            ? "No se pudo cargar el catálogo de colores."
+            : colorsResult.colors.length === 0
+              ? "No hay colores disponibles en el catálogo."
+              : ""
+        );
 
         setCategories(categoriesData);
         setAddresses(addressesData);
@@ -288,12 +323,24 @@ function CreateProductPage() {
             horarioDisponible: productData.horarioDisponible ?? "",
             pickupAddressId: productData.pickupAddress?.id ?? defaultAddress?.id ?? "",
           });
+          const colorsByName = new Map(
+            colorsResult.colors.map((color) => [
+              normalizeColorName(color.name),
+              color,
+            ])
+          );
+
           setVariants(
-            (productData.variants ?? []).map((variant) => ({
+            (productData.variants ?? []).map((variant) => {
+              const catalogColor = variant.color
+                ? colorsByName.get(normalizeColorName(variant.color))
+                : undefined;
+
+              return {
               id: variant.id ?? crypto.randomUUID(),
               size: variant.size ?? "",
-              color: variant.color ?? "",
-              colorHex: variant.colorHex ?? "",
+              color: catalogColor?.name ?? variant.color ?? "",
+              colorHex: catalogColor?.hex ?? variant.colorHex ?? "",
               price: String(variant.price ?? ""),
               stock: String(variant.stock ?? ""),
               isActive: variant.isActive !== false,
@@ -307,7 +354,8 @@ function CreateProductPage() {
                 },
                 {}
               ),
-            }))
+              };
+            })
           );
           setVariantsTouched(false);
           setStep(3);
@@ -327,6 +375,7 @@ function CreateProductPage() {
         setIsLoadingCategories(false);
         setIsLoadingAddresses(false);
         setIsLoadingProduct(false);
+        setIsLoadingColors(false);
       }
     }
 
@@ -518,6 +567,35 @@ function CreateProductPage() {
     setVariantsTouched(true);
   }
 
+  function handleVariantColorChange(id: string, value: string) {
+    const catalogColor = catalogColorsByName.get(normalizeColorName(value));
+
+    setVariants((currentVariants) =>
+      currentVariants.map((variant) =>
+        variant.id === id
+          ? {
+              ...variant,
+              color: catalogColor?.name ?? value,
+              colorHex: catalogColor?.hex ?? "",
+            }
+          : variant
+      )
+    );
+    setVariantsTouched(true);
+  }
+
+  function handleCatalogColorSelect(id: string, color: Color) {
+    setVariants((currentVariants) =>
+      currentVariants.map((variant) =>
+        variant.id === id
+          ? { ...variant, color: color.name, colorHex: color.hex }
+          : variant
+      )
+    );
+    setOpenColorVariantId(null);
+    setVariantsTouched(true);
+  }
+
   function handleVariantPriceBlur(variant: ProductVariantForm) {
     const normalizedPrice = normalizePriceInput(variant.price);
 
@@ -640,6 +718,9 @@ function CreateProductPage() {
       const size = variant.size.trim();
       const color = variant.color.trim();
       const colorHex = variant.colorHex.trim();
+      const catalogColor = color
+        ? catalogColorsByName.get(normalizeColorName(color))
+        : undefined;
       const price = parsePriceInput(variant.price);
       const stock = Number(variant.stock);
 
@@ -661,16 +742,16 @@ function CreateProductPage() {
       }
 
       if (Boolean(color) !== Boolean(colorHex)) {
-        setError(
-          color
-            ? "Selecciona en el picker la muestra correspondiente al color de cada variante."
-            : "Ingresa el nombre correspondiente a la muestra de color de cada variante."
-        );
+        setError("Elegí un color del catálogo.");
         return false;
       }
 
-      if (color && colorOptions.length > 0 && !colorOptions.includes(color)) {
-        setError("El color de cada variante debe estar dentro de las opciones.");
+      if (
+        color &&
+        (!catalogColor ||
+          catalogColor.hex.toUpperCase() !== colorHex.toUpperCase())
+      ) {
+        setError("Elegí un color del catálogo.");
         return false;
       }
 
@@ -1322,20 +1403,24 @@ function CreateProductPage() {
               </button>
             </div>
 
+            {(isLoadingColors || colorCatalogError) && (
+              <p
+                className={`mt-4 rounded-xl border p-4 font-semibold ${
+                  colorCatalogError
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : "border-slate-200 bg-slate-50 text-slate-500"
+                }`}
+              >
+                {colorCatalogError || "Cargando catálogo de colores..."}
+              </p>
+            )}
+
             {variants.length === 0 ? (
               <p className="mt-4 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
                 Si no agregas variantes, se usaran el precio y stock base.
               </p>
             ) : (
               <div className="mt-4 space-y-4">
-                {colorOptions.length > 0 && (
-                  <datalist id="product-variant-color-options">
-                    {colorOptions.map((option) => (
-                      <option key={option} value={option} />
-                    ))}
-                  </datalist>
-                )}
-
                 {!sizeAttribute && !colorAttribute && variantAttributes.length === 0 && (
                   <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 font-semibold text-amber-800">
                     Esta subcategoria no tiene atributos de variante. Si esperabas
@@ -1344,11 +1429,21 @@ function CreateProductPage() {
                   </p>
                 )}
 
-                {variants.map((variant, index) => (
-                  <div
-                    key={variant.id}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                  >
+                {variants.map((variant, index) => {
+                  const normalizedSearch = normalizeColorName(variant.color);
+                  const matchingColors = normalizedSearch
+                    ? catalogColors.filter((color) =>
+                        normalizeColorName(color.name).includes(normalizedSearch)
+                      )
+                    : catalogColors;
+                  const colorListId = `product-variant-color-options-${variant.id}`;
+                  const isColorMenuOpen = openColorVariantId === variant.id;
+
+                  return (
+                    <div
+                      key={variant.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <p className="font-black text-slate-950">
                         Variante {index + 1}
@@ -1408,23 +1503,89 @@ function CreateProductPage() {
                           {colorAttribute?.required ? " *" : ""}
                         </span>
                         <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                          <input
-                            value={variant.color}
-                            list={
-                              colorOptions.length > 0
-                                ? "product-variant-color-options"
-                                : undefined
-                            }
-                            onChange={(event) =>
-                              handleVariantChange(
-                                variant.id,
-                                "color",
-                                event.target.value
-                              )
-                            }
-                            placeholder={colorAttribute?.name ?? "Color opcional"}
-                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
-                          />
+                          <div
+                            className="relative"
+                            onBlur={(event) => {
+                              if (
+                                !event.currentTarget.contains(event.relatedTarget)
+                              ) {
+                                setOpenColorVariantId(null);
+                              }
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Escape") {
+                                setOpenColorVariantId(null);
+                              }
+                            }}
+                          >
+                            <input
+                              value={variant.color}
+                              disabled={
+                                isLoadingColors || Boolean(colorCatalogError)
+                              }
+                              onFocus={() => setOpenColorVariantId(variant.id)}
+                              onChange={(event) => {
+                                handleVariantColorChange(
+                                  variant.id,
+                                  event.target.value
+                                );
+                                setOpenColorVariantId(variant.id);
+                              }}
+                              placeholder={
+                                colorAttribute?.name ?? "Color opcional"
+                              }
+                              role="combobox"
+                              aria-autocomplete="list"
+                              aria-expanded={isColorMenuOpen}
+                              aria-controls={colorListId}
+                              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
+                            />
+
+                            {isColorMenuOpen && (
+                              <div
+                                id={colorListId}
+                                role="listbox"
+                                className="absolute left-0 top-full z-30 mt-2 max-h-56 w-[min(26rem,calc(100vw-3rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl"
+                              >
+                                {matchingColors.length > 0 ? (
+                                  matchingColors.map((color) => (
+                                    <button
+                                      key={color.id}
+                                      type="button"
+                                      role="option"
+                                      aria-selected={
+                                        normalizeColorName(variant.color) ===
+                                        normalizeColorName(color.name)
+                                      }
+                                      onClick={() =>
+                                        handleCatalogColorSelect(
+                                          variant.id,
+                                          color
+                                        )
+                                      }
+                                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+                                    >
+                                      <span
+                                        className="h-6 w-6 shrink-0 rounded-full border border-slate-300"
+                                        style={{ backgroundColor: color.hex }}
+                                        aria-hidden="true"
+                                      />
+                                      <span className="min-w-0 flex-1 font-semibold text-slate-800">
+                                        {color.name}
+                                      </span>
+                                      <span className="text-xs font-bold text-slate-500">
+                                        {color.hex}
+                                      </span>
+                                    </button>
+                                  ))
+                                ) : (
+                                  <p className="px-3 py-4 text-sm font-semibold text-slate-500">
+                                    No encontramos colores.
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           <label className="flex h-12 min-w-28 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3">
                             <span
                               className="h-6 w-6 rounded-full border border-slate-300"
@@ -1439,24 +1600,9 @@ function CreateProductPage() {
                               value={
                                 variant.colorHex || defaultVariantColorPreview
                               }
-                              onClick={() => {
-                                if (!variant.colorHex) {
-                                  handleVariantChange(
-                                    variant.id,
-                                    "colorHex",
-                                    defaultVariantColorPreview
-                                  );
-                                }
-                              }}
-                              onChange={(event) =>
-                                handleVariantChange(
-                                  variant.id,
-                                  "colorHex",
-                                  event.target.value
-                                )
-                              }
-                              aria-label="Elegir muestra de color"
-                              className="h-8 w-10 cursor-pointer border-0 bg-transparent p-0"
+                              disabled
+                              aria-label="Muestra de color del catálogo"
+                              className="h-8 w-10 cursor-not-allowed border-0 bg-transparent p-0"
                             />
                           </label>
                         </div>
@@ -1511,8 +1657,9 @@ function CreateProductPage() {
                         Activa
                       </label>
                     </div>
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
