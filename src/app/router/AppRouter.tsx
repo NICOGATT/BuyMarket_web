@@ -30,6 +30,7 @@ import AdminSubCategoriesAttributesPage from "../../pages/admin/AdminSubCategori
 import AdminPlansPage from "../../pages/admin/AdminPlansPage";
 import AdminWithdrawalsPage from "../../pages/admin/AdminWithdrawalsPage";
 import AdminShipmentsPage from "../../pages/admin/AdminShipmentsPage";
+import AdminColorsPage from "../../pages/admin/AdminColorsPage";
 const router = createBrowserRouter([
     {
         path : "/",
@@ -192,6 +193,10 @@ const router = createBrowserRouter([
             {
             path: "subcategories-attributes",
             element: <AdminSubCategoriesAttributesPage />,
+            },
+            {
+            path: "colors",
+            element: <AdminColorsPage />,
             },
             {
             path: "category-suggestions",

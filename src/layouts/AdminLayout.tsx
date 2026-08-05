@@ -62,6 +62,10 @@ function AdminLayout() {
             )}
           </div>
 
+          <NavLink className={adminLinkClass} to="/admin/colors">
+            Colores
+          </NavLink>
+
           <NavLink className={adminLinkClass} to="/admin/category-suggestions">
             Sugerencias
           </NavLink>
