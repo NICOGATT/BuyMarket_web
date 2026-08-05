@@ -41,6 +41,7 @@ export type ProductVariant = {
 };
 
 export type ProductVariantPayload = {
+  id?: string;
   size: string;
   color?: string;
   colorHex?: string;

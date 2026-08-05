@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Check, ChevronLeft, ImagePlus, UploadCloud } from "lucide-react";
@@ -54,7 +55,8 @@ type CategorySuggestionForm = {
 };
 
 type ProductVariantForm = {
-  id: string;
+  clientId: string;
+  persistedId?: string;
   size: string;
   color: string;
   colorHex: string;
@@ -82,7 +84,7 @@ const emptyCategorySuggestionForm: CategorySuggestionForm = {
 
 function createEmptyVariant(): ProductVariantForm {
   return {
-    id: crypto.randomUUID(),
+    clientId: crypto.randomUUID(),
     size: "",
     color: "",
     colorHex: "",
@@ -91,6 +93,15 @@ function createEmptyVariant(): ProductVariantForm {
     isActive: true,
     attributes: {},
   };
+}
+
+function getSubmitErrorMessage(error: unknown, fallback: string) {
+  if (!axios.isAxiosError(error)) return fallback;
+
+  const message = error.response?.data?.message;
+
+  if (Array.isArray(message)) return message.join(". ");
+  return typeof message === "string" ? message : fallback;
 }
 
 function getAttributeAppliesTo(attribute: SubCategoryAttribute) {
@@ -337,23 +348,23 @@ function CreateProductPage() {
                 : undefined;
 
               return {
-              id: variant.id ?? crypto.randomUUID(),
-              size: variant.size ?? "",
-              color: catalogColor?.name ?? variant.color ?? "",
-              colorHex: catalogColor?.hex ?? variant.colorHex ?? "",
-              price: String(variant.price ?? ""),
-              stock: String(variant.stock ?? ""),
-              isActive: variant.isActive !== false,
-              attributes: (variant.attributes ?? []).reduce<Record<string, string>>(
-                (values, attribute) => {
+                clientId: crypto.randomUUID(),
+                persistedId: variant.id,
+                size: variant.size ?? "",
+                color: catalogColor?.name ?? variant.color ?? "",
+                colorHex: catalogColor?.hex ?? variant.colorHex ?? "",
+                price: String(variant.price ?? ""),
+                stock: String(variant.stock ?? ""),
+                isActive: variant.isActive !== false,
+                attributes: (variant.attributes ?? []).reduce<
+                  Record<string, string>
+                >((values, attribute) => {
                   const attributeId = getProductAttributeId(attribute);
                   if (attributeId) {
                     values[attributeId] = attribute.value ?? "";
                   }
                   return values;
-                },
-                {}
-              ),
+                }, {}),
               };
             })
           );
@@ -547,32 +558,37 @@ function CreateProductPage() {
     setVariantsTouched(true);
   }
 
-  function handleRemoveVariant(id: string) {
+  function handleRemoveVariant(clientId: string) {
     setVariants((currentVariants) =>
-      currentVariants.filter((variant) => variant.id !== id)
+      currentVariants.filter((variant) => variant.clientId !== clientId)
     );
     setVariantsTouched(true);
   }
 
   function handleVariantChange(
-    id: string,
-    field: Exclude<keyof ProductVariantForm, "id" | "attributes">,
+    clientId: string,
+    field: Exclude<
+      keyof ProductVariantForm,
+      "clientId" | "persistedId" | "attributes"
+    >,
     value: string | boolean
   ) {
     setVariants((currentVariants) =>
       currentVariants.map((variant) =>
-        variant.id === id ? { ...variant, [field]: value } : variant
+        variant.clientId === clientId
+          ? { ...variant, [field]: value }
+          : variant
       )
     );
     setVariantsTouched(true);
   }
 
-  function handleVariantColorChange(id: string, value: string) {
+  function handleVariantColorChange(clientId: string, value: string) {
     const catalogColor = catalogColorsByName.get(normalizeColorName(value));
 
     setVariants((currentVariants) =>
       currentVariants.map((variant) =>
-        variant.id === id
+        variant.clientId === clientId
           ? {
               ...variant,
               color: catalogColor?.name ?? value,
@@ -584,10 +600,10 @@ function CreateProductPage() {
     setVariantsTouched(true);
   }
 
-  function handleCatalogColorSelect(id: string, color: Color) {
+  function handleCatalogColorSelect(clientId: string, color: Color) {
     setVariants((currentVariants) =>
       currentVariants.map((variant) =>
-        variant.id === id
+        variant.clientId === clientId
           ? { ...variant, color: color.name, colorHex: color.hex }
           : variant
       )
@@ -601,7 +617,7 @@ function CreateProductPage() {
 
     if (normalizedPrice === null) return;
 
-    handleVariantChange(variant.id, "price", normalizedPrice);
+    handleVariantChange(variant.clientId, "price", normalizedPrice);
   }
 
   function handleVariantAttributeChange(
@@ -611,7 +627,7 @@ function CreateProductPage() {
   ) {
     setVariants((currentVariants) =>
       currentVariants.map((variant) =>
-        variant.id === variantId
+        variant.clientId === variantId
           ? {
               ...variant,
               attributes: {
@@ -773,7 +789,8 @@ function CreateProductPage() {
       );
 
       if (missingRequiredVariantAttribute) {
-        const variantLabel = getVariantDisplayLabel(variant) || variant.id;
+        const variantLabel =
+          getVariantDisplayLabel(variant) || variant.clientId;
         setError(
           `Completá ${missingRequiredVariantAttribute.name} para la variante ${variantLabel}.`
         );
@@ -794,6 +811,9 @@ function CreateProductPage() {
       (address) => address.id === detailsForm.pickupAddressId
     );
     const variantPayload = variants.map((variant) => ({
+      ...(isEditMode && variant.persistedId
+        ? { id: variant.persistedId }
+        : {}),
       size: variant.size.trim(),
       ...(variant.color.trim() && variant.colorHex.trim()
         ? {
@@ -858,11 +878,14 @@ function CreateProductPage() {
         },
       });
     } catch (submitError) {
-      console.log(submitError);
+      console.error(submitError);
       setError(
-        isEditMode
-          ? "No se pudo guardar el producto."
-          : "No se pudo publicar el producto."
+        getSubmitErrorMessage(
+          submitError,
+          isEditMode
+            ? "No se pudo guardar el producto."
+            : "No se pudo publicar el producto."
+        )
       );
     } finally {
       setIsSubmiting(false);
@@ -942,7 +965,8 @@ function CreateProductPage() {
     return renderAttributeControl(
       attribute,
       variant.attributes[attribute.id] ?? "",
-      (value) => handleVariantAttributeChange(variant.id, attribute.id, value),
+      (value) =>
+        handleVariantAttributeChange(variant.clientId, attribute.id, value),
       "bg-white"
     );
   }
@@ -1436,12 +1460,13 @@ function CreateProductPage() {
                         normalizeColorName(color.name).includes(normalizedSearch)
                       )
                     : catalogColors;
-                  const colorListId = `product-variant-color-options-${variant.id}`;
-                  const isColorMenuOpen = openColorVariantId === variant.id;
+                  const colorListId = `product-variant-color-options-${variant.clientId}`;
+                  const isColorMenuOpen =
+                    openColorVariantId === variant.clientId;
 
                   return (
                     <div
-                      key={variant.id}
+                      key={variant.clientId}
                       className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
                     >
                     <div className="mb-4 flex items-center justify-between gap-3">
@@ -1450,7 +1475,7 @@ function CreateProductPage() {
                       </p>
                       <button
                         type="button"
-                        onClick={() => handleRemoveVariant(variant.id)}
+                        onClick={() => handleRemoveVariant(variant.clientId)}
                         className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50"
                       >
                         Quitar
@@ -1467,7 +1492,7 @@ function CreateProductPage() {
                             value={variant.size}
                             onChange={(event) =>
                               handleVariantChange(
-                                variant.id,
+                                variant.clientId,
                                 "size",
                                 event.target.value
                               )
@@ -1486,7 +1511,7 @@ function CreateProductPage() {
                             value={variant.size}
                             onChange={(event) =>
                               handleVariantChange(
-                                variant.id,
+                                variant.clientId,
                                 "size",
                                 event.target.value
                               )
@@ -1523,13 +1548,15 @@ function CreateProductPage() {
                               disabled={
                                 isLoadingColors || Boolean(colorCatalogError)
                               }
-                              onFocus={() => setOpenColorVariantId(variant.id)}
+                              onFocus={() =>
+                                setOpenColorVariantId(variant.clientId)
+                              }
                               onChange={(event) => {
                                 handleVariantColorChange(
-                                  variant.id,
+                                  variant.clientId,
                                   event.target.value
                                 );
-                                setOpenColorVariantId(variant.id);
+                                setOpenColorVariantId(variant.clientId);
                               }}
                               placeholder={
                                 colorAttribute?.name ?? "Color opcional"
@@ -1559,7 +1586,7 @@ function CreateProductPage() {
                                       }
                                       onClick={() =>
                                         handleCatalogColorSelect(
-                                          variant.id,
+                                          variant.clientId,
                                           color
                                         )
                                       }
@@ -1623,7 +1650,11 @@ function CreateProductPage() {
                         inputMode="decimal"
                         value={variant.price}
                         onChange={(event) =>
-                          handleVariantChange(variant.id, "price", event.target.value)
+                          handleVariantChange(
+                            variant.clientId,
+                            "price",
+                            event.target.value
+                          )
                         }
                         onBlur={() => handleVariantPriceBlur(variant)}
                         placeholder="Precio"
@@ -1635,7 +1666,11 @@ function CreateProductPage() {
                         min="0"
                         value={variant.stock}
                         onChange={(event) =>
-                          handleVariantChange(variant.id, "stock", event.target.value)
+                          handleVariantChange(
+                            variant.clientId,
+                            "stock",
+                            event.target.value
+                          )
                         }
                         placeholder="Stock"
                         className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--brand)]"
@@ -1647,7 +1682,7 @@ function CreateProductPage() {
                           checked={variant.isActive}
                           onChange={(event) =>
                             handleVariantChange(
-                              variant.id,
+                              variant.clientId,
                               "isActive",
                               event.target.checked
                             )
