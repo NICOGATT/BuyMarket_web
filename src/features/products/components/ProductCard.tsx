@@ -17,7 +17,7 @@ import {
 import ShareProductModal from "./ShareProductModal";
 import VariantPickerModal from "./VariantPickerModal";
 
-function ProductCard({ product }: ProductCardProps) {
+function ProductCard({ product, badge = "Destacado" }: ProductCardProps) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -197,7 +197,7 @@ function ProductCard({ product }: ProductCardProps) {
 
       <div className="flex min-h-72 flex-1 flex-col p-5">
         <span className="mb-1.5 text-xs font-black text-[var(--nav-blue-hover)]">
-          Destacado
+          {badge}
         </span>
 
         <Link

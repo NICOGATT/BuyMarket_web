@@ -94,6 +94,7 @@ export type Product = {
 
 export type ProductCardProps = {
   product: Product;
+  badge?: "Destacado" | "Oferta";
 };
 
 export type CreateProductPayload = {

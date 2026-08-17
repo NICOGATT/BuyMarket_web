@@ -99,6 +99,7 @@ export function normalizeName(name: string) {
 export type CategoryBrand = {
   name: string;
   accent: string;
+  logo?: string;
 };
 
 export type CategoryConfig = {
@@ -366,11 +367,20 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     accent: "from-amber-400 to-orange-700",
     description: "Alimento, accesorios y juguetes para tu mejor amigo.",
     brands: [
+      {
+        name: "RPM",
+        accent: "from-red-100 to-red-200",
+        logo: "/brands/rpm-logo-white.png",
+      },
+      {
+        name: "RPro",
+        accent: "from-emerald-100 to-orange-100",
+        logo: "/brands/rpro-logo-white.png",
+      },
       { name: "Pedigree", accent: "from-orange-300 to-orange-600" },
       { name: "Royal Canin", accent: "from-red-300 to-rose-600" },
       { name: "Purina", accent: "from-amber-300 to-amber-600" },
       { name: "Pro Plan", accent: "from-sky-300 to-blue-600" },
-      { name: "RPM", accent: "from-violet-300 to-indigo-600" },
     ],
     subCategoryIcons: mascotasIcons,
   },

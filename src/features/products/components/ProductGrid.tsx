@@ -4,9 +4,14 @@ import type { Product } from "../../../shared/types/Product";
 type ProductGridProps = {
   products: Product[];
   variant?: "default" | "compact";
+  badge?: "Destacado" | "Oferta";
 };
 
-function ProductGrid({products, variant = "default"} : ProductGridProps) {
+function ProductGrid({
+  products,
+  variant = "default",
+  badge = "Destacado",
+}: ProductGridProps) {
   const gridClassName =
     variant === "compact"
       ? "grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4"
@@ -18,6 +23,7 @@ function ProductGrid({products, variant = "default"} : ProductGridProps) {
             <ProductCard 
                 key={product.id}
                 product={product}
+                badge={badge}
             />
         ))}
     </div>

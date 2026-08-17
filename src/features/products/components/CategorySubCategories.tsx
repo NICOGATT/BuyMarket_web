@@ -19,7 +19,10 @@ function CategorySubCategories({
   if (subCategories.length === 0) return null;
 
   return (
-    <section aria-label="Subcategorias">
+    <section
+      aria-label="Subcategorias"
+      className="rounded-[28px] border border-white/50 bg-[var(--category-panel,rgba(255,255,255,0.52))] px-4 py-5 shadow-[0_16px_42px_rgba(15,23,42,0.07)] backdrop-blur-sm sm:px-6"
+    >
       <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5">
         {subCategories.map((subCategory) => {
           const normalizedName = normalizeName(subCategory.name);
@@ -45,7 +48,9 @@ function CategorySubCategories({
               </span>
               <span
                 className={`line-clamp-2 text-center text-xs font-bold leading-4 sm:text-sm ${
-                  isActive ? "text-[var(--brand-hover)]" : "text-slate-600"
+                  isActive
+                    ? "text-[var(--brand-hover)]"
+                    : "text-[var(--category-muted,#475569)]"
                 }`}
               >
                 {subCategory.name}

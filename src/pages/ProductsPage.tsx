@@ -24,6 +24,89 @@ import type { Category } from "../shared/types/Category";
 import type { Product } from "../shared/types/Product";
 import { getProductCategoryId } from "../shared/utils/productCategories";
 
+const categoryPageThemes: Record<
+  string,
+  { background: string; title: string; muted: string; panel: string }
+> = {
+  mascotas: {
+    background:
+      "linear-gradient(180deg,#ffc88e 0%,#ffe0bd 32%,#fff3e3 72%,#fffaf4 100%)",
+    title: "#3f2a1d",
+    muted: "#7a5438",
+    panel: "rgba(255,255,255,0.58)",
+  },
+  tecno: {
+    background:
+      "linear-gradient(180deg,#83baf8 0%,#b9ddfa 34%,#e3f3ff 72%,#f7fbff 100%)",
+    title: "#082f49",
+    muted: "#155e75",
+    panel: "rgba(255,255,255,0.60)",
+  },
+  indumentaria: {
+    background:
+      "linear-gradient(180deg,#c9b6ef 0%,#ddd2f6 34%,#eee9fb 72%,#faf8ff 100%)",
+    title: "#39206d",
+    muted: "#67508d",
+    panel: "rgba(255,255,255,0.58)",
+  },
+  computacion: {
+    background:
+      "linear-gradient(180deg,#10295c 0%,#0b1832 38%,#07101f 76%,#050a12 100%)",
+    title: "#ffffff",
+    muted: "#bfdbfe",
+    panel: "rgba(255,255,255,0.08)",
+  },
+  calzados: {
+    background:
+      "linear-gradient(180deg,#dddddd 0%,#ebebeb 34%,#f5f5f5 72%,#fbfbfb 100%)",
+    title: "#171717",
+    muted: "#525252",
+    panel: "rgba(255,255,255,0.62)",
+  },
+  calzado: {
+    background:
+      "linear-gradient(180deg,#dddddd 0%,#ebebeb 34%,#f5f5f5 72%,#fbfbfb 100%)",
+    title: "#171717",
+    muted: "#525252",
+    panel: "rgba(255,255,255,0.62)",
+  },
+  decobazar: {
+    background:
+      "linear-gradient(180deg,#f7d9dc 0%,#fae2cf 25%,#e7f2d9 52%,#dceef7 76%,#f6edf8 100%)",
+    title: "#55306f",
+    muted: "#765e82",
+    panel: "rgba(255,255,255,0.56)",
+  },
+  belleza: {
+    background:
+      "linear-gradient(180deg,#eed0ca 0%,#f3ddd8 36%,#f8ebe7 72%,#fdf8f6 100%)",
+    title: "#754240",
+    muted: "#986865",
+    panel: "rgba(255,255,255,0.58)",
+  },
+  alimentos: {
+    background:
+      "linear-gradient(180deg,#f8e8c8 0%,#fff0d5 30%,#f8dfd8 56%,#eef0d2 78%,#fffaf0 100%)",
+    title: "#5a4334",
+    muted: "#806650",
+    panel: "rgba(255,255,255,0.58)",
+  },
+  accesorios: {
+    background:
+      "linear-gradient(180deg,#eaded2 0%,#f6e9dc 27%,#e3eeee 54%,#f3dfca 78%,#fdf8f2 100%)",
+    title: "#875d48",
+    muted: "#6f6b66",
+    panel: "rgba(255,255,255,0.58)",
+  },
+  bebes: {
+    background:
+      "linear-gradient(180deg,#d8eeee 0%,#e1f3ef 28%,#dceafb 56%,#edf6f4 78%,#fbfaf6 100%)",
+    title: "#267f86",
+    muted: "#4d7781",
+    panel: "rgba(255,255,255,0.60)",
+  },
+};
+
 function getProductSubCategoryName(product: Product) {
   return normalizeName(
     product.subCategory?.name ?? product.subcategory?.name ?? ""
@@ -408,13 +491,13 @@ function ProductListing({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 rounded-[30px] border border-white/50 bg-[var(--category-panel,transparent)] p-4 shadow-[0_18px_50px_rgba(15,23,42,0.07)] backdrop-blur-sm sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="m-0 text-2xl font-black text-slate-950 sm:text-3xl">
+          <h2 className="m-0 text-2xl font-black text-[var(--category-title,#020617)] sm:text-3xl">
             {title}
           </h2>
-          <p className="mt-1 font-semibold text-slate-500">
+          <p className="mt-1 font-semibold text-[var(--category-muted,#64748b)]">
             {brand
               ? `${filteredProducts.length} producto${
                   filteredProducts.length === 1 ? "" : "s"
@@ -476,6 +559,9 @@ function ProductsPage() {
   const selectedCategory = categories.find(
     (category) => category.id === selectedCategoryId
   );
+  const categoryPageTheme = selectedCategory
+    ? categoryPageThemes[normalizeName(selectedCategory.name)]
+    : undefined;
   const showCategoryView = Boolean(selectedCategoryId);
   const showAllView =
     searchParams.get("view") === "all" ||
@@ -559,39 +645,53 @@ function ProductsPage() {
   return (
     <section>
       {showCategoryView && selectedCategory ? (
-        <div className="space-y-8">
-          <div className="space-y-8">
-            <CategoryHero category={selectedCategory} />
-            <CategorySubCategories
-              categoryName={selectedCategory.name}
-              selectedSubCategoryName={selectedSubCategoryName}
-              onSelect={(subCategoryName) =>
-                updateFilters({ subCategory: subCategoryName })
-              }
-            />
-          </div>
+        <div
+          className="relative left-1/2 min-h-[calc(100vh-7rem)] w-screen -translate-x-1/2 pb-14"
+          style={
+            categoryPageTheme
+              ? ({
+                  background: categoryPageTheme.background,
+                  "--category-title": categoryPageTheme.title,
+                  "--category-muted": categoryPageTheme.muted,
+                  "--category-panel": categoryPageTheme.panel,
+                } as React.CSSProperties)
+              : undefined
+          }
+        >
+          <div className="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-8">
+              <CategoryHero category={selectedCategory} />
+              <CategorySubCategories
+                categoryName={selectedCategory.name}
+                selectedSubCategoryName={selectedSubCategoryName}
+                onSelect={(subCategoryName) =>
+                  updateFilters({ subCategory: subCategoryName })
+                }
+              />
+            </div>
 
-          <div ref={productsSectionRef} className="mt-4 scroll-mt-28">
-            <ProductListing
-              key={selectedCategoryId}
-              products={products}
-              featuredProducts={featuredProducts}
-              categories={categories}
-              selectedCategoryId={selectedCategoryId}
-              selectedSubCategoryName={selectedSubCategoryName}
-              categoryName={selectedCategory.name}
-              search={search}
-              brand={brand}
-              isLoading={isLoading}
-              error={error}
-              withCategoryFilter={false}
-              title={
-                selectedSubCategoryDisplayName
-                  ? `Productos de ${selectedSubCategoryDisplayName}`
-                  : "Todos los productos"
-              }
-              onUpdateFilters={updateFilters}
-            />
+            <div ref={productsSectionRef} className="mt-4 scroll-mt-28">
+              <ProductListing
+                key={selectedCategoryId}
+                products={products}
+                featuredProducts={featuredProducts}
+                categories={categories}
+                selectedCategoryId={selectedCategoryId}
+                selectedSubCategoryName={selectedSubCategoryName}
+                categoryName={selectedCategory.name}
+                search={search}
+                brand={brand}
+                isLoading={isLoading}
+                error={error}
+                withCategoryFilter={false}
+                title={
+                  selectedSubCategoryDisplayName
+                    ? `Productos de ${selectedSubCategoryDisplayName}`
+                    : "Todos los productos"
+                }
+                onUpdateFilters={updateFilters}
+              />
+            </div>
           </div>
         </div>
       ) : showAllView ? (
@@ -639,12 +739,13 @@ function ProductsPage() {
           </div>
         </div>
       ) : (
-        <div className="space-y-8">
-          <div className="mb-2 sm:mb-4">
-            <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">
-              Explorar categorias
+        <div className="relative left-1/2 -mt-5 min-h-[calc(100vh-5rem)] w-screen -translate-x-1/2 overflow-hidden bg-[#eaf5ff] bg-[url('/categories/categories-page-background.png')] bg-cover bg-center py-6 shadow-[inset_0_18px_45px_rgba(255,255,255,0.30)] sm:-mt-8 sm:py-8">
+          <div className="relative mx-auto max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8">
+          <div>
+            <h1 className="m-0 text-3xl font-black tracking-[-0.03em] text-[#07183c] sm:text-4xl">
+              Explorar categorías
             </h1>
-            <p className="mt-2 text-slate-500">
+            <p className="mt-2 w-full text-center text-sm font-medium text-slate-600 sm:text-base">
               Elegí una categoria para descubrir todos sus productos.
             </p>
           </div>
@@ -658,6 +759,7 @@ function ProductsPage() {
             }
             onShowAll={handleShowAll}
           />
+          </div>
         </div>
       )}
     </section>

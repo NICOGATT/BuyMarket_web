@@ -1,5 +1,5 @@
 import { ChevronDown, CreditCard, Mail, MapPin, PackagePlus, Plus, Search, ShoppingBag, ShoppingCart, Trash2, Truck, User, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -47,11 +47,13 @@ function normalizeCategoryName(name: string) {
 }
 
 function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "auto" });
-  }, [pathname]);
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [pathname, search]);
 
   return null;
 }
@@ -84,6 +86,8 @@ function MainLayout() {
     () => new URLSearchParams(window.location.search).get("search") ?? ""
   );
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentSearchParams = new URLSearchParams(location.search);
 
   useEffect(() => {
     function syncAuth() {
@@ -316,17 +320,19 @@ function MainLayout() {
   return (
     <div className="min-h-screen bg-transparent text-[var(--text-main)]">
       <ScrollToTop />
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[radial-gradient(circle_at_86%_0%,rgba(255,138,0,0.26),transparent_28%),linear-gradient(135deg,rgba(7,24,50,0.96),rgba(18,60,105,0.92)_45%,rgba(45,0,107,0.90))] shadow-[0_18px_48px_rgba(7,24,50,0.22)] backdrop-blur-2xl">
+      <header className="sticky top-0 z-40 border-b border-[#123b82] bg-[#02082b] shadow-[0_12px_32px_rgba(0,4,30,0.38)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3 sm:gap-4 sm:py-4 lg:grid-cols-[auto_minmax(280px,1fr)_auto]">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2 sm:gap-4 lg:grid-cols-[auto_minmax(280px,1fr)_auto]">
             <div className="flex items-center justify-between gap-4">
-              <NavLink to="/" className="flex min-w-0 items-center gap-3">
+              <NavLink to="/" className="flex min-w-0 items-center gap-2">
                 <img
-                  src="/BuyMarketLogoWeb.png"
+                  src="/buymarket-logo-compact.png"
                   alt="BuyMarket"
-                  className="h-10 w-10 rounded-2xl object-contain shadow-sm"
+                  className="h-9 w-12 shrink-0 object-contain opacity-100 sm:h-10 sm:w-14"
                 />
-                <span className="hidden truncate text-2xl font-black text-white sm:block sm:text-3xl">
+                <span
+                  className="hidden truncate text-xl font-extrabold leading-none tracking-[-0.025em] text-white sm:block sm:text-[22px]"
+                >
                   BuyMarket
                 </span>
               </NavLink>
@@ -341,7 +347,7 @@ function MainLayout() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar productos"
-                className="h-12 w-full rounded-2xl border border-white/18 bg-white/92 pl-12 pr-4 font-semibold text-[var(--text-main)] outline-none shadow-[0_12px_28px_rgba(0,0,0,0.10)] transition placeholder:text-[var(--text-muted)] focus:border-cyan-200 focus:bg-white focus:shadow-[0_0_0_4px_rgba(125,211,252,0.18)]"
+                className="h-10 w-full rounded-2xl border border-[#bdd8ff] bg-[#f7f9fd] pl-12 pr-4 font-semibold text-slate-800 outline-none shadow-[0_5px_16px_rgba(0,0,0,0.18)] transition placeholder:text-slate-500 focus:border-[#36a3ff] focus:bg-white focus:shadow-[0_0_0_3px_rgba(31,144,255,0.22)]"
               />
             </form>
 
@@ -359,7 +365,7 @@ function MainLayout() {
               >
                 <NavLink
                   to="/cart"
-                  className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/18 bg-white/12 text-white backdrop-blur-xl transition hover:border-cyan-200/70 hover:bg-white/18 sm:h-12 sm:w-12 sm:rounded-2xl"
+                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-transparent text-white transition hover:border-[#278dff]/60 hover:bg-[#0b2b65] hover:shadow-[0_0_16px_rgba(36,143,255,0.42)] sm:h-10 sm:w-10"
                   aria-label={`Carrito, ${cartItemsCount} productos`}
                 >
                   <ShoppingCart className="h-5 w-5" aria-hidden="true" />
@@ -456,7 +462,7 @@ function MainLayout() {
                   <button
                     type="button"
                     onClick={() => setIsUserMenuOpen((current) => !current)}
-                    className="flex h-10 items-center gap-2 rounded-xl border border-white/18 bg-white/12 px-2 font-bold text-white backdrop-blur-xl transition hover:border-cyan-200/70 hover:bg-white/18 sm:h-12 sm:rounded-2xl sm:px-4"
+                    className="flex h-9 items-center gap-2 rounded-xl border border-white/18 bg-white/12 px-2 font-bold text-white backdrop-blur-xl transition hover:border-cyan-200/70 hover:bg-white/18 sm:h-10 sm:px-4"
                   >
                     <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-white/22 text-white shadow-[0_8px_18px_rgba(0,0,0,0.18)]">
                       <User size={18} strokeWidth={2.6} />
@@ -544,10 +550,10 @@ function MainLayout() {
                 </div>
               ) : (
                 <div className="order-1 flex items-center gap-1.5 sm:gap-2">
-                  <NavLink to="/login" className="flex h-10 items-center rounded-xl border border-white/25 bg-white/12 px-2 text-[11px] font-bold text-white transition hover:border-cyan-200/70 hover:bg-white/18 sm:h-12 sm:rounded-2xl sm:px-4 sm:text-sm">
+                  <NavLink to="/login" className="flex h-9 items-center rounded-xl border border-[#6385bd] bg-transparent px-2 text-[11px] font-bold text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition hover:border-[#4ba8ff] hover:bg-[#0a2455] hover:shadow-[0_0_14px_rgba(35,139,255,0.30)] sm:h-10 sm:px-4 sm:text-sm">
                     Iniciar sesión
                   </NavLink>
-                  <NavLink to="/register" className="flex h-10 items-center rounded-xl bg-white px-2 text-[11px] font-black text-[var(--nav-blue)] shadow-sm transition hover:bg-cyan-50 sm:h-12 sm:rounded-2xl sm:px-4 sm:text-sm">
+                  <NavLink to="/register" className="flex h-9 items-center rounded-xl border border-[#1c70df] bg-[#074aaa] px-2 text-[11px] font-black text-white shadow-[0_0_16px_rgba(10,80,190,0.38)] transition hover:bg-[#0959c6] hover:shadow-[0_0_20px_rgba(25,107,222,0.48)] sm:h-10 sm:px-4 sm:text-sm">
                     Registrarse
                   </NavLink>
                 </div>
@@ -555,7 +561,7 @@ function MainLayout() {
             </div>
           </div>
 
-          <div className="relative flex items-center gap-1 border-t border-white/10 py-2 sm:gap-2">
+          <div className="relative flex items-center gap-1 border-t border-white/10 py-1 sm:gap-2">
             {user && selectedAddress && (
               <div className="relative shrink-0 sm:ml-[52px]">
                 <button
@@ -637,7 +643,16 @@ function MainLayout() {
                 <NavLink
                   key={category.id}
                   to={`/products?category=${encodeURIComponent(category.id)}`}
-                  className="shrink-0 rounded-full border border-white/14 bg-white/10 px-2.5 py-1 text-xs font-bold leading-4 text-white/85 transition hover:border-cyan-200/70 hover:bg-white/18 hover:text-white sm:px-3 sm:text-sm"
+                  className={({ isActive }) => {
+                    const isSelected =
+                      isActive && currentSearchParams.get("category") === category.id;
+
+                    return `shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold leading-4 text-white transition sm:px-3 sm:text-sm ${
+                      isSelected
+                        ? "border-[#2584de] bg-[#0751ad] shadow-[0_0_16px_rgba(24,103,204,0.62),inset_0_0_8px_rgba(255,255,255,0.14)]"
+                        : "border-[#1765b8] bg-[#071a4b] shadow-[0_0_12px_rgba(28,125,234,0.34),inset_0_0_7px_rgba(36,132,255,0.16)] hover:border-[#43b8ff] hover:bg-[#0a2b68] hover:shadow-[0_0_17px_rgba(40,157,255,0.56)]"
+                    }`;
+                  }}
                 >
                   {category.name}
                 </NavLink>
@@ -646,7 +661,7 @@ function MainLayout() {
 
             <NavLink
               to="/products"
-              className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-black leading-4 text-[var(--nav-blue)] shadow-[0_0_14px_rgba(7,24,50,0.45)] transition hover:bg-cyan-50 sm:px-3 sm:text-sm"
+              className="shrink-0 rounded-full border border-[#b9d8ff] bg-[#f7faff] px-2.5 py-1 text-xs font-black leading-4 text-[#061d4d] shadow-[0_0_14px_rgba(92,174,255,0.35)] transition hover:border-white hover:bg-white hover:shadow-[0_0_19px_rgba(107,190,255,0.55)] sm:px-3 sm:text-sm"
             >
               Ver más
             </NavLink>
