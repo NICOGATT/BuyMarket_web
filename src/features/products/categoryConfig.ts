@@ -575,6 +575,7 @@ const DEFAULT_CATEGORY_CONFIG: CategoryConfig = {
 
 const categoryAliases: Record<string, string> = {
   calzado: "calzados",
+  jugueteria: "juguetes",
 };
 
 export function getCategoryConfig(categoryName: string): CategoryConfig {

@@ -7,6 +7,7 @@ import {
 } from "../features/products/categoryConfig";
 import CategoryHero from "../features/products/components/CategoryHero";
 import CategoryList from "../features/products/components/CategoryList";
+import CategorySubCategoryFooter from "../features/products/components/CategorySubCategoryFooter";
 import CategorySubCategories from "../features/products/components/CategorySubCategories";
 import ProductCardSkeleton from "../features/products/components/ProductCardSkeleton";
 import ProductFilters, {
@@ -20,8 +21,10 @@ import {
   getFeaturedProducts,
   getProducts,
 } from "../shared/services/product.service";
+import { getSubCategoriesByCategory } from "../shared/services/subcategory.service";
 import type { Category } from "../shared/types/Category";
 import type { Product } from "../shared/types/Product";
+import type { SubCategory } from "../shared/types/SubCategory";
 import { getProductCategoryId } from "../shared/utils/productCategories";
 
 const categoryPageThemes: Record<
@@ -30,79 +33,170 @@ const categoryPageThemes: Record<
 > = {
   mascotas: {
     background:
-      "linear-gradient(180deg,#ffc88e 0%,#ffe0bd 32%,#fff3e3 72%,#fffaf4 100%)",
+      "linear-gradient(180deg,#ffc68f 0%,#ffd3a6 22%,#ffe0bd 44%,#ffecd6 68%,#fff6eb 86%,#fffaf4 100%)",
     title: "#3f2a1d",
     muted: "#7a5438",
     panel: "rgba(255,255,255,0.58)",
   },
   tecno: {
     background:
-      "linear-gradient(180deg,#83baf8 0%,#b9ddfa 34%,#e3f3ff 72%,#f7fbff 100%)",
+      "linear-gradient(180deg,#83baf8 0%,#9dccf9 22%,#b9ddfa 44%,#d2eafb 66%,#e9f6ff 84%,#f7fbff 100%)",
     title: "#082f49",
     muted: "#155e75",
     panel: "rgba(255,255,255,0.60)",
   },
   indumentaria: {
     background:
-      "linear-gradient(180deg,#c9b6ef 0%,#ddd2f6 34%,#eee9fb 72%,#faf8ff 100%)",
+      "linear-gradient(180deg,#c9b6ef 0%,#d4c5f3 22%,#dfd5f7 44%,#e9e2fa 66%,#f3effd 84%,#faf8ff 100%)",
     title: "#39206d",
     muted: "#67508d",
     panel: "rgba(255,255,255,0.58)",
   },
   computacion: {
     background:
-      "linear-gradient(180deg,#10295c 0%,#0b1832 38%,#07101f 76%,#050a12 100%)",
+      "linear-gradient(180deg,#10295c 0%,#15356d 22%,#1a417d 44%,#214c89 66%,#2b5895 84%,#3564a0 100%)",
     title: "#ffffff",
     muted: "#bfdbfe",
     panel: "rgba(255,255,255,0.08)",
   },
   calzados: {
     background:
-      "linear-gradient(180deg,#dddddd 0%,#ebebeb 34%,#f5f5f5 72%,#fbfbfb 100%)",
+      "linear-gradient(180deg,#dddddd 0%,#e5e5e5 22%,#ebebeb 44%,#f1f1f1 66%,#f7f7f7 84%,#fcfcfc 100%)",
     title: "#171717",
     muted: "#525252",
     panel: "rgba(255,255,255,0.62)",
   },
   calzado: {
     background:
-      "linear-gradient(180deg,#dddddd 0%,#ebebeb 34%,#f5f5f5 72%,#fbfbfb 100%)",
+      "linear-gradient(180deg,#dddddd 0%,#e5e5e5 22%,#ebebeb 44%,#f1f1f1 66%,#f7f7f7 84%,#fcfcfc 100%)",
     title: "#171717",
     muted: "#525252",
     panel: "rgba(255,255,255,0.62)",
   },
   decobazar: {
     background:
-      "linear-gradient(180deg,#f7d9dc 0%,#fae2cf 25%,#e7f2d9 52%,#dceef7 76%,#f6edf8 100%)",
+      "linear-gradient(180deg,#f7d9dc 0%,#f9e1df 22%,#fbe9e5 44%,#fcf0ec 66%,#fdf7f4 84%,#fffdfb 100%)",
     title: "#55306f",
     muted: "#765e82",
     panel: "rgba(255,255,255,0.56)",
   },
   belleza: {
     background:
-      "linear-gradient(180deg,#eed0ca 0%,#f3ddd8 36%,#f8ebe7 72%,#fdf8f6 100%)",
+      "linear-gradient(180deg,#eed0ca 0%,#f1d8d3 22%,#f4e0dc 44%,#f7e9e5 66%,#faf2ef 84%,#fdf9f7 100%)",
     title: "#754240",
     muted: "#986865",
     panel: "rgba(255,255,255,0.58)",
   },
   alimentos: {
     background:
-      "linear-gradient(180deg,#f8e8c8 0%,#fff0d5 30%,#f8dfd8 56%,#eef0d2 78%,#fffaf0 100%)",
+      "linear-gradient(180deg,#f8e8c8 0%,#faecd1 22%,#fbf0db 44%,#fcf4e5 66%,#fdf8ef 84%,#fffdf8 100%)",
     title: "#5a4334",
     muted: "#806650",
     panel: "rgba(255,255,255,0.58)",
   },
   accesorios: {
     background:
-      "linear-gradient(180deg,#eaded2 0%,#f6e9dc 27%,#e3eeee 54%,#f3dfca 78%,#fdf8f2 100%)",
+      "linear-gradient(180deg,#eaded2 0%,#eee4da 22%,#f2eae2 44%,#f6f0ea 66%,#faf6f2 84%,#fdfbf8 100%)",
     title: "#875d48",
     muted: "#6f6b66",
     panel: "rgba(255,255,255,0.58)",
   },
   bebes: {
     background:
-      "linear-gradient(180deg,#d8eeee 0%,#e1f3ef 28%,#dceafb 56%,#edf6f4 78%,#fbfaf6 100%)",
+      "linear-gradient(180deg,#d8eeee 0%,#e0f1f0 22%,#e7f3f2 44%,#edf6f4 66%,#f5f9f6 84%,#fbfaf6 100%)",
     title: "#267f86",
     muted: "#4d7781",
+    panel: "rgba(255,255,255,0.60)",
+  },
+  cotillon: {
+    background:
+      "linear-gradient(180deg,#f8d2ca 0%,#f9dcd5 22%,#fae5df 44%,#fbece7 66%,#fdf4ef 84%,#fffaf6 100%)",
+    title: "#71379b",
+    muted: "#80638f",
+    panel: "rgba(255,255,255,0.58)",
+  },
+  deportes: {
+    background:
+      "linear-gradient(180deg,#d4e7dc 0%,#dcebe1 22%,#e3efe7 44%,#eaf3ed 66%,#f2f7f3 84%,#fafcf9 100%)",
+    title: "#0a3b66",
+    muted: "#416b75",
+    panel: "rgba(255,255,255,0.62)",
+  },
+  gimnasio: {
+    background:
+      "linear-gradient(180deg,#0b170b 0%,#102311 22%,#172f17 44%,#1d3b1d 66%,#264826 84%,#305630 100%)",
+    title: "#ffffff",
+    muted: "#d9f99d",
+    panel: "rgba(255,255,255,0.08)",
+  },
+  jardineria: {
+    background:
+      "linear-gradient(180deg,#a7b66d 0%,#b7c17f 22%,#c7cc94 44%,#d8d8aa 66%,#e9e7ca 84%,#faf8ed 100%)",
+    title: "#244c21",
+    muted: "#58734a",
+    panel: "rgba(255,255,255,0.58)",
+  },
+  juguetes: {
+    background:
+      "linear-gradient(180deg,#f7dcca 0%,#f9e2d3 22%,#fae8dc 44%,#fbeee5 66%,#fcf4ed 84%,#fdfaf6 100%)",
+    title: "#173b68",
+    muted: "#536b87",
+    panel: "rgba(255,255,255,0.60)",
+  },
+  jugueteria: {
+    background:
+      "linear-gradient(180deg,#f7dcca 0%,#f9e2d3 22%,#fae8dc 44%,#fbeee5 66%,#fcf4ed 84%,#fdfaf6 100%)",
+    title: "#173b68",
+    muted: "#536b87",
+    panel: "rgba(255,255,255,0.60)",
+  },
+  textiles: {
+    background:
+      "linear-gradient(180deg,#eadbd7 0%,#ede2de 22%,#f0e8e4 44%,#f4eeeb 66%,#f8f5f1 84%,#fcfaf7 100%)",
+    title: "#0d4b5b",
+    muted: "#6f7478",
+    panel: "rgba(255,255,255,0.60)",
+  },
+  lenceria: {
+    background:
+      "linear-gradient(180deg,#dfd2c5 0%,#e5dacf 22%,#eae2d9 44%,#f0e9e2 66%,#f5f0eb 84%,#faf7f3 100%)",
+    title: "#241b17",
+    muted: "#75675e",
+    panel: "rgba(255,255,255,0.58)",
+  },
+  libreria: {
+    background:
+      "linear-gradient(180deg,#f9dca2 0%,#fae3b3 22%,#fbe9c4 44%,#fcf0d5 66%,#fdf6e6 84%,#fffaf2 100%)",
+    title: "#083d63",
+    muted: "#507084",
+    panel: "rgba(255,255,255,0.60)",
+  },
+  limpieza: {
+    background:
+      "linear-gradient(180deg,#c7eaf1 0%,#d2edf3 22%,#ddf1f5 44%,#e7f5f7 66%,#f1f9f9 84%,#fbfdfc 100%)",
+    title: "#0b5271",
+    muted: "#527b89",
+    panel: "rgba(255,255,255,0.60)",
+  },
+  videojuegos: {
+    background:
+      "linear-gradient(180deg,#151039 0%,#20164a 22%,#2b1d5b 44%,#36256c 66%,#432f7d 84%,#50398c 100%)",
+    title: "#ffffff",
+    muted: "#ddd6fe",
+    panel: "rgba(255,255,255,0.08)",
+  },
+  libros: {
+    background:
+      "linear-gradient(180deg,#a96f43 0%,#bb8154 22%,#cc9769 44%,#dcaf82 66%,#edcda4 84%,#f8ead4 100%)",
+    title: "#172d3c",
+    muted: "#76563a",
+    panel: "rgba(255,255,255,0.52)",
+  },
+  suplementos: {
+    background:
+      "linear-gradient(180deg,#cfe2bd 0%,#d6e6c8 22%,#deead3 44%,#e7efdf 66%,#f0f5ea 84%,#fafcf5 100%)",
+    title: "#165d58",
+    muted: "#55766f",
     panel: "rgba(255,255,255,0.60)",
   },
 };
@@ -544,6 +638,11 @@ function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loadedCategorySubCategories, setLoadedCategorySubCategories] =
+    useState<{ categoryId: string; items: SubCategory[] }>({
+      categoryId: "",
+      items: [],
+    });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -571,6 +670,48 @@ function ProductsPage() {
 
   const selectedSubCategoryDisplayName =
     getSubCategoryDisplayName(selectedSubCategoryName);
+  const selectedCategorySubCategories = useMemo(
+    () => {
+      const uniqueSubCategories = new Map<
+        string,
+        { id?: string; name: string }
+      >();
+      const remoteSubCategories =
+        loadedCategorySubCategories.categoryId === selectedCategoryId
+          ? loadedCategorySubCategories.items
+          : [];
+      const availableSubCategories =
+        remoteSubCategories.length > 0
+          ? remoteSubCategories
+          : products
+              .filter(
+                (product) =>
+                  getProductCategoryId(product) === selectedCategoryId
+              )
+              .map((product) => product.subCategory ?? product.subcategory)
+              .filter(
+                (
+                  subCategory
+                ): subCategory is NonNullable<typeof subCategory> =>
+                  Boolean(subCategory?.name)
+              );
+
+      for (const subCategory of availableSubCategories) {
+        const key = normalizeName(subCategory.name);
+        if (!uniqueSubCategories.has(key)) {
+          uniqueSubCategories.set(key, {
+            id: subCategory.id,
+            name: subCategory.name,
+          });
+        }
+      }
+
+      return Array.from(uniqueSubCategories.values()).sort((a, b) =>
+        a.name.localeCompare(b.name, "es")
+      );
+    },
+    [loadedCategorySubCategories, products, selectedCategoryId]
+  );
 
   useEffect(() => {
     async function loadInitialData() {
@@ -593,6 +734,38 @@ function ProductsPage() {
 
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    let isCurrentRequest = true;
+
+    if (!selectedCategoryId) {
+      return () => {
+        isCurrentRequest = false;
+      };
+    }
+
+    getSubCategoriesByCategory(selectedCategoryId)
+      .then((data) => {
+        if (isCurrentRequest) {
+          setLoadedCategorySubCategories({
+            categoryId: selectedCategoryId,
+            items: data,
+          });
+        }
+      })
+      .catch(() => {
+        if (isCurrentRequest) {
+          setLoadedCategorySubCategories({
+            categoryId: selectedCategoryId,
+            items: [],
+          });
+        }
+      });
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [selectedCategoryId]);
 
   useEffect(() => {
     if (!pendingScrollRef.current) return;
@@ -692,6 +865,15 @@ function ProductsPage() {
                 onUpdateFilters={updateFilters}
               />
             </div>
+
+            <CategorySubCategoryFooter
+              categoryName={selectedCategory.name}
+              subCategories={selectedCategorySubCategories}
+              selectedSubCategoryName={selectedSubCategoryName}
+              onSelect={(subCategoryName) =>
+                updateFilters({ subCategory: subCategoryName })
+              }
+            />
           </div>
         </div>
       ) : showAllView ? (

@@ -12,6 +12,7 @@ import CheckoutPage from "../../pages/CheckoutPage";
 import CheckoutReturnPage from "../../pages/CheckoutReturnPage";
 import GetnetQrCheckoutPage from "../../pages/GetnetQrCheckoutPage";
 import ProfilePage from "../../pages/ProfilePage";
+import WalletPage from "../../pages/WalletPage";
 import VerifyEmailPage from "../../pages/VerifyEmailPage";
 import MyOrdersPage from "../../pages/MyOrdersPage";
 import MySalesPage from "../../pages/MySalesPage";
@@ -125,6 +126,14 @@ const router = createBrowserRouter([
                 element : (
                     <ProtectedRoute>
                         <ProfilePage/>
+                    </ProtectedRoute>
+                )
+            },
+            {
+                path : "profile/wallet",
+                element : (
+                    <ProtectedRoute>
+                        <WalletPage/>
                     </ProtectedRoute>
                 )
             },

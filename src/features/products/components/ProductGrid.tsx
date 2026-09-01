@@ -14,17 +14,23 @@ function ProductGrid({
 }: ProductGridProps) {
   const gridClassName =
     variant === "compact"
-      ? "grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4"
+      ? "flex flex-wrap justify-start gap-3 sm:gap-4"
       : "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
 
   return (
     <div className={gridClassName}>
         {products.map((product) => (
-            <ProductCard 
+          <div
+            key={product.id}
+            className={variant === "compact" ? "w-[158px] sm:w-[176px] lg:w-[188px]" : "contents"}
+          >
+            <ProductCard
                 key={product.id}
                 product={product}
                 badge={badge}
+                compact={variant === "compact"}
             />
+          </div>
         ))}
     </div>
   )

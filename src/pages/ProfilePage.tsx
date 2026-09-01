@@ -2,26 +2,35 @@ import { useEffect, useState } from "react";
 import {
   BadgeCheck,
   CheckCircle2,
+  ChevronRight,
+  CircleUserRound,
   CreditCard,
   MailCheck,
   MapPin,
   Package,
   Pencil,
+  PauseCircle,
+  PlayCircle,
   ShieldCheck,
   ShoppingBag,
   Star,
+  Store,
   Trash2,
   Truck,
+  WalletCards,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { getCurrentAuthUser, sendVerificationCode } from "../shared/services/auth.service";
 import {
   getMyWallet,
   getMyWalletBalance,
-  getMyWithdrawals,
-  requestWithdrawal,
 } from "../shared/services/wallet.service";
-import { getMyProducts } from "../shared/services/product.service";
+import {
+  deleteProduct,
+  getMyProducts,
+  setProductActive,
+} from "../shared/services/product.service";
 import {
   createUserAddress,
   deleteUserAddress,
@@ -31,7 +40,7 @@ import {
 import type { Product } from "../shared/types/Product";
 import type { AuthUser } from "../shared/types/Auth";
 import type { CreateUserAddressPayload, UserAddress } from "../shared/types/UserAddress";
-import type { Wallet, Withdrawal } from "../shared/types/Wallet";
+import type { Wallet } from "../shared/types/Wallet";
 import {
   getUserFromToken,
   isEmailVerifiedFromUser,
@@ -52,59 +61,69 @@ import {
 type ProfileLoadState = {
   wallet: Wallet | null;
   balance: number;
-  withdrawals: Withdrawal[];
   addresses: UserAddress[];
   products: Product[];
 };
 
 type ProfileNavigationState = {
   emailVerified?: boolean;
-  productSuccess?: string;
 };
 
-const emptyWithdrawalForm = {
-  amount: "",
-  alias: "",
-  cbu: "",
-};
-
-const withdrawalStatusLabels: Record<string, string> = {
-  pending: "Pendiente",
+const productApprovalStatusLabels = {
+  pending: "Pendiente de aprobación",
   approved: "Aprobado",
-  paid: "Pagado",
   rejected: "Rechazado",
-  cancelled: "Cancelado",
-};
+} as const;
 
-const withdrawalStatusClasses: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-700",
-  approved: "bg-[var(--brand-soft)] text-[var(--brand-hover)]",
-  paid: "bg-green-100 text-green-700",
+const productApprovalStatusClasses = {
+  pending: "bg-amber-100 text-amber-800",
+  approved: "bg-emerald-100 text-emerald-800",
   rejected: "bg-red-100 text-red-700",
-  cancelled: "bg-slate-200 text-slate-600",
+} as const;
+
+type ProfileMenuItem = {
+  label: string;
+  to: string;
+  icon: LucideIcon;
+  featured?: boolean;
 };
 
-function formatDate(value?: string) {
-  if (!value) return "Sin fecha";
-
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-}
+const profileMenuGroups: { title: string; items: ProfileMenuItem[] }[] = [
+  {
+    title: "Compras",
+    items: [
+      { label: "Direcciones", to: "/profile#addresses", icon: MapPin },
+      { label: "Mis compras", to: "/profile/orders", icon: ShoppingBag },
+      { label: "Seguimiento de pedidos", to: "/profile/shipments", icon: Truck },
+      { label: "Medios de pago", to: "/profile/payment-methods", icon: CreditCard },
+    ],
+  },
+  {
+    title: "Central de vendedores",
+    items: [
+      { label: "Vender", to: "/products/create", icon: Store, featured: true },
+      { label: "Mis publicaciones", to: "/profile#products", icon: Package },
+      { label: "Ventas realizadas", to: "/profile/sales", icon: CreditCard },
+      { label: "Billetera", to: "/profile/wallet", icon: WalletCards },
+    ],
+  },
+  {
+    title: "Mi cuenta",
+    items: [
+      { label: "Datos personales", to: "/profile#personal", icon: CircleUserRound },
+      { label: "Seguridad", to: "/profile#security", icon: ShieldCheck },
+    ],
+  },
+];
 
 function ProfilePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const navigationState = location.state as ProfileNavigationState | null;
-  const productSuccessFromNavigation = navigationState?.productSuccess ?? "";
-  const [productSuccess] = useState(() => productSuccessFromNavigation);
   const [user] = useState(() => getUserFromToken());
   const [profileData, setProfileData] = useState<ProfileLoadState>({
     wallet: null,
     balance: 0,
-    withdrawals: [],
     addresses: [],
     products: [],
   });
@@ -114,37 +133,19 @@ function ProfilePage() {
   const [walletError, setWalletError] = useState("");
   const [addressError, setAddressError] = useState("");
   const [productsError, setProductsError] = useState("");
+  const [productActionId, setProductActionId] = useState<string | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
-  const [isWithdrawalFormOpen, setIsWithdrawalFormOpen] = useState(false);
-  const [withdrawalForm, setWithdrawalForm] = useState(emptyWithdrawalForm);
-  const [withdrawalError, setWithdrawalError] = useState("");
-  const [withdrawalSuccess, setWithdrawalSuccess] = useState("");
-  const [isRequestingWithdrawal, setIsRequestingWithdrawal] = useState(false);
+  const [isAddressFormOpen, setIsAddressFormOpen] = useState(false);
   const [isSendingVerificationCode, setIsSendingVerificationCode] = useState(false);
   const [verificationSuccess, setVerificationSuccess] = useState("");
   const [verificationError, setVerificationError] = useState("");
   const [accountUser, setAccountUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    if (!productSuccessFromNavigation) return;
+    if (!location.hash) return;
 
-    navigate(location.pathname, {
-      replace: true,
-      state: {
-        emailVerified: navigationState?.emailVerified,
-      },
-    });
-  }, [
-    location.pathname,
-    navigate,
-    navigationState?.emailVerified,
-    productSuccessFromNavigation,
-  ]);
-
-  useEffect(() => {
-    if (location.hash !== "#addresses") return;
-
-    const section = document.getElementById("addresses");
+    const section = document.getElementById(location.hash.slice(1));
     if (section) {
       section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -164,7 +165,6 @@ function ProfilePage() {
       const [
         walletResult,
         balanceResult,
-        withdrawalsResult,
         addressesResult,
         productsResult,
         accountUserResult,
@@ -172,7 +172,6 @@ function ProfilePage() {
         await Promise.allSettled([
           getMyWallet(),
           getMyWalletBalance(),
-          getMyWithdrawals(),
           getMyAddresses(),
           getMyProducts(),
           getCurrentAuthUser(),
@@ -181,8 +180,6 @@ function ProfilePage() {
       setProfileData({
         wallet: walletResult.status === "fulfilled" ? walletResult.value : null,
         balance: balanceResult.status === "fulfilled" ? balanceResult.value : 0,
-        withdrawals:
-          withdrawalsResult.status === "fulfilled" ? withdrawalsResult.value : [],
         addresses:
           addressesResult.status === "fulfilled" ? addressesResult.value : [],
         products:
@@ -191,8 +188,7 @@ function ProfilePage() {
 
       if (
         walletResult.status === "rejected" ||
-        balanceResult.status === "rejected" ||
-        withdrawalsResult.status === "rejected"
+        balanceResult.status === "rejected"
       ) {
         setWalletError("No se pudo cargar toda la informacion de la billetera.");
       }
@@ -253,6 +249,7 @@ function ProfilePage() {
           : prev.addresses.concat(newAddress),
       }));
       setAddressForm(emptyAddressForm);
+      setIsAddressFormOpen(false);
     } catch (createError) {
       setAddressError(
         createError instanceof Error
@@ -296,75 +293,6 @@ function ProfilePage() {
     }
   }
 
-  function handleWithdrawalChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const { name, value } = event.target;
-
-    setWithdrawalForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }
-
-  async function handleRequestWithdrawal(event: React.FormEvent) {
-    event.preventDefault();
-    setWithdrawalError("");
-    setWithdrawalSuccess("");
-
-    const amount = Number(withdrawalForm.amount);
-    const alias = withdrawalForm.alias.trim();
-    const cbu = withdrawalForm.cbu.trim();
-
-    if (!amount || amount <= 0) {
-      setWithdrawalError("Ingresa un monto mayor a 0.");
-      return;
-    }
-
-    if (amount > profileData.balance) {
-      setWithdrawalError("El monto no puede superar tu saldo disponible.");
-      return;
-    }
-
-    if (!alias && !cbu) {
-      setWithdrawalError("Ingresa un alias o CBU destino.");
-      return;
-    }
-
-    try {
-      setIsRequestingWithdrawal(true);
-      await requestWithdrawal({
-        amount,
-        alias: alias || undefined,
-        cbu: cbu || undefined,
-      });
-
-      const [walletResult, balanceResult, withdrawalsResult] =
-        await Promise.allSettled([
-          getMyWallet(),
-          getMyWalletBalance(),
-          getMyWithdrawals(),
-        ]);
-
-      setProfileData((prev) => ({
-        ...prev,
-        wallet: walletResult.status === "fulfilled" ? walletResult.value : prev.wallet,
-        balance:
-          balanceResult.status === "fulfilled" ? balanceResult.value : prev.balance,
-        withdrawals:
-          withdrawalsResult.status === "fulfilled"
-            ? withdrawalsResult.value
-            : prev.withdrawals,
-      }));
-
-      setWithdrawalForm(emptyWithdrawalForm);
-      setWithdrawalSuccess("Solicitud de retiro enviada. La vas a ver como pendiente.");
-      setIsWithdrawalFormOpen(false);
-    } catch {
-      setWithdrawalError("No se pudo solicitar el retiro.");
-    } finally {
-      setIsRequestingWithdrawal(false);
-    }
-  }
-
   async function handleSendVerificationCode() {
     setVerificationError("");
     setVerificationSuccess("");
@@ -383,11 +311,60 @@ function ProfilePage() {
     }
   }
 
+  async function handleToggleProductActive(product: Product) {
+    setProductsError("");
+    setProductActionId(product.id);
+
+    try {
+      const updatedProduct = await setProductActive(
+        product.id,
+        !product.isActive
+      );
+
+      setProfileData((current) => ({
+        ...current,
+        products: current.products.map((item) =>
+          item.id === product.id ? { ...item, ...updatedProduct } : item
+        ),
+      }));
+    } catch {
+      setProductsError(
+        product.isActive
+          ? "No se pudo pausar la publicación. Intentá nuevamente."
+          : "No se pudo reactivar la publicación. Intentá nuevamente."
+      );
+    } finally {
+      setProductActionId(null);
+    }
+  }
+
+  async function handleDeleteProduct() {
+    if (!productToDelete) return;
+
+    const productId = productToDelete.id;
+    setProductsError("");
+    setProductActionId(productId);
+
+    try {
+      await deleteProduct(productId);
+      setProfileData((current) => ({
+        ...current,
+        products: current.products.filter((item) => item.id !== productId),
+      }));
+      setProductToDelete(null);
+    } catch {
+      setProductsError(
+        "No se pudo eliminar la publicación. Intentá nuevamente."
+      );
+    } finally {
+      setProductActionId(null);
+    }
+  }
+
   if (!user) return null;
 
   const userName = user.name ?? "Usuario BuyMarket";
   const userId = user.id ?? user.sub ?? "Sin id";
-  const walletStatus = profileData.wallet?.isActive === false ? "Inactiva" : "Activa";
   const pendingBalance = Number(profileData.wallet?.pendingBalance ?? 0);
   const emailVerifiedFromNavigation =
     navigationState?.emailVerified === true;
@@ -398,34 +375,131 @@ function ProfilePage() {
     isEmailVerifiedLocally(user);
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-black uppercase text-[var(--brand)]">
-            Cuenta
-          </p>
-          <h1 className="m-0 text-3xl font-black text-slate-950 sm:text-4xl">
-            Mi perfil
-          </h1>
-        </div>
+    <section className="relative left-1/2 w-screen -translate-x-1/2 bg-[#f8f5ff] px-4 py-7 sm:px-6 lg:py-10">
+      <div className="mx-auto max-w-7xl space-y-7">
+        <header className="overflow-hidden rounded-[30px] border border-white/90 bg-white/90 p-5 shadow-[0_20px_60px_rgba(61,30,112,0.10)] sm:p-7">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#eee7ff] text-2xl font-black text-[#4d168f] ring-8 ring-[#f8f5ff]">
+                {userName.trim().charAt(0).toUpperCase() || "B"}
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#6a2bbd]">
+                  Mi cuenta
+                </p>
+                <h1 className="m-0 truncate text-3xl font-black text-slate-950 sm:text-4xl">
+                  {userName}
+                </h1>
+                <p className="mt-1 truncate font-semibold text-slate-500">
+                  {user.email ?? "Sin email"}
+                </p>
+              </div>
+            </div>
 
-        <NavLink
-          to="/products/create"
-          className="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--brand)] px-5 font-bold text-white transition hover:bg-[var(--brand-hover)]"
+            <div className="flex flex-col gap-3 sm:items-end">
+              <span
+                className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-sm font-black ${
+                  isEmailVerified
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-amber-50 text-amber-700"
+                }`}
+              >
+                <BadgeCheck className="h-4 w-4" aria-hidden="true" />
+                {isEmailVerified ? "Cuenta verificada" : "Verificación pendiente"}
+              </span>
+              <NavLink
+                to="/products/create"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#4d168f] px-5 font-bold text-white shadow-lg shadow-[#4d168f]/15 transition hover:bg-[#38106a]"
+              >
+                <Store className="h-5 w-5" aria-hidden="true" />
+                Vender un producto
+              </NavLink>
+            </div>
+          </div>
+        </header>
+
+        <button
+          type="button"
+          onClick={() => navigate("/profile/wallet")}
+          className="group flex w-full items-center gap-5 overflow-hidden rounded-[30px] border border-white/90 bg-[#351064] px-6 py-8 text-left text-white shadow-[0_20px_50px_rgba(53,16,100,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_26px_60px_rgba(53,16,100,0.32)] sm:gap-7 sm:px-8 sm:py-10"
         >
-          Publicar producto
-        </NavLink>
-      </div>
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-[#decfff] ring-1 ring-white/15 sm:h-20 sm:w-20">
+            <WalletCards className="h-8 w-8 sm:h-10 sm:w-10" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-black uppercase tracking-[0.18em] text-[#D8C7FF] sm:text-sm">
+              Billetera BuyMarket
+            </span>
+            <span className="mt-1 block text-2xl font-black sm:text-3xl">
+              Mi billetera
+            </span>
+            <span className="mt-2 block truncate text-sm font-semibold text-[#decfff] sm:text-base">
+              {isLoading
+                ? "Cargando saldo..."
+                : walletError
+                  ? "No se pudo cargar el saldo."
+                  : `${profileData.balance.toLocaleString("es-AR")} disponibles`}
+            </span>
+            {!isLoading && !walletError && pendingBalance > 0 && (
+              <span className="mt-1 block text-xs font-semibold text-amber-200 sm:text-sm">
+                ${pendingBalance.toLocaleString("es-AR")} pendiente de retiro
+              </span>
+            )}
+          </span>
+          {!isLoading && !walletError && (
+            <span className="hidden shrink-0 items-center gap-2 rounded-2xl bg-[#6045ac] px-5 py-3 text-sm font-black shadow-lg transition group-hover:bg-[#6d52b8] md:inline-flex">
+              Ver billetera
+              <ChevronRight
+                className="h-5 w-5 transition group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+            </span>
+          )}
+          <ChevronRight
+            className="h-7 w-7 shrink-0 text-[#decfff] transition group-hover:translate-x-0.5 md:hidden"
+            aria-hidden="true"
+          />
+        </button>
 
-      {productSuccess && (
-        <p className="rounded-2xl border border-green-200 bg-green-50 p-4 font-bold text-green-800">
-          {productSuccess}
-        </p>
-      )}
+        <nav aria-label="Accesos del perfil" className="grid gap-5 lg:grid-cols-3">
+          {profileMenuGroups.map((group) => (
+            <section
+              key={group.title}
+              className="rounded-[26px] border border-white/90 bg-white/75 p-4 shadow-[0_14px_38px_rgba(61,30,112,0.08)] backdrop-blur-sm"
+            >
+              <h2 className="mb-3 px-2 text-lg font-black text-[#4d168f]">
+                {group.title}
+              </h2>
+              <div className="space-y-2">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.label}
+                      to={item.to}
+                      className={`group flex min-h-14 items-center gap-3 rounded-2xl px-3.5 py-3 transition ${
+                        item.featured
+                          ? "bg-[#ece5f8] hover:bg-[#e2d7f3]"
+                          : "bg-[#f8f8fc] hover:bg-[#f0ebf8]"
+                      }`}
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#4d168f] shadow-sm">
+                        <Icon className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 flex-1 font-bold text-slate-800">
+                        {item.label}
+                      </span>
+                      <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#4d168f]" aria-hidden="true" />
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </nav>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="space-y-6">
+          <section id="personal" className="scroll-mt-28 rounded-[26px] border border-white/90 bg-white p-5 shadow-[0_14px_38px_rgba(61,30,112,0.08)] sm:p-6">
             <h2 className="m-0 text-xl font-black text-slate-950">
               Datos personales
             </h2>
@@ -461,7 +535,7 @@ function ProfilePage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section id="security" className="scroll-mt-28 rounded-[26px] border border-white/90 bg-white p-5 shadow-[0_14px_38px_rgba(61,30,112,0.08)] sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex gap-3">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]">
@@ -545,95 +619,7 @@ function ProfilePage() {
             )}
           </section>
 
-          <NavLink
-            to="/profile/orders"
-            className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--brand-border)] bg-white p-5 shadow-sm transition hover:border-[var(--brand)] hover:bg-[var(--brand-soft)]"
-          >
-            <span className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]">
-                <ShoppingBag className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <span>
-                <span className="block text-xl font-black text-slate-950">
-                  Mis compras
-                </span>
-                <span className="text-sm font-semibold text-slate-500">
-                  Ver pedidos realizados y estado del pago
-                </span>
-              </span>
-            </span>
-            <span className="shrink-0 rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white">
-              Ver compras
-            </span>
-          </NavLink>
-
-          <NavLink
-            to="/profile/sales"
-            className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50"
-          >
-            <span className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-                <Package className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <span>
-                <span className="block text-xl font-black text-slate-950">
-                  Mis ventas
-                </span>
-                <span className="text-sm font-semibold text-slate-500">
-                  Ver productos vendidos, compradores y variantes
-                </span>
-              </span>
-            </span>
-            <span className="shrink-0 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
-              Ver ventas
-            </span>
-          </NavLink>
-
-          <NavLink
-            to="/profile/payment-methods"
-            className="flex items-center justify-between gap-4 rounded-2xl border border-cyan-100 bg-white p-5 shadow-sm transition hover:border-cyan-300 hover:bg-cyan-50"
-          >
-            <span className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
-                <CreditCard className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <span>
-                <span className="block text-xl font-black text-slate-950">
-                  Medios de pago
-                </span>
-                <span className="text-sm font-semibold text-slate-500">
-                  Administrar opciones para usar en checkout
-                </span>
-              </span>
-            </span>
-            <span className="shrink-0 rounded-xl bg-cyan-700 px-4 py-2 text-sm font-bold text-white">
-              Gestionar
-            </span>
-          </NavLink>
-
-          <NavLink
-            to="/profile/shipments"
-            className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--nav-blue-border)] bg-white p-5 shadow-sm transition hover:border-[var(--nav-blue-hover)] hover:bg-[var(--nav-blue-soft)]"
-          >
-            <span className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--nav-blue-soft)] text-[var(--nav-blue)]">
-                <Truck className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <span>
-                <span className="block text-xl font-black text-slate-950">
-                  Mis envíos
-                </span>
-                <span className="text-sm font-semibold text-slate-500">
-                  Seguir compras con envío y repartidor asignado
-                </span>
-              </span>
-            </span>
-            <span className="shrink-0 rounded-xl bg-[var(--nav-blue)] px-4 py-2 text-sm font-bold text-white">
-              Ver envíos
-            </span>
-          </NavLink>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section id="products" className="scroll-mt-28 rounded-[26px] border border-white/90 bg-white p-5 shadow-[0_14px_38px_rgba(61,30,112,0.08)] sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-[var(--brand)]" aria-hidden="true" />
@@ -679,6 +665,10 @@ function ProfilePage() {
                   const hasVariants = hasProductVariants(product);
                   const displayPrice = getDisplayPrice(product);
                   const displayStock = getVariantTotalStock(product) ?? product.stock;
+                  const approvalStatus = product.approvalStatus ?? "approved";
+                  const isPaused =
+                    approvalStatus === "approved" && !product.isActive;
+                  const isWorking = productActionId === product.id;
 
                   return (
                     <article
@@ -712,8 +702,16 @@ function ProfilePage() {
                           <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600">
                             Stock: {displayStock}
                           </span>
-                          <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600">
-                            {product.isActive ? "Activo" : "Inactivo"}
+                          <span
+                            className={`rounded-full px-3 py-1 text-sm font-bold ${
+                              isPaused
+                                ? "bg-slate-200 text-slate-700"
+                                : productApprovalStatusClasses[approvalStatus]
+                            }`}
+                          >
+                            {isPaused
+                              ? "Pausada"
+                              : productApprovalStatusLabels[approvalStatus]}
                           </span>
                         </div>
                       </div>
@@ -727,12 +725,44 @@ function ProfilePage() {
                           Editar
                         </NavLink>
 
-                        <NavLink
-                          to={`/products/${product.id}`}
-                          className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-[var(--brand-border)] hover:text-[var(--brand)]"
+                        {approvalStatus === "approved" && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleProductActive(product)}
+                            disabled={isWorking}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-[var(--brand-border)] hover:text-[var(--brand)] disabled:cursor-wait disabled:opacity-60"
+                          >
+                            {product.isActive ? (
+                              <PauseCircle className="h-4 w-4" aria-hidden="true" />
+                            ) : (
+                              <PlayCircle className="h-4 w-4" aria-hidden="true" />
+                            )}
+                            {isWorking
+                              ? "Guardando..."
+                              : product.isActive
+                                ? "Pausar"
+                                : "Reactivar"}
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setProductToDelete(product)}
+                          disabled={isWorking}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 font-bold text-red-700 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
                         >
-                          Ver
-                        </NavLink>
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          Eliminar
+                        </button>
+
+                        {approvalStatus === "approved" && product.isActive && (
+                          <NavLink
+                            to={`/products/${product.id}`}
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-700 transition hover:border-[var(--brand-border)] hover:text-[var(--brand)]"
+                          >
+                            Ver
+                          </NavLink>
+                        )}
                       </div>
                     </article>
                   );
@@ -741,12 +771,21 @@ function ProfilePage() {
             )}
           </section>
 
-          <section id="addresses" className="scroll-mt-32 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-[var(--brand)]" aria-hidden="true" />
-              <h2 className="m-0 text-xl font-black text-slate-950">
-                Mis direcciones
-              </h2>
+          <section id="addresses" className="scroll-mt-28 rounded-[26px] border border-white/90 bg-white p-5 shadow-[0_14px_38px_rgba(61,30,112,0.08)] sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-[var(--brand)]" aria-hidden="true" />
+                <h2 className="m-0 text-xl font-black text-slate-950">
+                  Mis direcciones
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddressFormOpen((current) => !current)}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[#eee7ff] px-4 text-sm font-black text-[#4d168f] transition hover:bg-[#e2d7f3]"
+              >
+                {isAddressFormOpen ? "Cerrar formulario" : "Agregar dirección"}
+              </button>
             </div>
 
             {addressError && (
@@ -755,9 +794,10 @@ function ProfilePage() {
               </p>
             )}
 
+            {isAddressFormOpen && (
             <form
               onSubmit={handleCreateAddress}
-              className="mt-5 grid gap-3 sm:grid-cols-2"
+              className="mt-5 grid gap-3 rounded-2xl bg-[#faf9fd] p-4 sm:grid-cols-2"
             >
               <input
                 name="label"
@@ -862,6 +902,7 @@ function ProfilePage() {
                 {isSavingAddress ? "Guardando..." : "Guardar direccion"}
               </button>
             </form>
+            )}
 
             {isLoading ? (
               <p className="mt-5 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
@@ -932,182 +973,58 @@ function ProfilePage() {
               </div>
             )}
           </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="m-0 text-xl font-black text-slate-950">
-                Movimientos y retiros
-              </h2>
-              {walletError && (
-                <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-bold text-amber-700">
-                  Datos parciales
-                </span>
-              )}
-            </div>
-
-            {isLoading ? (
-              <p className="mt-5 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
-                Cargando billetera...
-              </p>
-            ) : profileData.withdrawals.length === 0 ? (
-              <p className="mt-5 rounded-xl bg-slate-50 p-5 font-semibold text-slate-500">
-                Todavia no tenes solicitudes de retiro.
-              </p>
-            ) : (
-              <div className="mt-5 space-y-3">
-                {profileData.withdrawals.map((withdrawal) => (
-                  <article
-                    key={withdrawal.id}
-                    className="rounded-xl border border-slate-100 bg-slate-50 p-4"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="font-black text-slate-950">
-                          ${(withdrawal.amount ?? 0).toLocaleString("es-AR")}
-                        </p>
-                        <p className="text-sm font-semibold text-slate-500">
-                          {formatDate(withdrawal.createdAt)}
-                        </p>
-                        {(withdrawal.alias || withdrawal.cbu) && (
-                          <p className="mt-1 text-sm font-semibold text-slate-500">
-                            Destino: {withdrawal.alias || withdrawal.cbu}
-                          </p>
-                        )}
-                      </div>
-                      <span
-                        className={`w-fit rounded-full px-3 py-1 text-sm font-black uppercase ${
-                          withdrawalStatusClasses[withdrawal.status ?? "pending"] ??
-                          "bg-white text-slate-600"
-                        }`}
-                      >
-                        {withdrawalStatusLabels[withdrawal.status ?? "pending"] ??
-                          withdrawal.status ??
-                          "Pendiente"}
-                      </span>
-                    </div>
-                    {withdrawal.adminNote && (
-                      <p className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-600">
-                        Nota admin: {withdrawal.adminNote}
-                      </p>
-                    )}
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
         </div>
 
-        <aside className="space-y-6">
-          <section className="rounded-2xl bg-slate-950 p-6 text-white shadow-sm">
-            <p className="text-sm font-black uppercase text-[#D8C7FF]">
-              Billetera
-            </p>
-            <p className="mt-4 text-sm font-semibold text-slate-300">
-              Saldo disponible
-            </p>
-            <strong className="mt-1 block text-4xl font-black">
-              ${profileData.balance.toLocaleString("es-AR")}
-            </strong>
-            {pendingBalance > 0 && (
-              <p className="mt-2 text-sm font-semibold text-amber-200">
-                ${pendingBalance.toLocaleString("es-AR")} pendiente de retiro
-              </p>
-            )}
-
-            <div className="mt-6 space-y-3 border-t border-white/10 pt-5">
-              <div className="flex items-center justify-between gap-4">
-                <span className="font-semibold text-slate-300">Estado</span>
-                <span className="rounded-full bg-white px-3 py-1 text-sm font-black text-slate-950">
-                  {walletStatus}
-                </span>
-              </div>
-
-              <div>
-                <span className="font-semibold text-slate-300">Wallet ID</span>
-                <p className="mt-1 break-all text-sm font-bold text-white">
-                  {profileData.wallet?.id ?? "Sin billetera asignada"}
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setWithdrawalError("");
-                setWithdrawalSuccess("");
-                setIsWithdrawalFormOpen((prev) => !prev);
-              }}
-              disabled={profileData.balance <= 0}
-              className="mt-6 w-full rounded-xl bg-[var(--brand)] px-5 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-slate-600"
-            >
-              Retirar dinero
-            </button>
-          </section>
-
-          {isWithdrawalFormOpen && (
-            <form
-              onSubmit={handleRequestWithdrawal}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <h2 className="m-0 text-xl font-black text-slate-950">
-                Solicitar retiro
-              </h2>
-              <div className="mt-4 space-y-3">
-                <input
-                  name="amount"
-                  type="number"
-                  min="1"
-                  max={profileData.balance}
-                  step="1"
-                  value={withdrawalForm.amount}
-                  onChange={handleWithdrawalChange}
-                  placeholder="Monto a retirar"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
-                />
-                <input
-                  name="alias"
-                  value={withdrawalForm.alias}
-                  onChange={handleWithdrawalChange}
-                  placeholder="Alias destino"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
-                />
-                <input
-                  name="cbu"
-                  value={withdrawalForm.cbu}
-                  onChange={handleWithdrawalChange}
-                  placeholder="CBU destino"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--brand)]"
-                />
-              </div>
-
-              {withdrawalError && (
-                <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 font-semibold text-red-700">
-                  {withdrawalError}
-                </p>
-              )}
-
-              <button
-                disabled={isRequestingWithdrawal}
-                className="mt-4 w-full rounded-xl bg-[var(--brand)] px-5 py-3 font-bold text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-[#BBA7E8]"
-              >
-                {isRequestingWithdrawal ? "Enviando..." : "Solicitar retiro"}
-              </button>
-            </form>
-          )}
-
-          {withdrawalSuccess && (
-            <p className="rounded-2xl border border-green-200 bg-green-50 p-4 font-semibold text-green-700">
-              {withdrawalSuccess}
-            </p>
-          )}
-
-          {walletError && (
-            <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 font-semibold text-amber-700">
-              {walletError}
-            </p>
-          )}
-        </aside>
       </div>
+      {productToDelete && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-product-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !productActionId) {
+              setProductToDelete(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-3xl border border-red-100 bg-white p-6 shadow-2xl">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+              <Trash2 className="h-7 w-7" aria-hidden="true" />
+            </div>
+            <h2
+              id="delete-product-title"
+              className="mt-5 text-2xl font-black text-slate-950"
+            >
+              ¿Eliminar publicación?
+            </h2>
+            <p className="mt-2 leading-6 text-slate-600">
+              Vas a eliminar <strong>{productToDelete.title}</strong>. Esta
+              acción no se puede deshacer.
+            </p>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                disabled={productActionId === productToDelete.id}
+                className="h-11 rounded-xl border border-slate-200 px-5 font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteProduct}
+                disabled={productActionId === productToDelete.id}
+                className="h-11 rounded-xl bg-red-600 px-5 font-bold text-white transition hover:bg-red-700 disabled:cursor-wait disabled:bg-red-300"
+              >
+                {productActionId === productToDelete.id
+                  ? "Eliminando..."
+                  : "Sí, eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

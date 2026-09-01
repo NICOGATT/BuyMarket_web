@@ -22,7 +22,7 @@ import type {
   ProductPublisher,
   ProductVariant,
 } from "../shared/types/Product";
-import { getProductImageUrls } from "../shared/utils/productImages";
+import { getProductMediaItems } from "../shared/utils/productImages";
 import { formatPrice } from "../shared/utils/price";
 import {
   getDisplayPrice,
@@ -222,9 +222,9 @@ function ProductDetailPage() {
     return <p className="text-slate-500">Cargando producto...</p>;
   }
 
-  const imageUrls = getProductImageUrls(product);
-  const selectedImage = imageUrls[selectedImageIndex];
-  const hasMultipleImages = imageUrls.length > 1;
+  const mediaItems = getProductMediaItems(product);
+  const selectedMedia = mediaItems[selectedImageIndex];
+  const hasMultipleImages = mediaItems.length > 1;
   const features = getProductFeatures(product);
   const publisherName = getPublisherName(product);
   const productAddress = getProductAddress(product);
@@ -258,13 +258,13 @@ function ProductDetailPage() {
 
   function showPreviousImage() {
     setSelectedImageIndex((currentIndex) =>
-      currentIndex === 0 ? imageUrls.length - 1 : currentIndex - 1
+      currentIndex === 0 ? mediaItems.length - 1 : currentIndex - 1
     );
   }
 
   function showNextImage() {
     setSelectedImageIndex((currentIndex) =>
-      currentIndex === imageUrls.length - 1 ? 0 : currentIndex + 1
+      currentIndex === mediaItems.length - 1 ? 0 : currentIndex + 1
     );
   }
 
@@ -337,7 +337,16 @@ function ProductDetailPage() {
     <section className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-10">
       <div className="min-w-0">
         <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm sm:rounded-3xl">
-          {selectedImage ? (
+          {selectedMedia?.type === "video" ? (
+            <video
+              src={selectedMedia.url}
+              controls
+              preload="metadata"
+              className="aspect-[4/3] w-full bg-slate-950 object-contain"
+            >
+              Tu navegador no puede reproducir este video.
+            </video>
+          ) : selectedMedia ? (
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
@@ -345,7 +354,7 @@ function ProductDetailPage() {
               aria-label="Ampliar imagen del producto"
             >
               <img
-                src={selectedImage}
+                src={selectedMedia.url}
                 alt={product.title}
                 className="aspect-[4/3] w-full object-contain"
               />
@@ -377,7 +386,7 @@ function ProductDetailPage() {
               </button>
 
               <span className="absolute bottom-3 right-3 rounded-full bg-slate-950/80 px-3 py-1 text-sm font-bold text-white">
-                {selectedImageIndex + 1} / {imageUrls.length}
+                {selectedImageIndex + 1} / {mediaItems.length}
               </span>
             </>
           )}
@@ -385,24 +394,28 @@ function ProductDetailPage() {
 
         {hasMultipleImages && (
           <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
-            {imageUrls.map((imageUrl, index) => (
+            {mediaItems.map((media, index) => (
               <button
-                key={imageUrl}
+                key={media.url}
                 type="button"
                 onClick={() => setSelectedImageIndex(index)}
-                aria-label={`Ver imagen ${index + 1}`}
+                aria-label={`Ver ${media.type === "video" ? "video" : "imagen"} ${index + 1}`}
                 className={`h-20 w-24 shrink-0 overflow-hidden rounded-2xl border-2 bg-slate-100 transition ${
                   selectedImageIndex === index
                     ? "border-[var(--brand)]"
                     : "border-transparent hover:border-slate-300"
                 }`}
               >
-                <img
-                  src={imageUrl}
-                  alt={`${product.title} ${index + 1}`}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
+                {media.type === "video" ? (
+                  <video src={media.url} muted preload="metadata" className="h-full w-full object-cover" />
+                ) : (
+                  <img
+                    src={media.url}
+                    alt={`${product.title} ${index + 1}`}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -643,7 +656,7 @@ function ProductDetailPage() {
         onClose={() => setIsShareModalOpen(false)}
       />
 
-      {isModalOpen && selectedImage && (
+      {isModalOpen && selectedMedia?.type === "image" && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4"
           role="dialog"
@@ -671,7 +684,7 @@ function ProductDetailPage() {
             )}
 
             <img
-              src={selectedImage}
+              src={selectedMedia.url}
               alt={product.title}
               className="max-h-[86vh] w-auto max-w-full rounded-2xl bg-white object-contain shadow-2xl"
             />
@@ -689,7 +702,7 @@ function ProductDetailPage() {
 
             {hasMultipleImages && (
               <span className="absolute bottom-3 rounded-full bg-slate-950/80 px-3 py-1 text-sm font-bold text-white">
-                {selectedImageIndex + 1} / {imageUrls.length}
+                {selectedImageIndex + 1} / {mediaItems.length}
               </span>
             )}
           </div>

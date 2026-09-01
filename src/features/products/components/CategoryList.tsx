@@ -1,7 +1,10 @@
 import { ArrowRight, PackageSearch } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Category } from "../../../shared/types/Category";
-import { normalizeName } from "../categoryConfig";
+import {
+  getCategoryIconKey,
+  getCategoryIconSprite,
+} from "../categoryIconSprites";
 import {
   getCategoryDisplayImageUrls,
   getCategoryInitials,
@@ -19,36 +22,6 @@ const categoryOrder = [
   "deportes",
   "gimnasio",
 ];
-
-const categoryAliases: Record<string, string> = { calzado: "calzados" };
-
-const referenceIconPositions: Record<string, { left: number; top: number }> = {
-  accesorios: { left: 0, top: 0 },
-  alimentos: { left: -100, top: 0 },
-  bebes: { left: -200, top: 0 },
-  belleza: { left: -300, top: 0 },
-  calzados: { left: -400, top: 0 },
-  computacion: { left: 0, top: -100 },
-  cotillon: { left: -100, top: -100 },
-  decobazar: { left: -200, top: -100 },
-  deportes: { left: -300, top: -100 },
-  gimnasio: { left: -400, top: -100 },
-};
-
-const secondaryIconPositions: Record<string, { left: number; top: number }> = {
-  indumentaria: { left: 0, top: 0 },
-  jardineria: { left: -100, top: 0 },
-  juguetes: { left: -200, top: 0 },
-  lenceria: { left: -300, top: 0 },
-  libreria: { left: -400, top: 0 },
-  libros: { left: 0, top: -100 },
-  limpieza: { left: -100, top: -100 },
-  mascotas: { left: -200, top: -100 },
-  suplementos: { left: -300, top: -100 },
-  tecno: { left: -400, top: -100 },
-  textiles: { left: 0, top: -200 },
-  videojuegos: { left: -100, top: -200 },
-};
 
 type CategoryListProps = {
   categories: Category[];
@@ -69,8 +42,8 @@ function CategoryList({
   const orderedCategories = useMemo(
     () =>
       [...categories].sort((first, second) => {
-        const firstName = categoryAliases[normalizeName(first.name)] ?? normalizeName(first.name);
-        const secondName = categoryAliases[normalizeName(second.name)] ?? normalizeName(second.name);
+        const firstName = getCategoryIconKey(first.name);
+        const secondName = getCategoryIconKey(second.name);
         const firstIndex = categoryOrder.indexOf(firstName);
         const secondIndex = categoryOrder.indexOf(secondName);
 
@@ -115,9 +88,7 @@ function CategoryList({
           const imageUrl = imageUrls[imageAttempt];
           const shouldShowImage = Boolean(imageUrl);
           const isActive = selectedCategoryId === category.id;
-          const normalizedCategory = categoryAliases[normalizeName(category.name)] ?? normalizeName(category.name);
-          const iconPosition = referenceIconPositions[normalizedCategory];
-          const secondaryIconPosition = secondaryIconPositions[normalizedCategory];
+          const iconSprite = getCategoryIconSprite(category.name);
 
           return (
             <button
@@ -131,22 +102,14 @@ function CategoryList({
               }`}
             >
               <span className="flex h-24 w-full items-center justify-center overflow-hidden rounded-xl bg-white text-lg font-black text-[var(--brand)] sm:h-28">
-                {iconPosition ? (
+                {iconSprite ? (
                   <span
                     aria-hidden="true"
-                    className="block h-[100px] w-[100px] scale-90 bg-white bg-[url('/categories/category-icons-white.png')] bg-no-repeat sm:scale-100"
+                    className="block h-[100px] w-[100px] scale-90 bg-white bg-no-repeat sm:scale-100"
                     style={{
-                      backgroundPosition: `${iconPosition.left}px ${iconPosition.top}px`,
-                      backgroundSize: "500px 200px",
-                    }}
-                  />
-                ) : secondaryIconPosition ? (
-                  <span
-                    aria-hidden="true"
-                    className="block h-[100px] w-[100px] scale-90 bg-white bg-[url('/categories/category-icons-secondary-white.png')] bg-no-repeat sm:scale-100"
-                    style={{
-                      backgroundPosition: `${secondaryIconPosition.left}px ${secondaryIconPosition.top}px`,
-                      backgroundSize: "500px 300px",
+                      backgroundImage: `url('${iconSprite.imageUrl}')`,
+                      backgroundPosition: `${iconSprite.left}px ${iconSprite.top}px`,
+                      backgroundSize: iconSprite.backgroundSize,
                     }}
                   />
                 ) : shouldShowImage ? (

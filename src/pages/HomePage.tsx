@@ -270,17 +270,17 @@ function HomeCategories() {
   }
 
   return (
-    <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden border-y border-white/80 bg-[#cfeaff] py-8 shadow-[inset_0_18px_45px_rgba(255,255,255,0.32)] sm:py-10">
+    <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[#e3f3ff] py-8 sm:py-10">
       <div className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rotate-12 rounded-[4rem] border border-white/55" />
       <div className="pointer-events-none absolute right-32 top-8 h-40 w-40 rotate-45 border border-white/60" />
       <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full border border-white/55" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-5 flex w-full flex-col items-center text-center sm:mb-6">
-          <h2 className="text-3xl font-black tracking-[-0.03em] text-[#07183c] sm:text-4xl">
+          <h2 className="text-3xl font-black tracking-[-0.03em] text-[#0754b8] sm:text-4xl">
             Explorar categorías
           </h2>
-          <p className="mt-2 w-full max-w-2xl text-center text-sm font-medium text-slate-600 sm:text-base">
+          <p className="mt-2 w-full max-w-2xl text-center text-sm font-semibold text-[#315f91] sm:text-base">
             Elegí una categoría para descubrir todos sus productos.
           </p>
         </div>
@@ -315,7 +315,7 @@ function HomeCategories() {
                   to={`/products?category=${category.id}`}
                   className="group flex w-[82px] shrink-0 flex-col items-center text-center sm:w-[88px]"
                 >
-                  <div className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[linear-gradient(145deg,#4c1d95,#7c3aed_42%,#22d3ee_78%,#312e81)] p-[3px] transition duration-300 group-hover:-translate-y-1 sm:h-20 sm:w-20">
+                  <div className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[linear-gradient(145deg,#0754b8,#1687e8_55%,#52c7f2)] p-[3px] transition duration-300 group-hover:-translate-y-1 sm:h-20 sm:w-20">
                     <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white">
                     {iconPosition ? (
                       <span
@@ -379,12 +379,13 @@ function HomeCategories() {
 
 function BenefitsSection() {
   return (
-    <section>
+    <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[#eff8ff] py-10 sm:py-14">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-8">
-        <h2 className="text-2xl font-black text-slate-950 sm:text-3xl">
+        <h2 className="text-2xl font-black text-[#0754b8] sm:text-3xl">
           Comprar y vender con confianza
         </h2>
-        <p className="mt-2 font-semibold text-slate-500">
+        <p className="mt-2 font-semibold text-[#315f91]">
           Beneficios pensados para que la experiencia se sienta simple, clara y
           profesional.
         </p>
@@ -393,17 +394,18 @@ function BenefitsSection() {
         {benefits.map(({ title, description, icon: Icon }) => (
           <article
             key={title}
-            className="rounded-2xl border border-white/80 bg-white/84 p-5 shadow-sm backdrop-blur transition hover:-translate-y-1 hover:border-[var(--brand-sky-border)] hover:shadow-[0_20px_55px_rgba(18,60,105,0.12)] sm:rounded-3xl sm:p-6"
+            className="rounded-2xl border border-white bg-white/72 p-5 shadow-[0_10px_30px_rgba(33,103,168,0.08)] backdrop-blur transition hover:-translate-y-1 hover:border-[#b8ddfb] hover:shadow-[0_18px_42px_rgba(33,103,168,0.13)] sm:rounded-3xl sm:p-6"
           >
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--brand-sky-soft),var(--brand-orange-soft))] text-[var(--nav-blue)]">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#dceeff] text-[#0764c8]">
               <Icon className="h-7 w-7" />
             </span>
-            <h3 className="mt-5 text-xl font-black text-slate-950">{title}</h3>
-            <p className="mt-3 text-sm font-semibold leading-6 text-slate-500">
+            <h3 className="mt-5 text-xl font-black text-[#0754b8]">{title}</h3>
+            <p className="mt-3 text-sm font-semibold leading-6 text-[#315f91]">
               {description}
             </p>
           </article>
         ))}
+      </div>
       </div>
     </section>
   );
@@ -411,10 +413,10 @@ function BenefitsSection() {
 
 function HomePage() {
   return (
-    <div className="pb-8">
+    <div>
       <HeroSection />
       <HomeCategories />
-      <div className="space-y-10 pt-10 sm:space-y-16 sm:pt-16 lg:space-y-20 lg:pt-20">
+      <div>
         <FeaturedProducts />
         <BenefitsSection />
       </div>

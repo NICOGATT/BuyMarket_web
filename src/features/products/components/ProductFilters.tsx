@@ -42,8 +42,8 @@ function ToggleChip({
       onClick={onClick}
       className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-bold transition ${
         active
-          ? "border-[var(--brand)] bg-[var(--brand)] text-white shadow-[0_8px_18px_rgba(45,0,107,0.22)]"
-          : "border-slate-200 bg-white text-slate-600 hover:border-[var(--brand-border)] hover:text-[var(--brand)]"
+          ? "border-slate-400 bg-slate-100 text-slate-900"
+          : "border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-900"
       }`}
     >
       {children}
@@ -154,16 +154,16 @@ function ProductFilters({
         onClick={() => setIsOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
-        className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand-soft)] ${
+        className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200 ${
           activeFilterCount > 0
-            ? "border-[var(--brand)] bg-[var(--brand)] text-white shadow-[0_8px_18px_rgba(45,0,107,0.22)]"
-            : "border-slate-200 bg-white text-slate-600 hover:border-[var(--brand-border)] hover:text-[var(--brand)]"
+            ? "border-slate-300 bg-slate-100 text-slate-900"
+            : "border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-900"
         }`}
       >
         <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
         Filtros
         {activeFilterCount > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-xs font-black text-[var(--brand)]">
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-700 px-1.5 text-xs font-black text-white">
             {activeFilterCount}
           </span>
         )}
@@ -180,12 +180,12 @@ function ProductFilters({
               role="dialog"
               aria-modal="true"
               aria-labelledby="product-filters-modal-title"
-              className="flex max-h-[85vh] w-full max-w-xl flex-col rounded-3xl border border-white/80 bg-white p-5 shadow-2xl sm:p-6"
+              className="flex max-h-[85vh] w-full max-w-xl flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-xl sm:p-6"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="m-0 text-sm font-black uppercase tracking-wide text-[var(--brand)]">
-                    Refinar busqueda
+                  <p className="m-0 text-sm font-semibold text-slate-500">
+                    Refinar búsqueda
                   </p>
                   <h2
                     id="product-filters-modal-title"
@@ -199,7 +199,7 @@ function ProductFilters({
                   type="button"
                   onClick={() => setIsOpen(false)}
                   aria-label="Cerrar filtros"
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand-soft)]"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
                 >
                   <X className="h-5 w-5" aria-hidden="true" />
                 </button>
@@ -209,12 +209,12 @@ function ProductFilters({
                 {withCategoryFilter && (
                   <label className="block">
                     <span className="mb-2 block text-sm font-black text-slate-700">
-                      Categoria
+                      Categoría
                     </span>
                     <select
                       value={selectedCategoryId}
                       onChange={(event) => onSelectCategory(event.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-4 py-2.5 font-semibold outline-none focus:border-[var(--brand)]"
+                      className="w-full rounded-xl border border-slate-300 px-4 py-2.5 font-semibold outline-none focus:border-slate-500"
                     >
                       <option value="">Todas</option>
                       {categories.map((category) => (
@@ -229,7 +229,7 @@ function ProductFilters({
                 {subCategoryOptions.length > 0 && (
                   <div>
                     <span className="mb-2 block text-sm font-black text-slate-700">
-                      Subcategoria
+                      Subcategoría
                     </span>
                     <div className="flex flex-wrap gap-2">
                       <ToggleChip
@@ -346,7 +346,7 @@ function ProductFilters({
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[var(--brand-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand-soft)]"
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
                 >
                   <Check className="h-4 w-4" aria-hidden="true" />
                   Listo

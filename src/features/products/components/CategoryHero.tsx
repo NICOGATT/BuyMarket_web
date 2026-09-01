@@ -144,7 +144,183 @@ function CategoryHero({ category }: CategoryHeroProps) {
                             brandNameColor: "text-[#376f7a]",
                             alt: "Bebés: todo para los primeros pasos, descuentos y envíos en el mismo día",
                           }
-                        : null;
+                        : normalizedCategoryName === "cotillon"
+                          ? {
+                              banner: "/banners/cotillon-banner-panoramico.png",
+                              background: "bg-[#ffe5bd]",
+                              brandsBackground:
+                                "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,224,193,0.46)_56%,#f8d2ca_100%),linear-gradient(90deg,#ffd998_0%,#ffc7cf_30%,#d8e9df_62%,#bde6ee_100%)]",
+                              circleBorder: "border-white/85",
+                              shadow: "shadow-[0_24px_70px_rgba(190,73,128,0.16)]",
+                              titleColor: "text-[#71379b]",
+                              brandNameColor: "text-[#71379b]",
+                              alt: "Cotillón: todo para festejar a lo grande, descuentos y envíos en el mismo día",
+                            }
+                          : normalizedCategoryName === "deportes"
+                            ? {
+                                banner: "/banners/deportes-banner-panoramico.png",
+                                background: "bg-[#f4f5f3]",
+                                brandsBackground:
+                                  "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(229,237,229,0.52)_56%,#d4e7dc_100%),linear-gradient(90deg,#f2f4f1_0%,#dcebdc_32%,#b9dcbf_62%,#9bc7c5_100%)]",
+                                circleBorder: "border-white/85",
+                                shadow: "shadow-[0_24px_70px_rgba(10,55,94,0.17)]",
+                                titleColor: "text-[#0a3b66]",
+                                brandNameColor: "text-[#0a3b66]",
+                                alt: "Deportes: equipamiento, indumentaria y accesorios para llevar tu rendimiento al máximo nivel",
+                              }
+                            : normalizedCategoryName === "gimnasio"
+                              ? {
+                                  banner: "/banners/gimnasio-banner-panoramico.png",
+                                  background: "bg-[#050706]",
+                                  brandsBackground:
+                                    "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(9,20,10,0.70)_54%,#0b170b_100%),linear-gradient(90deg,#020403_0%,#071008_38%,#102410_68%,#173516_100%)]",
+                                  circleBorder: "border-lime-400/40",
+                                  shadow: "shadow-[0_24px_70px_rgba(58,190,24,0.18)]",
+                                  titleColor: "text-white",
+                                  brandNameColor: "text-white",
+                                  alt: "Gimnasio: entrená sin excusas con equipamiento de alta calidad y envíos en el mismo día",
+                                }
+                              : normalizedCategoryName === "jardineria"
+                                ? {
+                                    banner:
+                                      "/banners/jardineria-banner-ultrapanoramico.png",
+                                    background: "bg-[#c5b56e]",
+                                    brandsBackground:
+                                      "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(185,177,104,0.54)_56%,#a7b66d_100%),linear-gradient(90deg,#d5bd75_0%,#c5b56e_38%,#8fa65e_70%,#6f8f4d_100%)]",
+                                    circleBorder: "border-lime-50/90",
+                                    shadow:
+                                      "shadow-[0_24px_70px_rgba(60,90,38,0.18)]",
+                                    titleColor: "text-[#244c21]",
+                                    brandNameColor: "text-[#244c21]",
+                                    alt: "Jardinería: todo para cuidar y transformar tus espacios",
+                                  }
+                                : normalizedCategoryName === "juguetes" ||
+                                    normalizedCategoryName === "jugueteria"
+                                  ? {
+                                      banner:
+                                        "/banners/juguetes-banner-ultrapanoramico.png",
+                                      background: "bg-[#fff5ea]",
+                                      brandsBackground:
+                                        "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,239,222,0.54)_56%,#f7dcca_100%),linear-gradient(90deg,#ffd5cf_0%,#fff0bc_28%,#cdeedd_56%,#cce8f4_78%,#d8d6f5_100%)]",
+                                      circleBorder: "border-white/90",
+                                      shadow:
+                                        "shadow-[0_24px_70px_rgba(222,92,92,0.15)]",
+                                      titleColor: "text-[#173b68]",
+                                      brandNameColor: "text-[#173b68]",
+                                      alt: "Juguetes: creá tu propia aventura con miles de sonrisas",
+                                    }
+                                  : normalizedCategoryName === "textiles"
+                                    ? {
+                                        banner:
+                                          "/banners/textiles-banner-ultrapanoramico.png",
+                                        background: "bg-[#eee7df]",
+                                        brandsBackground:
+                                          "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(242,232,224,0.56)_56%,#eadbd7_100%),linear-gradient(90deg,#f4eee7_0%,#eedfd9_32%,#e6d1d3_60%,#dce8ed_100%)]",
+                                        circleBorder: "border-white/90",
+                                        shadow:
+                                          "shadow-[0_24px_70px_rgba(115,80,86,0.14)]",
+                                        titleColor: "text-[#0d4b5b]",
+                                        brandNameColor: "text-[#0d4b5b]",
+                                        alt: "Textiles para un hogar que te cuida con suavidad",
+                                      }
+                                    : normalizedCategoryName === "lenceria"
+                                      ? {
+                                          banner:
+                                            "/banners/lenceria-banner-ultrapanoramico-v2.png",
+                                          background: "bg-[#eee7df]",
+                                          brandsBackground:
+                                            "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(235,225,214,0.56)_56%,#dfd2c5_100%),linear-gradient(90deg,#f3eee7_0%,#e7dbce_34%,#d6c5b6_68%,#bda897_100%)]",
+                                          circleBorder: "border-white/90",
+                                          shadow:
+                                            "shadow-[0_24px_70px_rgba(66,48,39,0.16)]",
+                                          titleColor: "text-[#241b17]",
+                                          brandNameColor: "text-[#241b17]",
+                                          alt: "Lencería: ropa íntima, pijamas y colección exclusiva",
+                                        }
+                                      : normalizedCategoryName === "libreria"
+                                        ? {
+                                            banner:
+                                              "/banners/libreria-banner-ultrapanoramico.png",
+                                            background: "bg-[#fff0ca]",
+                                            brandsBackground:
+                                              "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,235,194,0.52)_56%,#f9dca2_100%),linear-gradient(90deg,#ffd26e_0%,#ffb75e_26%,#7edfd4_58%,#43bdda_78%,#f98c78_100%)]",
+                                            circleBorder: "border-white/90",
+                                            shadow:
+                                              "shadow-[0_24px_70px_rgba(213,93,41,0.16)]",
+                                            titleColor: "text-[#083d63]",
+                                            brandNameColor: "text-[#083d63]",
+                                            alt: "Librería: cuadernos, bolígrafos, mochilas y más",
+                                          }
+                                        : normalizedCategoryName === "limpieza"
+                                          ? {
+                                              banner:
+                                                "/banners/limpieza-banner-ultrapanoramico.png",
+                                              background: "bg-[#dff5fa]",
+                                              brandsBackground:
+                                                "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(213,241,247,0.54)_56%,#c7eaf1_100%),linear-gradient(90deg,#eefafa_0%,#bfe7ee_34%,#83d1df_66%,#68bdcf_100%)]",
+                                              circleBorder: "border-white/90",
+                                              shadow:
+                                                "shadow-[0_24px_70px_rgba(22,126,157,0.15)]",
+                                              titleColor: "text-[#0b5271]",
+                                              brandNameColor: "text-[#0b5271]",
+                                              alt: "Limpieza para un hogar impecable y una vida radiante",
+                                            }
+                                          : normalizedCategoryName ===
+                                              "videojuegos"
+                                            ? {
+                                                banner:
+                                                  "/banners/videojuegos-banner-ultrapanoramico.png",
+                                                background: "bg-[#070a1d]",
+                                                brandsBackground:
+                                                  "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(21,15,61,0.72)_54%,#151039_100%),linear-gradient(90deg,#080a1c_0%,#29104e_28%,#441465_52%,#0d3c5e_76%,#082a32_100%)]",
+                                                circleBorder:
+                                                  "border-fuchsia-400/40",
+                                                shadow:
+                                                  "shadow-[0_24px_70px_rgba(123,44,191,0.24)]",
+                                                titleColor: "text-white",
+                                                brandNameColor: "text-white",
+                                                alt: "Videojuegos: aventuras épicas y mundos sin límites",
+                                              }
+                                            : normalizedCategoryName === "libros"
+                                              ? {
+                                                  banner:
+                                                    "/banners/libros-banner-ultrapanoramico.png",
+                                                  background: "bg-[#c99762]",
+                                                  brandsBackground:
+                                                    "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(189,137,87,0.54)_56%,#a96f43_100%),linear-gradient(90deg,#d9b27b_0%,#c5925d_34%,#a66d42_68%,#74442d_100%)]",
+                                                  circleBorder:
+                                                    "border-amber-50/90",
+                                                  shadow:
+                                                    "shadow-[0_24px_70px_rgba(92,50,27,0.20)]",
+                                                  titleColor: "text-[#172d3c]",
+                                                  brandNameColor:
+                                                    "text-[#172d3c]",
+                                                  alt: "Libros: tu próxima gran historia está aquí",
+                                                }
+                                              : normalizedCategoryName ===
+                                                  "suplementos"
+                                                ? {
+                                                    banner:
+                                                      "/banners/suplementos-banner-ultrapanoramico.png",
+                                                    background: "bg-[#edf3df]",
+                                                    brandsBackground:
+                                                      "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(226,238,209,0.56)_56%,#cfe2bd_100%),linear-gradient(90deg,#f3f5e7_0%,#deebcf_34%,#bcd9b0_66%,#93c1a7_100%)]",
+                                                    circleBorder:
+                                                      "border-white/90",
+                                                    shadow:
+                                                      "shadow-[0_24px_70px_rgba(36,112,91,0.15)]",
+                                                    titleColor:
+                                                      "text-[#165d58]",
+                                                    brandNameColor:
+                                                      "text-[#165d58]",
+                                                    alt: "Suplementos para un bienestar completo y una vida equilibrada",
+                                                  }
+                                                : null;
+
+  const isDarkPanoramicTheme =
+    normalizedCategoryName === "computacion" ||
+    normalizedCategoryName === "gimnasio" ||
+    normalizedCategoryName === "videojuegos";
 
   const displayedBrandCards: DisplayedBrand[] = panoramicTheme
     ? [
@@ -189,7 +365,7 @@ function CategoryHero({ category }: CategoryHeroProps) {
             <div
               className={`relative -mt-3.5 flex items-center justify-center gap-3 ${panoramicTheme.titleColor} sm:-mt-4 sm:gap-5`}
               style={
-                normalizedCategoryName === "computacion"
+                isDarkPanoramicTheme
                   ? {
                       color: "#FFFFFF",
                       textShadow: "none",
@@ -199,15 +375,15 @@ function CategoryHero({ category }: CategoryHeroProps) {
             >
               <span
                 className={`relative h-px max-w-56 flex-1 bg-current opacity-55 after:absolute after:-right-0.5 after:-top-1 after:h-2 after:w-2 after:rounded-full after:bg-current ${
-                  normalizedCategoryName === "computacion" ? "!bg-white" : ""
+                  isDarkPanoramicTheme ? "!bg-white" : ""
                 }`}
               />
               <h2
                 className={`shrink-0 text-center text-lg font-black uppercase tracking-[0.06em] sm:text-2xl ${
-                  normalizedCategoryName === "computacion" ? "!text-white" : ""
+                  isDarkPanoramicTheme ? "!text-white" : ""
                 }`}
                 style={
-                  normalizedCategoryName === "computacion"
+                  isDarkPanoramicTheme
                     ? { color: "#ffffff" }
                     : undefined
                 }
@@ -216,7 +392,7 @@ function CategoryHero({ category }: CategoryHeroProps) {
               </h2>
               <span
                 className={`relative h-px max-w-56 flex-1 bg-current opacity-55 before:absolute before:-left-0.5 before:-top-1 before:h-2 before:w-2 before:rounded-full before:bg-current ${
-                  normalizedCategoryName === "computacion" ? "!bg-white" : ""
+                  isDarkPanoramicTheme ? "!bg-white" : ""
                 }`}
               />
             </div>

@@ -77,7 +77,7 @@ export async function uploadTransferProof(
     await api.post(`/payments/${paymentId}/proof`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
-      },
+      }
     });
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 413) {

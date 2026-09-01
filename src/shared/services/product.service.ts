@@ -133,6 +133,15 @@ export async function deleteProduct(id: string): Promise<void> {
   await api.delete(`/products/${id}`);
 }
 
+export async function setProductActive(
+  id: string,
+  isActive: boolean
+): Promise<Product> {
+  const action = isActive ? "resume" : "pause";
+  const response = await api.patch<Product>(`/products/${id}/${action}`);
+  return response.data;
+}
+
 export async function approveProduct(id: string): Promise<Product> {
   const response = await api.patch<Product>(`/products/${id}/approve`);
   return response.data;

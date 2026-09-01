@@ -5,6 +5,7 @@ export type SubCategory = {
   name: string;
   categoryId: string;
   category?: Category;
+  requiresApproval?: boolean;
 };
 
 export type CreateSubCategoryPayload = {

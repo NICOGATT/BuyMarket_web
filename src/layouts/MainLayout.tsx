@@ -1,4 +1,4 @@
-import { ChevronDown, CreditCard, Mail, MapPin, PackagePlus, Plus, Search, ShoppingBag, ShoppingCart, Trash2, Truck, User, X } from "lucide-react";
+import { ChevronDown, CreditCard, Mail, MapPin, Minus, PackagePlus, Plus, Search, ShoppingBag, ShoppingCart, Trash2, Truck, User, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -7,6 +7,7 @@ import {
   getCart,
   isAuthRequiredError,
   removeCartItem,
+  updateCartItem,
 } from "../features/cart/store/cartStore";
 import type { CartItem } from "../shared/types/Cart";
 import {
@@ -73,6 +74,7 @@ function MainLayout() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isCartPreviewOpen, setIsCartPreviewOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [updatingCartItemId, setUpdatingCartItemId] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
@@ -88,6 +90,14 @@ function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentSearchParams = new URLSearchParams(location.search);
+  const isAuthPage =
+    location.pathname === "/login" || location.pathname === "/register";
+  const isCategoryCatalogPage =
+    location.pathname === "/products" && currentSearchParams.has("category");
+  const isCreateProductPage =
+    location.pathname === "/products/create" ||
+    /^\/products\/[^/]+\/edit$/.test(location.pathname);
+  const isProfilePage = location.pathname.startsWith("/profile");
 
   useEffect(() => {
     function syncAuth() {
@@ -172,6 +182,7 @@ function MainLayout() {
     if (!item.id) return;
 
     try {
+      setUpdatingCartItemId(item.id);
       await removeCartItem(item.id);
       setCart((currentCart) =>
         currentCart.filter((cartItem) => cartItem.id !== item.id)
@@ -183,6 +194,34 @@ function MainLayout() {
       }
 
       alert("No se pudo eliminar el producto del carrito.");
+    } finally {
+      setUpdatingCartItemId(null);
+    }
+  }
+
+  async function handleCartItemQuantity(item: CartItem, quantity: number) {
+    if (!item.id || !Number.isFinite(quantity)) return;
+
+    if (quantity < 1) {
+      await handleRemoveCartItem(item);
+      return;
+    }
+
+    if (quantity === item.quantity) return;
+
+    try {
+      setUpdatingCartItemId(item.id);
+      const updatedCart = await updateCartItem(item.id, { quantity });
+      setCart(updatedCart);
+    } catch (updateError) {
+      if (isAuthRequiredError(updateError)) {
+        navigate("/login");
+        return;
+      }
+
+      alert("No se pudo actualizar la cantidad.");
+    } finally {
+      setUpdatingCartItemId(null);
     }
   }
   const priorityCategories = useMemo(() => {
@@ -318,9 +357,9 @@ function MainLayout() {
   }, [isAddressModalOpen, isSavingAddress]);
 
   return (
-    <div className="min-h-screen bg-transparent text-[var(--text-main)]">
+    <div className={`min-h-screen ${isProfilePage ? "bg-[#f8f5ff]" : "bg-transparent"} text-[var(--text-main)]`}>
       <ScrollToTop />
-      <header className="sticky top-0 z-40 border-b border-[#123b82] bg-[#02082b] shadow-[0_12px_32px_rgba(0,4,30,0.38)]">
+      <header className={`${isAuthPage ? "hidden" : ""} sticky top-0 z-40 border-b border-[#123b82] bg-[#02082b] shadow-[0_12px_32px_rgba(0,4,30,0.38)]`}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2 sm:gap-4 lg:grid-cols-[auto_minmax(280px,1fr)_auto]">
             <div className="flex items-center justify-between gap-4">
@@ -331,7 +370,7 @@ function MainLayout() {
                   className="h-9 w-12 shrink-0 object-contain opacity-100 sm:h-10 sm:w-14"
                 />
                 <span
-                  className="hidden truncate text-xl font-extrabold leading-none tracking-[-0.025em] text-white sm:block sm:text-[22px]"
+                  className="hidden whitespace-nowrap py-0.5 text-xl font-extrabold leading-[1.2] tracking-[-0.025em] text-white sm:block sm:text-[22px]"
                 >
                   BuyMarket
                 </span>
@@ -400,9 +439,6 @@ function MainLayout() {
                               key={item.id ?? `${item.product.id}-${item.variant?.id ?? ""}`}
                               className="flex gap-3 rounded-xl bg-slate-50 p-3"
                             >
-                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-xs font-black text-[var(--brand)]">
-                                x{item.quantity}
-                              </div>
                               <div className="min-w-0 flex-1">
                                 <p className="truncate font-bold text-slate-900">
                                   {item.product.title}
@@ -418,13 +454,59 @@ function MainLayout() {
                                     getCartItemUnitPrice(item) * item.quantity
                                   ).toLocaleString("es-AR")}
                                 </p>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                                    Cantidad
+                                  </span>
+                                  <div className="flex h-8 items-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleCartItemQuantity(item, item.quantity - 1)}
+                                      disabled={!item.id || updatingCartItemId === item.id}
+                                      aria-label={`Quitar una unidad de ${item.product.title}`}
+                                      className="flex h-full w-8 items-center justify-center text-slate-600 transition hover:bg-slate-100 hover:text-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                      <Minus className="h-3.5 w-3.5" aria-hidden="true" />
+                                    </button>
+                                    <input
+                                      key={`${item.id}-${item.quantity}`}
+                                      type="number"
+                                      min="1"
+                                      defaultValue={item.quantity}
+                                      onBlur={(event) => {
+                                        const nextQuantity = Number.parseInt(event.currentTarget.value, 10);
+                                        if (!Number.isFinite(nextQuantity) || nextQuantity < 1) {
+                                          event.currentTarget.value = String(item.quantity);
+                                          return;
+                                        }
+                                        void handleCartItemQuantity(item, nextQuantity);
+                                      }}
+                                      onKeyDown={(event) => {
+                                        if (event.key === "Enter") event.currentTarget.blur();
+                                      }}
+                                      disabled={!item.id || updatingCartItemId === item.id}
+                                      aria-label={`Cantidad de ${item.product.title}`}
+                                      className="h-full w-10 border-x border-slate-200 bg-white text-center text-xs font-black text-slate-800 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleCartItemQuantity(item, item.quantity + 1)}
+                                      disabled={!item.id || updatingCartItemId === item.id}
+                                      aria-label={`Agregar una unidad de ${item.product.title}`}
+                                      className="flex h-full w-8 items-center justify-center text-slate-600 transition hover:bg-slate-100 hover:text-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                      <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => void handleRemoveCartItem(item)}
+                                disabled={!item.id || updatingCartItemId === item.id}
                                 aria-label={`Eliminar ${item.product.title}`}
-                                title="Eliminar del carrito"
-                                className="flex h-8 w-8 shrink-0 items-center justify-center self-start rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-100"
+                                title="Eliminar todas las unidades"
+                                className="flex h-8 w-8 shrink-0 items-center justify-center self-start rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-100 disabled:cursor-not-allowed disabled:opacity-40"
                               >
                                 <Trash2 className="h-4 w-4" aria-hidden="true" />
                               </button>
@@ -669,10 +751,26 @@ function MainLayout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+      <main
+        className={
+          isAuthPage
+            ? "w-full flex-1"
+            : isCreateProductPage
+              ? "w-full flex-1"
+              : "mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8"
+        }
+      >
         <Outlet />
       </main>
-      <footer className="mt-auto border-t border-[var(--brand-sky-border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.90),rgba(231,248,255,0.86)_48%,rgba(255,241,216,0.82))] backdrop-blur-xl">
+      <footer
+        className={`${isAuthPage || isCategoryCatalogPage ? "hidden" : ""} mt-auto border-t backdrop-blur-xl ${
+          isProfilePage
+            ? "border-[#eae0fa] bg-[#f8f5ff]"
+            : location.pathname === "/"
+              ? "border-[#d5eafa] bg-[#eff8ff] [&_h3]:text-[#0754b8] [&_p]:text-[#315f91]"
+              : "border-[var(--brand-sky-border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.90),rgba(231,248,255,0.86)_48%,rgba(255,241,216,0.82))]"
+        }`}
+      >
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr] lg:px-8">
           <div>
             <NavLink to="/" className="flex items-center gap-3">

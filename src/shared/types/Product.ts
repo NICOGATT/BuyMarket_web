@@ -7,6 +7,9 @@ import type { UserAddress } from "./UserAddress";
 export type ProductMedia = {
   id?: string;
   url?: string;
+  type?: "image" | "video" | "document";
+  isCover?: boolean;
+  order?: number;
   path?: string;
   fileUrl?: string;
   imageUrl?: string;
@@ -95,6 +98,7 @@ export type Product = {
 export type ProductCardProps = {
   product: Product;
   badge?: "Destacado" | "Oferta";
+  compact?: boolean;
 };
 
 export type CreateProductPayload = {

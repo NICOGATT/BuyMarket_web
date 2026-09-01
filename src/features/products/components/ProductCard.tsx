@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
-import { Share2, ShoppingCart, Zap } from "lucide-react";
+import { CheckCircle2, Share2, ShoppingCart, X, Zap } from "lucide-react";
 import {
   addCart,
   addProductToCart,
@@ -8,7 +9,7 @@ import {
 } from "../../cart/store/cartStore";
 import type { ProductCardProps } from "../../../shared/types/Product";
 import { getProductCategoryName } from "../../../shared/utils/productCategories";
-import { getProductFirstImage } from "../../../shared/utils/productImages";
+import { getProductMediaItems } from "../../../shared/utils/productImages";
 import {
   getDisplayPrice,
   getVariantTotalStock,
@@ -17,21 +18,41 @@ import {
 import ShareProductModal from "./ShareProductModal";
 import VariantPickerModal from "./VariantPickerModal";
 
-function ProductCard({ product, badge = "Destacado" }: ProductCardProps) {
+function ProductCard({
+  product,
+  badge = "Destacado",
+  compact = false,
+}: ProductCardProps) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isVariantPickerOpen, setIsVariantPickerOpen] = useState(false);
+  const [isCartSuccessVisible, setIsCartSuccessVisible] = useState(false);
   const [variantPickerKey, setVariantPickerKey] = useState(0);
   const [variantPickerMode, setVariantPickerMode] = useState<"cart" | "buy">(
     "cart"
   );
   const navigate = useNavigate();
-  const image = getProductFirstImage(product);
+  const coverMedia = getProductMediaItems(product)[0];
   const categoryName = getProductCategoryName(product);
   const hasVariants = hasProductVariants(product);
   const displayPrice = getDisplayPrice(product);
   const totalVariantStock = getVariantTotalStock(product);
+
+  useEffect(() => {
+    if (!isCartSuccessVisible) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setIsCartSuccessVisible(false);
+    }, 3500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isCartSuccessVisible]);
+
+  function showCartSuccess() {
+    setIsCartSuccessVisible(false);
+    window.setTimeout(() => setIsCartSuccessVisible(true), 0);
+  }
 
   function openVariantPicker(mode: "cart" | "buy") {
     setVariantPickerMode(mode);
@@ -48,7 +69,7 @@ function ProductCard({ product, badge = "Destacado" }: ProductCardProps) {
     try {
       setIsAddingToCart(true);
       await addCart(product);
-      alert("Producto agregado al carrito");
+      showCartSuccess();
     } catch (error) {
       if (isAuthRequiredError(error)) {
         alert("Inicia sesion para agregar productos al carrito.");
@@ -106,7 +127,7 @@ function ProductCard({ product, badge = "Destacado" }: ProductCardProps) {
       if (isBuy) {
         navigate("/checkout");
       } else {
-        alert("Producto agregado al carrito");
+        showCartSuccess();
       }
     } catch (error) {
       if (isAuthRequiredError(error)) {
@@ -131,7 +152,49 @@ function ProductCard({ product, badge = "Destacado" }: ProductCardProps) {
   }
 
   return (
-    <article className="group flex h-full w-full flex-col overflow-hidden rounded-3xl border border-white/80 bg-white/86 shadow-[0_12px_34px_rgba(18,60,105,0.08)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[var(--brand-sky-border)] hover:shadow-[0_24px_70px_rgba(18,60,105,0.16)]">
+    <article className={`group flex h-full w-full flex-col overflow-hidden border border-white/80 bg-white/90 backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[var(--brand-sky-border)] ${compact ? "rounded-2xl shadow-[0_8px_22px_rgba(18,60,105,0.08)] hover:shadow-[0_14px_30px_rgba(18,60,105,0.13)]" : "rounded-3xl shadow-[0_12px_34px_rgba(18,60,105,0.08)] hover:shadow-[0_24px_70px_rgba(18,60,105,0.16)]"}`}>
+      {isCartSuccessVisible &&
+        createPortal(
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed right-4 top-24 z-[70] w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-2xl border border-[#bce8d3] bg-white shadow-[0_22px_55px_rgba(8,45,83,0.22)] sm:right-6"
+        >
+          <div className="h-1.5 bg-[linear-gradient(90deg,#087af2,#14b86e)]" />
+          <div className="flex items-start gap-3 p-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f9f0] text-[#079455]">
+              <CheckCircle2 className="h-6 w-6" strokeWidth={2.5} aria-hidden="true" />
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <p className="m-0 text-base font-black text-[#07183c]">
+                ¡Producto agregado!
+              </p>
+              <p className="mt-0.5 line-clamp-1 text-sm font-semibold text-slate-500">
+                {product.title} ya está en tu carrito.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/cart")}
+                className="mt-2 text-sm font-black text-[#0754b8] transition hover:text-[#087af2] hover:underline"
+              >
+                Ver mi carrito
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsCartSuccessVisible(false)}
+              aria-label="Cerrar notificación"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>,
+          document.body
+        )}
+
       {isBuyingNow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
           <div className="rounded-2xl bg-white px-6 py-5 text-center shadow-xl">
@@ -161,28 +224,39 @@ function ProductCard({ product, badge = "Destacado" }: ProductCardProps) {
         onConfirm={handleVariantConfirm}
       />
 
-      <div className="relative aspect-[4/3] overflow-hidden border-b border-white/70 bg-white">
+      <div className={`relative overflow-hidden border-b border-white/70 bg-white ${compact ? "aspect-square" : "aspect-[4/3]"}`}>
         <button
           type="button"
           onClick={() => setIsShareModalOpen(true)}
           aria-label={`Compartir ${product.title}`}
           title="Compartir producto"
-          className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center text-[var(--nav-blue-hover)] transition hover:-translate-y-0.5 hover:text-[var(--brand)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand-soft)]"
+          className={`absolute z-10 flex items-center justify-center text-[var(--nav-blue-hover)] transition hover:-translate-y-0.5 hover:text-[var(--brand)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand-soft)] ${compact ? "right-2 top-2 h-8 w-8" : "right-4 top-4 h-11 w-11"}`}
         >
-          <Share2 className="h-5 w-5" aria-hidden="true" />
+          <Share2 className={compact ? "h-4 w-4" : "h-5 w-5"} aria-hidden="true" />
         </button>
-        {image ? (
+        {coverMedia ? (
           <Link
             to={`/products/${product.id}`}
             aria-label={`Ver ${product.title}`}
             className="block h-full w-full"
           >
-            <img
-              src={image}
-              alt={product.title}
-              className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.03]"
-              loading="lazy"
-            />
+            {coverMedia.type === "video" ? (
+              <video
+                src={coverMedia.url}
+                muted
+                playsInline
+                preload="metadata"
+                className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.03]"
+                aria-label={`Video de ${product.title}`}
+              />
+            ) : (
+              <img
+                src={coverMedia.url}
+                alt={product.title}
+                className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.03]"
+                loading="lazy"
+              />
+            )}
           </Link>
         ) : (
           <Link
@@ -195,57 +269,61 @@ function ProductCard({ product, badge = "Destacado" }: ProductCardProps) {
         )}
       </div>
 
-      <div className="flex min-h-72 flex-1 flex-col p-5">
-        <span className="mb-1.5 text-xs font-black text-[var(--nav-blue-hover)]">
+      <div className={`flex flex-1 flex-col ${compact ? "p-3" : "min-h-72 p-5"}`}>
+        <span className={`font-black text-[var(--nav-blue-hover)] ${compact ? "mb-1 text-[10px]" : "mb-1.5 text-xs"}`}>
           {badge}
         </span>
 
         <Link
           to={`/products/${product.id}`}
-          className="line-clamp-2 text-lg font-black leading-snug text-[var(--text-main)] transition hover:text-[var(--brand)]"
+          className={`line-clamp-2 font-black leading-snug text-[var(--text-main)] transition hover:text-[var(--brand)] ${compact ? "text-sm" : "text-lg"}`}
         >
           {product.title}
         </Link>
 
-        <p className="mt-2 w-fit rounded-full bg-[var(--brand-orange-soft)] px-3 py-1 text-xs font-black text-[var(--brand-hover)]">
+        <p className={`w-fit rounded-full bg-[var(--brand-orange-soft)] font-black text-[var(--brand-hover)] ${compact ? "mt-1.5 px-2 py-0.5 text-[9px]" : "mt-2 px-3 py-1 text-xs"}`}>
           {categoryName || "Sin categoria"}
         </p>
 
-        <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-slate-500">
-          {product.description ||
-            "Publicacion disponible para ver detalles, comparar y comprar."}
-        </p>
+        {!compact && (
+          <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-slate-500">
+            {product.description ||
+              "Publicacion disponible para ver detalles, comparar y comprar."}
+          </p>
+        )}
 
-        <div className="mt-auto pt-5">
-          <span className="block text-2xl font-black text-slate-950">
+        <div className={`mt-auto ${compact ? "pt-3" : "pt-5"}`}>
+          <span className={`block font-black text-slate-950 ${compact ? "text-lg" : "text-2xl"}`}>
             {hasVariants ? "Desde " : ""}${displayPrice.toLocaleString("es-AR")}
           </span>
-          {totalVariantStock !== null && (
+          {!compact && totalVariantStock !== null && (
             <span className="mt-1 block text-sm font-bold text-slate-500">
               Stock total: {totalVariantStock}
             </span>
           )}
-          <span className="mt-1 block text-sm font-bold text-[var(--nav-blue-hover)]">
-            Compra protegida
-          </span>
+          {!compact && (
+            <span className="mt-1 block text-sm font-bold text-[var(--nav-blue-hover)]">
+              Compra protegida
+            </span>
+          )}
 
-          <div className="mt-4 grid gap-2">
+          <div className={`grid ${compact ? "mt-2 gap-1.5" : "mt-4 gap-2"}`}>
             <button
               type="button"
               onClick={handleAddToCart}
               disabled={isAddingToCart || isBuyingNow}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(45,0,107,0.18)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              className={`flex items-center justify-center bg-[var(--brand)] font-black text-white shadow-[0_12px_24px_rgba(45,0,107,0.18)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60 ${compact ? "gap-1 rounded-xl px-2 py-2 text-[10px]" : "gap-2 rounded-2xl px-4 py-3 text-sm"}`}
             >
-              <ShoppingCart className="h-4 w-4" />
+              <ShoppingCart className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
               {isAddingToCart ? "Agregando..." : "Agregar al carrito"}
             </button>
             <button
               type="button"
               onClick={handleBuyNow}
               disabled={isAddingToCart || isBuyingNow}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand-orange)] px-4 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(255,138,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-orange-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              className={`flex items-center justify-center bg-[var(--brand-orange)] font-black text-white shadow-[0_12px_24px_rgba(255,138,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--brand-orange-hover)] disabled:cursor-not-allowed disabled:opacity-60 ${compact ? "gap-1 rounded-xl px-2 py-2 text-[10px]" : "gap-2 rounded-2xl px-4 py-3 text-sm"}`}
             >
-              <Zap className="h-4 w-4" />
+              <Zap className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
               {isBuyingNow ? "Preparando..." : "Comprar ahora"}
             </button>
           </div>

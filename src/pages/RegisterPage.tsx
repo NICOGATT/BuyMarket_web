@@ -1,6 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-import { Eye, EyeOff, LockKeyhole, Mail, User } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, User, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthBrandPanel from "../features/auth/components/AuthBrandPanel";
@@ -33,6 +33,7 @@ type RegisterFieldProps = {
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isGoogleAuthConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
 function RegisterField({
   icon: Icon,
@@ -53,11 +54,11 @@ function RegisterField({
 
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-bold text-[#0F172A]">{label}</span>
+      <span className="mb-1 block text-sm font-bold text-[#0F172A]">{label}</span>
       <span className="group relative block">
         <Icon
           aria-hidden="true"
-          className={`pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transition group-focus-within:text-[#2D006B] ${
+          className={`pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transition group-focus-within:text-[#087af2] ${
             showError ? "text-red-500" : "text-[#64748B]"
           }`}
         />
@@ -71,7 +72,7 @@ function RegisterField({
           autoComplete={autoComplete}
           aria-invalid={showError}
           aria-describedby={showError ? errorId : undefined}
-          className={`h-[52px] w-full rounded-[14px] border bg-white pl-12 pr-12 text-[15px] font-semibold text-[#0F172A] outline-none transition duration-200 placeholder:text-slate-400 focus:border-[#2D006B] focus:shadow-[0_0_0_4px_rgba(45,0,107,0.10),0_12px_24px_rgba(45,0,107,0.08)] ${
+          className={`h-11 w-full rounded-[14px] border bg-white pl-11 pr-11 text-sm font-semibold text-[#0F172A] outline-none transition duration-200 placeholder:text-slate-400 focus:border-[#087af2] focus:shadow-[0_0_0_4px_rgba(8,122,242,0.11),0_12px_24px_rgba(8,86,178,0.08)] ${
             showError
               ? "border-red-300 bg-red-50/40 hover:border-red-300 focus:border-red-500 focus:shadow-[0_0_0_4px_rgba(239,68,68,0.12)]"
               : "border-[#E2E8F0] hover:border-slate-300"
@@ -239,28 +240,33 @@ function RegisterPage() {
   }
 
   return (
-    <section className="-mx-4 -my-8 min-h-[calc(100svh-154px)] overflow-hidden bg-[#F8FAFC] sm:-mx-6 lg:-mx-8">
-      <div className="relative min-h-[calc(100svh-154px)] bg-[radial-gradient(circle_at_top_left,rgba(18,60,105,0.12),transparent_32%),linear-gradient(135deg,#F8FAFC_0%,#FFFFFF_48%,#EAF4FF_100%)] px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto grid min-h-[calc(100svh-218px)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(460px,0.86fr)]">
+    <section className="min-h-svh w-full overflow-hidden bg-[#073a9d]">
+      <div className="min-h-svh w-full bg-[#073a9d]">
+        <div className="grid min-h-svh w-full items-stretch gap-0 overflow-hidden bg-[#073a9d] lg:grid-cols-[minmax(0,1.08fr)_minmax(500px,0.92fr)]">
           <AuthBrandPanel mode="register" />
 
-          <div className="relative z-10 w-full animate-login-card-in rounded-[24px] border border-white/80 bg-white/94 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12),0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-10">
-            <div className="mb-8 text-center">
+          <div className="relative z-10 flex w-full animate-login-card-in flex-col justify-center border border-white bg-white px-5 py-4 shadow-[0_24px_75px_rgba(0,28,96,0.22)] sm:px-8 sm:py-5 lg:px-10">
+            <div className="mb-3 text-center lg:text-left">
               <Link
                 to="/"
                 className="mx-auto inline-flex rounded-full border border-[var(--nav-blue-border)] bg-[var(--nav-blue-soft)] px-4 py-1.5 text-sm font-black text-[var(--nav-blue)] lg:hidden"
               >
                 BuyMarket
               </Link>
-              <h1 className="mt-5 text-3xl font-black tracking-normal text-[#0F172A] sm:text-4xl">
-                Crear cuenta
-              </h1>
-              <p className="mt-3 text-base font-medium text-[#64748B]">
+              <div className="mt-3 flex items-center justify-center gap-3 lg:mt-0 lg:justify-start">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#e5f3ff] sm:h-14 sm:w-14">
+                  <UserRound className="h-7 w-7 text-[#0754d8] sm:h-8 sm:w-8" aria-hidden="true" />
+                </span>
+                <h1 className="text-3xl font-black tracking-normal text-[#07183c] sm:text-4xl">
+                  Crear cuenta
+                </h1>
+              </div>
+              <p className="mt-1 text-sm font-medium text-[#64748B] sm:text-base">
                 Publicá, comprá y conectá con personas cerca tuyo.
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            <form onSubmit={handleSubmit} className="space-y-3" noValidate>
               {submitError && (
                 <p
                   role="alert"
@@ -270,7 +276,7 @@ function RegisterPage() {
                 </p>
               )}
 
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3">
                 <RegisterField
                   icon={User}
                   label="Nombre"
@@ -329,7 +335,7 @@ function RegisterPage() {
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-[#64748B] transition hover:bg-slate-100 hover:text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#2D006B]"
+                    className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-[#64748B] transition hover:bg-blue-50 hover:text-[#0754b8] focus:outline-none focus:ring-2 focus:ring-[#087af2]"
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5" aria-hidden="true" />
@@ -361,7 +367,7 @@ function RegisterPage() {
                         ? "Ocultar confirmación de contraseña"
                         : "Mostrar confirmación de contraseña"
                     }
-                    className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-[#64748B] transition hover:bg-slate-100 hover:text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#2D006B]"
+                    className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-[#64748B] transition hover:bg-blue-50 hover:text-[#0754b8] focus:outline-none focus:ring-2 focus:ring-[#087af2]"
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-5 w-5" aria-hidden="true" />
@@ -375,25 +381,30 @@ function RegisterPage() {
               <button
                 type="submit"
                 disabled={isSubmiting}
-                className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-gradient-to-b from-[var(--brand)] to-[var(--brand-hover)] px-6 text-base font-black text-white shadow-[0_14px_30px_rgba(45,0,107,0.26)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(45,0,107,0.32)] focus:outline-none focus:ring-2 focus:ring-[#2D006B] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                className="flex h-11 w-full items-center justify-center rounded-[14px] bg-[linear-gradient(180deg,#087af2,#064bc8)] px-6 text-base font-black text-white shadow-[0_14px_30px_rgba(8,86,190,0.28)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(8,86,190,0.34)] focus:outline-none focus:ring-2 focus:ring-[#087af2] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
               >
-                {isSubmiting ? "Creando cuenta..." : "Crear cuenta"}
+                <span>{isSubmiting ? "Creando cuenta..." : "Crear cuenta"}</span>
+                {!isSubmiting && <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />}
               </button>
             </form>
 
-            <div className="my-7 flex items-center gap-4">
-              <div className="h-px flex-1 bg-[#E2E8F0]" />
-              <span className="text-sm font-bold text-[#64748B]">o continuar con</span>
-              <div className="h-px flex-1 bg-[#E2E8F0]" />
-            </div>
+            {isGoogleAuthConfigured && (
+              <>
+                <div className="my-3 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-[#E2E8F0]" />
+                  <span className="text-sm font-bold text-[#64748B]">o continuar con</span>
+                  <div className="h-px flex-1 bg-[#E2E8F0]" />
+                </div>
 
-            <GoogleAuthButton />
+                <GoogleAuthButton />
+              </>
+            )}
 
-            <p className="mt-7 text-center text-sm font-semibold text-[#64748B]">
+            <p className="mt-3 text-center text-sm font-semibold text-[#64748B]">
               ¿Ya tenés cuenta?{" "}
               <Link
                 to="/login"
-                className="font-black text-[#2D006B] transition hover:text-[#240055] hover:underline focus:outline-none focus:ring-2 focus:ring-[#2D006B] focus:ring-offset-2"
+                className="font-black text-[#0754b8] transition hover:text-[#087af2] hover:underline focus:outline-none focus:ring-2 focus:ring-[#087af2] focus:ring-offset-2"
               >
                 Iniciar sesión
               </Link>
