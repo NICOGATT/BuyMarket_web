@@ -11,6 +11,7 @@ import CartPage from "../../pages/CartPage";
 import CheckoutPage from "../../pages/CheckoutPage";
 import CheckoutReturnPage from "../../pages/CheckoutReturnPage";
 import GetnetQrCheckoutPage from "../../pages/GetnetQrCheckoutPage";
+import GetnetCheckoutPage from "../../pages/GetnetCheckoutPage";
 import ProfilePage from "../../pages/ProfilePage";
 import WalletPage from "../../pages/WalletPage";
 import VerifyEmailPage from "../../pages/VerifyEmailPage";
@@ -94,6 +95,14 @@ const router = createBrowserRouter([
                 element : (
                     <ProtectedRoute>
                         <GetnetQrCheckoutPage/>
+                    </ProtectedRoute>
+                )
+            },
+            {
+                path : "checkout/getnet/:orderId",
+                element : (
+                    <ProtectedRoute>
+                        <GetnetCheckoutPage/>
                     </ProtectedRoute>
                 )
             },

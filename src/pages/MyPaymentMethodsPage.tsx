@@ -17,6 +17,7 @@ import { getPaymentCapabilities } from "../shared/services/payment.service";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   mercado_pago: "Mercado Pago",
+  getnet: "Tarjeta (Getnet)",
   getnet_qr: "Pago con QR",
   transfer: "Transferencia",
   cash: "Efectivo",
@@ -364,6 +365,7 @@ function MyPaymentMethodsPage() {
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
               >
                 <option value="mercado_pago">Mercado Pago</option>
+                <option value="getnet">Tarjeta (Getnet)</option>
                 {isGetnetQrEnabled && (
                   <option value="getnet_qr">Pago con QR</option>
                 )}

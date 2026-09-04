@@ -1,5 +1,6 @@
 export type PaymentMethod =
   | "mercado_pago"
+  | "getnet"
   | "getnet_qr"
   | "cash"
   | "transfer";

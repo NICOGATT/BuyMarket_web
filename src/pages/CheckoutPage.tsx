@@ -75,6 +75,7 @@ const transferProofMaxSize = 5 * 1024 * 1024;
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   mercado_pago: "Mercado Pago",
+  getnet: "Tarjeta (Getnet)",
   getnet_qr: "Pago con QR",
   cash: "Efectivo",
   transfer: "Transferencia",
@@ -472,12 +473,14 @@ function CheckoutPage() {
       return;
     }
 
-    const isManualGetnetQr = selectedPaymentMethodId === "manual:getnet_qr";
+    const isManualGetnet =
+      selectedPaymentMethodId === "manual:getnet_qr" ||
+      selectedPaymentMethodId === "manual:getnet";
 
     if (
       paymentMethods.length > 0 &&
       !getSelectedPaymentMethod() &&
-      !isManualGetnetQr
+      !isManualGetnet
     ) {
       setError("Selecciona un medio de pago guardado.");
       return;
@@ -522,6 +525,14 @@ function CheckoutPage() {
         window.dispatchEvent(new Event(CART_CHANGE_EVENT));
         void saveCheckoutAddressIfNeeded(shipmentResult.addressPayload);
         navigate(`/checkout/getnet-qr/${order.id}`);
+        return;
+      }
+
+      if (checkoutPaymentMethod === "getnet") {
+        setCart([]);
+        window.dispatchEvent(new Event(CART_CHANGE_EVENT));
+        void saveCheckoutAddressIfNeeded(shipmentResult.addressPayload);
+        navigate(`/checkout/getnet/${order.id}`);
         return;
       }
 
@@ -1021,6 +1032,11 @@ function CheckoutPage() {
                       ...prev,
                       paymentMethod: "getnet_qr",
                     }));
+                  } else if (paymentMethodId === "manual:getnet") {
+                    setForm((prev) => ({
+                      ...prev,
+                      paymentMethod: "getnet",
+                    }));
                   }
                 }}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
@@ -1032,6 +1048,7 @@ function CheckoutPage() {
                     {paymentMethod.isDefault ? " (predeterminado)" : ""}
                   </option>
                 ))}
+                <option value="manual:getnet">Tarjeta (Getnet)</option>
                 <option value="manual:getnet_qr">Pago con QR</option>
               </select>
             </label>
@@ -1047,6 +1064,7 @@ function CheckoutPage() {
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
               >
                 <option value="mercado_pago">Mercado Pago</option>
+                <option value="getnet">Tarjeta (Getnet)</option>
                 <option value="getnet_qr">Pago con QR</option>
                 <option value="cash">Efectivo</option>
                 <option value="transfer">Transferencia</option>
@@ -1075,13 +1093,16 @@ function CheckoutPage() {
           {isSubmitting
             ? checkoutPaymentMethod === "mercado_pago"
               ? "Abriendo Mercado Pago..."
-              : checkoutPaymentMethod === "getnet_qr"
+              : checkoutPaymentMethod === "getnet_qr" ||
+                  checkoutPaymentMethod === "getnet"
                 ? "Creando orden..."
               : "Confirmando..."
             : checkoutPaymentMethod === "mercado_pago"
               ? "Pagar con Mercado Pago"
               : checkoutPaymentMethod === "getnet_qr"
                 ? "Pagar con QR"
+              : checkoutPaymentMethod === "getnet"
+                ? "Pagar con tarjeta"
               : "Confirmar compra"}
         </button>
       </form>

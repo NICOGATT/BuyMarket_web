@@ -30,8 +30,26 @@ export type GetnetQrPayment = {
   paymentStatus: "PENDING";
 };
 
+export type GetnetCheckoutResponse = {
+  orderId: string;
+  paymentIntentId: string;
+  checkoutType: "redirect" | "iframe";
+  checkoutUrl?: string;
+  loaderUrl?: string;
+};
+
 export async function getPaymentCapabilities(): Promise<PaymentCapabilities> {
   const response = await api.get<PaymentCapabilities>("/payments/capabilities");
+
+  return response.data;
+}
+
+export async function createGetnetOrder(
+  orderId: string
+): Promise<GetnetCheckoutResponse> {
+  const response = await api.post<GetnetCheckoutResponse>(
+    `/payments/getnet/create-order/${orderId}`
+  );
 
   return response.data;
 }

@@ -6,7 +6,7 @@ export type ShipmentType = "local" | "national";
 
 export type CheckoutOrderPayload = {
   deliveryAddress: string;
-  paymentMethod?: "mercado_pago" | "getnet_qr" | "cash" | "transfer";
+  paymentMethod?: "mercado_pago" | "getnet" | "getnet_qr" | "cash" | "transfer";
   paymentMethodId?: string;
   notes?: string;
 };
