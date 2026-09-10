@@ -85,6 +85,10 @@ const router = createBrowserRouter([
                 element : <ResetPasswordPage/>
             },
             {
+                path : "auth/reset-password",
+                element : <ResetPasswordPage/>
+            },
+            {
                 path : "cart", 
                 element : (
                     <ProtectedRoute>

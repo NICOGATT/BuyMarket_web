@@ -94,7 +94,8 @@ function MainLayout() {
     location.pathname === "/login" ||
     location.pathname === "/register" ||
     location.pathname === "/forgot-password" ||
-    location.pathname === "/reset-password";
+    location.pathname === "/reset-password" ||
+    location.pathname === "/auth/reset-password";
   const isCategoryCatalogPage =
     location.pathname === "/products" && currentSearchParams.has("category");
   const isCreateProductPage =
