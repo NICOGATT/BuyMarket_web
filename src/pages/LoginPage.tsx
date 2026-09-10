@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AuthBrandPanel from "../features/auth/components/AuthBrandPanel";
 import GoogleAuthButton from "../features/auth/components/GoogleAuthButton";
 import { login } from "../shared/services/auth.service";
@@ -105,6 +105,10 @@ function LoginPage() {
   const [touched, setTouched] = useState<LoginTouched>({});
   const [submitError, setSubmitError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const [showResetSuccess, setShowResetSuccess] = useState(
+    Boolean((location.state as { passwordReset?: boolean } | null)?.passwordReset)
+  );
   const [form, setForm] = useState<LoginForm>({
     email: "",
     password: "",
@@ -116,6 +120,7 @@ function LoginPage() {
     };
 
     setSubmitError("");
+    setShowResetSuccess(false);
     setForm((prev) => {
       const nextForm = {
         ...prev,
@@ -203,6 +208,15 @@ function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+              {showResetSuccess && (
+                <p
+                  role="status"
+                  className="rounded-[14px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700"
+                >
+                  Tu contraseña se actualizó. Iniciá sesión con la nueva.
+                </p>
+              )}
+
               {submitError && (
                 <p
                   role="alert"

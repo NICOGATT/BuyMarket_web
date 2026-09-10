@@ -91,7 +91,10 @@ function MainLayout() {
   const location = useLocation();
   const currentSearchParams = new URLSearchParams(location.search);
   const isAuthPage =
-    location.pathname === "/login" || location.pathname === "/register";
+    location.pathname === "/login" ||
+    location.pathname === "/register" ||
+    location.pathname === "/forgot-password" ||
+    location.pathname === "/reset-password";
   const isCategoryCatalogPage =
     location.pathname === "/products" && currentSearchParams.has("category");
   const isCreateProductPage =

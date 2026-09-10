@@ -7,6 +7,8 @@ import ProductDetailPage from "../../pages/ProductDetailPage";
 import CreateProductPage from "../../pages/CreateProductPage";
 import ProtectedRoute from "../../shared/routes/ProtectedRoute";
 import RegisterPage from "../../pages/RegisterPage";
+import ForgotPasswordPage from "../../pages/ForgotPasswordPage";
+import ResetPasswordPage from "../../pages/ResetPasswordPage";
 import CartPage from "../../pages/CartPage";
 import CheckoutPage from "../../pages/CheckoutPage";
 import CheckoutReturnPage from "../../pages/CheckoutReturnPage";
@@ -71,9 +73,17 @@ const router = createBrowserRouter([
                 )
             },
             {
-                path : "register", 
+                path : "register",
                 element : <RegisterPage/>
-            }, 
+            },
+            {
+                path : "forgot-password",
+                element : <ForgotPasswordPage/>
+            },
+            {
+                path : "reset-password",
+                element : <ResetPasswordPage/>
+            },
             {
                 path : "cart", 
                 element : (

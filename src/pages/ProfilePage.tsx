@@ -423,9 +423,11 @@ function ProfilePage() {
           onClick={() => navigate("/profile/wallet")}
           className="group flex w-full items-center gap-5 overflow-hidden rounded-[30px] border border-white/90 bg-[#351064] px-6 py-8 text-left text-white shadow-[0_20px_50px_rgba(53,16,100,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_26px_60px_rgba(53,16,100,0.32)] sm:gap-7 sm:px-8 sm:py-10"
         >
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-[#decfff] ring-1 ring-white/15 sm:h-20 sm:w-20">
-            <WalletCards className="h-8 w-8 sm:h-10 sm:w-10" aria-hidden="true" />
-          </span>
+          <img
+            src="/wallet/wallet-logo.png"
+            alt="Billetera BuyMarket"
+            className="h-16 w-16 shrink-0 rounded-2xl object-cover ring-1 ring-white/15 sm:h-20 sm:w-20"
+          />
           <span className="min-w-0 flex-1">
             <span className="block text-xs font-black uppercase tracking-[0.18em] text-[#D8C7FF] sm:text-sm">
               Billetera BuyMarket

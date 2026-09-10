@@ -1,5 +1,5 @@
 type AuthBrandPanelProps = {
-  mode: "login" | "register";
+  mode: "login" | "register" | "recovery";
 };
 
 function AuthBrandPanel({ mode }: AuthBrandPanelProps) {
@@ -10,7 +10,9 @@ function AuthBrandPanel({ mode }: AuthBrandPanelProps) {
         alt={
           mode === "login"
             ? "BuyMarket, comprá y vendé cerca tuyo en una plataforma simple"
-            : "BuyMarket, marketplace local seguro y confiable"
+            : mode === "register"
+              ? "BuyMarket, marketplace local seguro y confiable"
+              : "BuyMarket, recuperá el acceso a tu cuenta de forma segura"
         }
         className="absolute inset-0 h-full w-full object-fill"
       />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, WalletCards } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   getMyWallet,
@@ -198,9 +198,11 @@ function WalletPage() {
 
         <section className="overflow-hidden rounded-[28px] bg-[#351064] p-6 text-white shadow-[0_20px_50px_rgba(53,16,100,0.24)] sm:p-8">
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-[#decfff]">
-              <WalletCards className="h-5 w-5" aria-hidden="true" />
-            </span>
+            <img
+              src="/wallet/wallet-logo.png"
+              alt="Billetera BuyMarket"
+              className="h-11 w-11 shrink-0 rounded-2xl object-cover"
+            />
             <p className="m-0 text-sm font-black uppercase tracking-[0.14em] text-[#D8C7FF]">
               Billetera BuyMarket
             </p>

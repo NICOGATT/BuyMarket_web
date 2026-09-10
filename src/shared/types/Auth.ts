@@ -61,4 +61,21 @@ export type GoogleAuthResponse = AuthTokenResponse & {
   user?: AuthUser;
 };
 
+export type ForgotPasswordPayload = {
+  email: string;
+};
+
+export type ForgotPasswordResponse = {
+  message?: string;
+};
+
+export type ResetPasswordPayload = {
+  token: string;
+  password: string;
+};
+
+export type ResetPasswordResponse = {
+  message?: string;
+};
+
 export type TokenPayload = AuthUser;

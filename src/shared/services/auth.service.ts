@@ -10,6 +10,10 @@ import type {
   SendVerificationCodeResponse,
   VerifyEmailPayload,
   VerifyEmailResponse,
+  ForgotPasswordPayload,
+  ForgotPasswordResponse,
+  ResetPasswordPayload,
+  ResetPasswordResponse,
 } from "../types/Auth";
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
@@ -49,6 +53,28 @@ export async function loginWithGoogle(
   payload: GoogleAuthPayload
 ): Promise<GoogleAuthResponse> {
   const response = await api.post<GoogleAuthResponse>("/auth/google", payload);
+
+  return response.data;
+}
+
+export async function forgotPassword(
+  payload: ForgotPasswordPayload
+): Promise<ForgotPasswordResponse> {
+  const response = await api.post<ForgotPasswordResponse>(
+    "/auth/forgot-password",
+    payload
+  );
+
+  return response.data;
+}
+
+export async function resetPassword(
+  payload: ResetPasswordPayload
+): Promise<ResetPasswordResponse> {
+  const response = await api.post<ResetPasswordResponse>(
+    "/auth/reset-password",
+    payload
+  );
 
   return response.data;
 }
