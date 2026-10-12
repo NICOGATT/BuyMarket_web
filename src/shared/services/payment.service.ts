@@ -20,6 +20,7 @@ export type TransferPaymentStatusResponse = ManualPaymentStatusResponse;
 
 export type PaymentCapabilities = {
   getnetQrEnabled: boolean;
+  paywayEnabled: boolean;
 };
 
 export type GetnetQrPayment = {
@@ -30,12 +31,16 @@ export type GetnetQrPayment = {
   paymentStatus: "PENDING";
 };
 
-export type GetnetCheckoutResponse = {
+export type PaywayLinkResponse = {
   orderId: string;
-  paymentIntentId: string;
-  checkoutType: "redirect" | "iframe";
-  checkoutUrl?: string;
-  loaderUrl?: string;
+  paymentId: string;
+  checkoutUrl: string;
+  checkoutType: "redirect";
+};
+
+export const defaultPaymentCapabilities: PaymentCapabilities = {
+  getnetQrEnabled: false,
+  paywayEnabled: false,
 };
 
 export async function getPaymentCapabilities(): Promise<PaymentCapabilities> {
@@ -44,11 +49,11 @@ export async function getPaymentCapabilities(): Promise<PaymentCapabilities> {
   return response.data;
 }
 
-export async function createGetnetOrder(
+export async function createPaywayLink(
   orderId: string
-): Promise<GetnetCheckoutResponse> {
-  const response = await api.post<GetnetCheckoutResponse>(
-    `/payments/getnet/create-order/${orderId}`
+): Promise<PaywayLinkResponse> {
+  const response = await api.post<PaywayLinkResponse>(
+    `/payments/payway/create-link/${orderId}`
   );
 
   return response.data;

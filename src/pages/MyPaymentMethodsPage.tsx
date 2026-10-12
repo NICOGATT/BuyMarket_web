@@ -13,11 +13,14 @@ import type {
   UserPaymentMethod,
 } from "../shared/types/UserPaymentMethod";
 import { getUserFromToken } from "../shared/utils/auth";
-import { getPaymentCapabilities } from "../shared/services/payment.service";
+import {
+  defaultPaymentCapabilities,
+  getPaymentCapabilities,
+} from "../shared/services/payment.service";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   mercado_pago: "Mercado Pago",
-  getnet: "Tarjeta (Getnet)",
+  payway: "Tarjeta de crédito/débito",
   getnet_qr: "Pago con QR",
   transfer: "Transferencia",
   cash: "Efectivo",
@@ -73,6 +76,7 @@ function MyPaymentMethodsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isGetnetQrEnabled, setIsGetnetQrEnabled] = useState(false);
+  const [isPaywayEnabled, setIsPaywayEnabled] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -88,14 +92,16 @@ function MyPaymentMethodsPage() {
         setError("");
         const [data, capabilities] = await Promise.all([
           getMyPaymentMethods(),
-          getPaymentCapabilities().catch(() => ({ getnetQrEnabled: false })),
+          getPaymentCapabilities().catch(() => defaultPaymentCapabilities),
         ]);
         setIsGetnetQrEnabled(capabilities.getnetQrEnabled);
+        setIsPaywayEnabled(capabilities.paywayEnabled);
         setPaymentMethods(
           data.filter(
             (paymentMethod) =>
               paymentMethod.isActive !== false &&
-              (paymentMethod.method !== "getnet_qr" || capabilities.getnetQrEnabled)
+              (paymentMethod.method !== "getnet_qr" || capabilities.getnetQrEnabled) &&
+              (paymentMethod.method !== "payway" || capabilities.paywayEnabled)
           )
         );
       } catch {
@@ -365,7 +371,9 @@ function MyPaymentMethodsPage() {
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
               >
                 <option value="mercado_pago">Mercado Pago</option>
-                <option value="getnet">Tarjeta (Getnet)</option>
+                {isPaywayEnabled && (
+                  <option value="payway">Tarjeta de crédito/débito</option>
+                )}
                 {isGetnetQrEnabled && (
                   <option value="getnet_qr">Pago con QR</option>
                 )}

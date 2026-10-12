@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 import {
-  createGetnetOrder,
-  type GetnetCheckoutResponse,
+  createPaywayLink,
 } from "../shared/services/payment.service";
 import { getOrderById } from "../shared/services/order.service";
 import type { Order } from "../shared/types/Order";
@@ -10,19 +10,6 @@ import {
   formatVariantLabel,
   getOrderItemUnitPrice,
 } from "../shared/utils/productVariants";
-
-declare global {
-  interface Window {
-    loader?: {
-      init: (config: {
-        paymentIntentId: string;
-        checkoutType: "iframe" | "lightbox";
-      }) => void;
-    };
-  }
-}
-
-const digitalCheckoutScriptId = "digital-checkout";
 
 function OrderSummary({ order }: { order: Order }) {
   return (
@@ -73,15 +60,31 @@ function OrderSummary({ order }: { order: Order }) {
   );
 }
 
-function GetnetCheckoutPage() {
+function getLinkErrorMessage(error: unknown) {
+  const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+
+  if (status === 404) return "No encontramos la orden.";
+  if (status === 400) {
+    return "Esta orden ya no está pendiente de pago o no usa pago con tarjeta.";
+  }
+
+  return "No pudimos iniciar el pago, intentá de nuevo.";
+}
+
+function isRetryable(error: unknown) {
+  const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+
+  return status === undefined || status >= 500;
+}
+
+function PaywayCheckoutPage() {
+  const navigate = useNavigate();
   const { orderId = "" } = useParams();
   const [order, setOrder] = useState<Order | null>(null);
-  const [checkout, setCheckout] = useState<GetnetCheckoutResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isWidgetReady, setIsWidgetReady] = useState(false);
   const [error, setError] = useState("");
-  const iframeContainerRef = useRef<HTMLDivElement>(null);
-  const widgetInitialized = useRef(false);
+  const [canRetry, setCanRetry] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!orderId) return;
@@ -89,108 +92,41 @@ function GetnetCheckoutPage() {
     let cancelled = false;
 
     async function load() {
+      setIsLoading(true);
+      setError("");
+
       try {
-        const [loadedOrder, checkoutResult] = await Promise.all([
+        // El backend reutiliza el link vigente, por eso es seguro repetir la llamada.
+        const [loadedOrder, link] = await Promise.all([
           getOrderById(orderId),
-          createGetnetOrder(orderId),
+          createPaywayLink(orderId),
         ]);
 
         if (cancelled) return;
 
         setOrder(loadedOrder);
-        setCheckout(checkoutResult);
-      } catch {
-        if (!cancelled) {
-          setError("No se pudo iniciar el pago con Getnet. Intentalo nuevamente.");
+        // Redirección completa: el frontend nunca maneja datos de tarjeta.
+        window.location.href = link.checkoutUrl;
+      } catch (loadError) {
+        if (cancelled) return;
+
+        if (axios.isAxiosError(loadError) && loadError.response?.status === 401) {
+          navigate("/login");
+          return;
         }
-      } finally {
-        if (!cancelled) setIsLoading(false);
+
+        setError(getLinkErrorMessage(loadError));
+        setCanRetry(isRetryable(loadError));
+        setIsLoading(false);
       }
     }
 
-    load();
+    void load();
 
     return () => {
       cancelled = true;
     };
-  }, [orderId]);
-
-  // Flujo redirect: Getnet no devolvió modalidad iframe, se envía al hosted checkout.
-  useEffect(() => {
-    if (checkout?.checkoutType === "redirect" && checkout.checkoutUrl) {
-      window.location.href = checkout.checkoutUrl;
-    }
-  }, [checkout]);
-
-  // Flujo iframe: carga digital-checkout/loader.js y monta el widget en nuestro contenedor.
-  useEffect(() => {
-    if (
-      checkout?.checkoutType !== "iframe" ||
-      !checkout.loaderUrl ||
-      widgetInitialized.current
-    ) {
-      return;
-    }
-
-    widgetInitialized.current = true;
-
-    function mountWidget() {
-      window.loader?.init({
-        paymentIntentId: checkout!.paymentIntentId,
-        checkoutType: "iframe",
-      });
-
-      window.requestAnimationFrame(() => {
-        const iframe = document.querySelector("iframe");
-        if (iframe && iframeContainerRef.current) {
-          iframeContainerRef.current.appendChild(iframe);
-          iframe.style.width = "100%";
-          iframe.style.minHeight = "640px";
-          iframe.style.border = "0";
-        }
-        setIsWidgetReady(true);
-      });
-    }
-
-    if (window.loader?.init) {
-      mountWidget();
-      return;
-    }
-
-    const existingScript = document.getElementById(
-      digitalCheckoutScriptId
-    ) as HTMLScriptElement | null;
-
-    if (existingScript) {
-      existingScript.addEventListener("load", mountWidget, { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = checkout.loaderUrl;
-    script.async = true;
-    script.id = digitalCheckoutScriptId;
-    script.setAttribute("data-testid", digitalCheckoutScriptId);
-    script.addEventListener("load", mountWidget, { once: true });
-    script.addEventListener("error", () => {
-      setError("No se pudo cargar el checkout de Getnet.");
-    });
-    document.body.appendChild(script);
-  }, [checkout]);
-
-  // El estado final lo confirma el webhook del backend; el frontend solo consulta la orden.
-  useEffect(() => {
-    if (!orderId || order?.status === "paid" || order?.status === "rejected") {
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-      void getOrderById(orderId).then(setOrder).catch(() => undefined);
-    }, 3000);
-
-    return () => window.clearInterval(interval);
-  }, [orderId, order?.status]);
+  }, [orderId, attempt, navigate]);
 
   if (!orderId) {
     return (
@@ -208,63 +144,30 @@ function GetnetCheckoutPage() {
     );
   }
 
-  if (isLoading) {
-    return <p className="text-slate-500">Preparando el pago con Getnet...</p>;
-  }
-
-  if (!order || (error && !checkout)) {
+  if (error) {
     return (
       <section className="mx-auto max-w-xl rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
         <h1 className="m-0 text-3xl font-black text-red-900">
-          No pudimos cargar la orden
+          No pudimos iniciar el pago
         </h1>
-        <p className="mt-3 font-semibold text-red-700">
-          {error || "Volvé a Mis compras para revisar el estado del pedido."}
-        </p>
-        <Link
-          to="/profile/orders"
-          className="mt-6 inline-flex rounded-xl bg-red-700 px-5 py-3 font-bold text-white"
-        >
-          Ver mis compras
-        </Link>
-      </section>
-    );
-  }
-
-  if (order.status === "paid") {
-    return (
-      <section className="mx-auto max-w-xl rounded-3xl border border-green-200 bg-green-50 p-8 text-center">
-        <h1 className="m-0 text-3xl font-black text-green-900">
-          Pago aprobado
-        </h1>
-        <p className="mt-3 font-semibold text-green-700">
-          Confirmamos el pago de la orden #{order.id.slice(0, 8)}.
-        </p>
-        <Link
-          to="/profile/orders"
-          className="mt-6 inline-flex rounded-xl bg-green-700 px-5 py-3 font-bold text-white"
-        >
-          Ver mis compras
-        </Link>
-      </section>
-    );
-  }
-
-  if (order.status === "rejected") {
-    return (
-      <section className="mx-auto max-w-xl rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
-        <h1 className="m-0 text-3xl font-black text-red-900">
-          Pago rechazado
-        </h1>
-        <p className="mt-3 font-semibold text-red-700">
-          No pudimos aprobar el pago de esta orden.
-        </p>
-        <Link
-          to="/profile/orders"
-          className="mt-6 inline-flex rounded-xl bg-red-700 px-5 py-3 font-bold text-white"
-        >
-          Ver mis compras
-        </Link>
+        <p className="mt-3 font-semibold text-red-700">{error}</p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {canRetry && (
+            <button
+              type="button"
+              onClick={() => setAttempt((value) => value + 1)}
+              className="rounded-xl bg-red-700 px-5 py-3 font-bold text-white"
+            >
+              Reintentar
+            </button>
+          )}
+          <Link
+            to="/profile/orders"
+            className="rounded-xl bg-white px-5 py-3 font-bold text-slate-800"
+          >
+            Ver mis compras
+          </Link>
+        </div>
       </section>
     );
   }
@@ -276,40 +179,16 @@ function GetnetCheckoutPage() {
           Pagá con tarjeta
         </h1>
         <p className="mt-3 font-semibold text-slate-600">
-          Completá los datos de tu tarjeta en el formulario seguro de Getnet.
+          Vas a completar los datos de tu tarjeta en un formulario seguro.
         </p>
-
-        {error && (
-          <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 font-semibold text-red-700">
-            {error}
-          </p>
-        )}
-
-        {checkout?.checkoutType === "redirect" ? (
-          <p className="mt-6 rounded-2xl bg-slate-50 p-5 text-center font-semibold text-slate-600">
-            Te estamos redirigiendo al checkout seguro de Getnet...
-          </p>
-        ) : (
-          <>
-            {!isWidgetReady && (
-              <p className="mt-6 rounded-2xl bg-slate-50 p-5 text-center font-semibold text-slate-600">
-                Cargando formulario de pago...
-              </p>
-            )}
-            <div
-              ref={iframeContainerRef}
-              className="mt-6 overflow-hidden rounded-2xl border border-slate-200"
-            />
-            <p className="mt-5 text-center text-sm font-semibold text-slate-500">
-              Esperando la confirmación segura de Getnet...
-            </p>
-          </>
-        )}
+        <p className="mt-6 rounded-2xl bg-slate-50 p-5 text-center font-semibold text-slate-600">
+          {isLoading ? "Preparando el pago..." : "Te estamos redirigiendo al pago seguro..."}
+        </p>
       </div>
 
-      <OrderSummary order={order} />
+      {order && <OrderSummary order={order} />}
     </section>
   );
 }
 
-export default GetnetCheckoutPage;
+export default PaywayCheckoutPage;

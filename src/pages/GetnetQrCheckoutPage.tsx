@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import QRCode from "qrcode";
 import {
   createGetnetQrPayment,
+  defaultPaymentCapabilities,
   getPaymentCapabilities,
   uploadTransferProof,
 } from "../shared/services/payment.service";
@@ -109,7 +110,7 @@ function GetnetQrCheckoutPage() {
       setQrImage(image);
       setNow(Date.now());
     } catch {
-      setError("No se pudo generar el QR de Getnet. Intentalo nuevamente.");
+      setError("No se pudo generar el QR. Intentalo nuevamente.");
     } finally {
       setIsGenerating(false);
       setIsLoading(false);
@@ -123,7 +124,7 @@ function GetnetQrCheckoutPage() {
 
     void Promise.all([
       getOrderById(orderId),
-      getPaymentCapabilities().catch(() => ({ getnetQrEnabled: false })),
+      getPaymentCapabilities().catch(() => defaultPaymentCapabilities),
     ])
       .then(async ([loadedOrder, capabilities]) => {
         if (cancelled) return;
@@ -356,7 +357,7 @@ function GetnetQrCheckoutPage() {
                 </a>
               </div>
               <p className="mt-5 text-center text-sm font-semibold text-slate-500">
-                Esperando la confirmación segura de Getnet...
+                Esperando la confirmación del pago...
               </p>
             </>
           ) : (
