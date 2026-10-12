@@ -833,7 +833,7 @@ function MainLayout() {
             <div className="mt-4 grid gap-3 text-sm font-bold text-slate-500">
               <span className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                soporte@buymarket.com
+                soporte@buymarket.com.ar
               </span>
               <span className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
