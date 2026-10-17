@@ -71,7 +71,7 @@ export type ForgotPasswordResponse = {
 
 export type ResetPasswordPayload = {
   token: string;
-  password: string;
+  newPassword: string;
 };
 
 export type ResetPasswordResponse = {
