@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthBrandPanel from "../features/auth/components/AuthBrandPanel";
 import GoogleAuthButton from "../features/auth/components/GoogleAuthButton";
+import TermsAndConditionsModal from "../features/auth/components/TermsAndConditionsModal";
 import { register } from "../shared/services/auth.service";
 
 type RegisterFieldName =
@@ -161,6 +162,13 @@ function RegisterPage() {
     confirmPassword: "",
   });
   const [isSubmiting, setIsSubmiting] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsTouched, setTermsTouched] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const termsError = acceptedTerms
+    ? ""
+    : "Tenés que aceptar los términos y condiciones para continuar.";
+  const showTermsError = termsTouched && Boolean(termsError);
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target as HTMLInputElement & {
@@ -203,9 +211,10 @@ function RegisterPage() {
       password: true,
       confirmPassword: true,
     });
+    setTermsTouched(true);
     setSubmitError("");
 
-    if (Object.keys(nextErrors).length > 0) {
+    if (Object.keys(nextErrors).length > 0 || !acceptedTerms) {
       return;
     }
 
@@ -240,6 +249,7 @@ function RegisterPage() {
   }
 
   return (
+    <>
     <section className="min-h-svh w-full overflow-hidden bg-[#073a9d]">
       <div className="min-h-svh w-full bg-[#073a9d]">
         <div className="grid min-h-svh w-full items-stretch gap-0 overflow-hidden bg-[#073a9d] lg:grid-cols-[minmax(0,1.08fr)_minmax(500px,0.92fr)]">
@@ -378,6 +388,53 @@ function RegisterPage() {
                 }
               />
 
+              <div>
+                <div
+                  className={`flex items-start gap-3 rounded-[14px] border px-4 py-3 transition ${
+                    showTermsError
+                      ? "border-red-300 bg-red-50/40"
+                      : "border-[#E2E8F0] bg-slate-50/60"
+                  }`}
+                >
+                  <input
+                    id="acceptedTerms"
+                    name="acceptedTerms"
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(event) => {
+                      setAcceptedTerms(event.target.checked);
+                      setSubmitError("");
+                    }}
+                    onBlur={() => setTermsTouched(true)}
+                    aria-invalid={showTermsError}
+                    aria-describedby={showTermsError ? "acceptedTerms-error" : undefined}
+                    className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-[#CBD5E1] text-[#087af2] focus:outline-none focus:ring-2 focus:ring-[#087af2] focus:ring-offset-1"
+                  />
+                  <p className="text-sm font-semibold text-[#0F172A]">
+                    <label htmlFor="acceptedTerms" className="cursor-pointer">
+                      Acepto los{" "}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsTermsOpen(true)}
+                      className="rounded font-black text-[#0754b8] underline decoration-[#0754b8]/40 underline-offset-2 transition hover:text-[#087af2] focus:outline-none focus:ring-2 focus:ring-[#087af2] focus:ring-offset-1"
+                    >
+                      términos y condiciones
+                    </button>{" "}
+                    de BuyMarket.
+                  </p>
+                </div>
+                {showTermsError && (
+                  <p
+                    id="acceptedTerms-error"
+                    role="alert"
+                    className="mt-2 text-sm font-bold text-red-600"
+                  >
+                    {termsError}
+                  </p>
+                )}
+              </div>
+
               <button
                 type="submit"
                 disabled={isSubmiting}
@@ -413,6 +470,8 @@ function RegisterPage() {
         </div>
       </div>
     </section>
+    <TermsAndConditionsModal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
+    </>
   );
 }
 

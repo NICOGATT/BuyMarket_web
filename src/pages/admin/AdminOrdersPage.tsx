@@ -9,6 +9,7 @@ const paymentMethodLabels: Record<string, string> = {
   cash: "Efectivo",
   transfer: "Transferencia",
   mercado_pago: "Mercado Pago",
+  payway: "Tarjeta de crédito/débito",
   getnet_qr: "Pago con QR",
 };
 

@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useOrderPaymentConfirmation } from "../shared/hooks/useOrderPaymentConfirmation";
 
 const returnContent = {
   success: {
@@ -33,14 +34,39 @@ type CheckoutReturnPageProps = {
 function CheckoutReturnPage({ status }: CheckoutReturnPageProps) {
   const location = useLocation();
   const content = returnContent[status];
-  const paymentId = new URLSearchParams(location.search).get("payment_id");
+  const searchParams = new URLSearchParams(location.search);
+  const paymentId = searchParams.get("payment_id");
+  const orderId = searchParams.get("orderId");
+  // Con orderId (pago con tarjeta) no se da por pagado: se confirma contra la orden.
+  const confirmation = useOrderPaymentConfirmation(
+    status === "success" ? orderId : null
+  );
+  const isOrderPayment = !!orderId && status === "success";
+  const isConfirmed = isOrderPayment && confirmation.state === "paid";
+  const isConfirming = isOrderPayment && confirmation.state === "confirming";
+  const isUnconfirmed = isOrderPayment && confirmation.state === "unconfirmed";
+
+  const title = isConfirmed
+    ? "Pago aprobado"
+    : isConfirming
+      ? "Estamos confirmando tu pago"
+      : isUnconfirmed
+        ? "Todavía no pudimos confirmar tu pago"
+        : content.title;
+  const message = isConfirmed
+    ? `Confirmamos el pago de la orden #${orderId?.slice(0, 8)}.`
+    : isConfirming
+      ? "Esto puede tardar unos segundos. No cierres esta página."
+      : isUnconfirmed
+        ? "Si ya pagaste, la orden se actualizará apenas recibamos la confirmación. Podés revisar el estado en Mis compras."
+        : content.message;
 
   return (
     <section
       className={`mx-auto max-w-2xl rounded-3xl border p-8 ${content.className}`}
     >
-      <h1 className="m-0 text-3xl font-black">{content.title}</h1>
-      <p className="mt-3 font-semibold">{content.message}</p>
+      <h1 className="m-0 text-3xl font-black">{title}</h1>
+      <p className="mt-3 font-semibold">{message}</p>
 
       {paymentId && (
         <p className="mt-4 rounded-xl bg-white/70 p-3 text-sm font-bold">
@@ -56,10 +82,10 @@ function CheckoutReturnPage({ status }: CheckoutReturnPageProps) {
           Ver productos
         </Link>
         <Link
-          to="/profile"
+          to={orderId ? "/profile/orders" : "/profile"}
           className="rounded-xl bg-white px-5 py-3 font-bold text-slate-800 transition hover:bg-slate-100"
         >
-          Ir a mi perfil
+          {orderId ? "Ver mis compras" : "Ir a mi perfil"}
         </Link>
       </div>
     </section>

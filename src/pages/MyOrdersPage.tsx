@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Package, ShoppingBag, Truck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getMyOrders } from "../shared/services/order.service";
+import { createMercadoPagoPreference } from "../shared/services/payment.service";
 import type { Order } from "../shared/types/Order";
 import { getUserFromToken } from "../shared/utils/auth";
 import {
@@ -13,6 +14,7 @@ const paymentMethodLabels: Record<string, string> = {
   cash: "Efectivo",
   transfer: "Transferencia",
   mercado_pago: "Mercado Pago",
+  payway: "Tarjeta de crédito/débito",
   getnet_qr: "Pago con QR",
 };
 
@@ -64,6 +66,22 @@ function getOrderPaymentStatus(order: Order) {
   return "PENDING";
 }
 
+// Medios que se pueden retomar desde el checkout. Transferencia y efectivo son manuales.
+const resumablePaymentRoutes: Record<string, (orderId: string) => string> = {
+  payway: (orderId) => "/checkout/payway/" + orderId,
+  getnet_qr: (orderId) => "/checkout/getnet-qr/" + orderId,
+};
+
+function canPayOrder(order: Order, paymentStatus: string) {
+  const method = order.paymentMethod ?? "";
+
+  return (
+    order.status === "pending" &&
+    (paymentStatus === "PENDING" || paymentStatus === "pending") &&
+    (method === "mercado_pago" || method in resumablePaymentRoutes)
+  );
+}
+
 function getOrderShipment(order: Order) {
   return order.shipment ?? order.shipments?.[0] ?? null;
 }
@@ -73,6 +91,7 @@ function MyOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [payingOrderId, setPayingOrderId] = useState("");
 
   useEffect(() => {
     if (!getUserFromToken()) {
@@ -94,6 +113,32 @@ function MyOrdersPage() {
 
     loadOrders();
   }, [navigate]);
+
+  async function handlePayOrder(order: Order) {
+    const method = order.paymentMethod ?? "";
+    const route = resumablePaymentRoutes[method];
+
+    if (route) {
+      navigate(route(order.id));
+      return;
+    }
+
+    try {
+      setPayingOrderId(order.id);
+      setError("");
+      const preference = await createMercadoPagoPreference(order.id);
+      const redirectUrl = import.meta.env.DEV
+        ? preference.sandboxInitPoint ?? preference.initPoint
+        : preference.initPoint ?? preference.sandboxInitPoint;
+
+      if (!redirectUrl) throw new Error("Missing payment link");
+
+      window.location.assign(redirectUrl);
+    } catch {
+      setError("No se pudo abrir el pago. Intentalo nuevamente.");
+      setPayingOrderId("");
+    }
+  }
 
   return (
     <section className="mx-auto max-w-5xl space-y-6">
@@ -176,9 +221,11 @@ function MyOrdersPage() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-600">
-                    {orderStatusLabels[order.status] ?? order.status}
-                  </span>
+                  {!["paid", "pending"].includes(order.status) && (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-600">
+                      {orderStatusLabels[order.status] ?? order.status}
+                    </span>
+                  )}
                   <span
                     className={`rounded-full px-3 py-1 text-sm font-black ${
                       paymentStatusClasses[paymentStatus] ??
@@ -187,6 +234,16 @@ function MyOrdersPage() {
                   >
                     {paymentStatusLabels[paymentStatus] ?? paymentStatus}
                   </span>
+                  {canPayOrder(order, paymentStatus) && (
+                    <button
+                      type="button"
+                      onClick={() => handlePayOrder(order)}
+                      disabled={payingOrderId === order.id}
+                      className="rounded-full bg-[var(--brand)] px-4 py-1 text-sm font-black text-white transition hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {payingOrderId === order.id ? "Abriendo..." : "Ir a pagar"}
+                    </button>
+                  )}
                   {shipment && (
                     <Link
                       to="/profile/shipments"

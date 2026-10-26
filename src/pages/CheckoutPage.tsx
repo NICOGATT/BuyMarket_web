@@ -8,6 +8,7 @@ import {
 import { checkoutOrder } from "../shared/services/order.service";
 import {
   createMercadoPagoPreference,
+  defaultPaymentCapabilities,
   getPaymentCapabilities,
   uploadTransferProof,
 } from "../shared/services/payment.service";
@@ -75,7 +76,7 @@ const transferProofMaxSize = 5 * 1024 * 1024;
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   mercado_pago: "Mercado Pago",
-  getnet: "Tarjeta (Getnet)",
+  payway: "Tarjeta de crédito/débito",
   getnet_qr: "Pago con QR",
   cash: "Efectivo",
   transfer: "Transferencia",
@@ -122,6 +123,7 @@ function CheckoutPage() {
   const [transferOrder, setTransferOrder] = useState<Order | null>(null);
   const [transferProofFile, setTransferProofFile] = useState<File | null>(null);
   const [isTransferNotified, setIsTransferNotified] = useState(false);
+  const [isPaywayEnabled, setIsPaywayEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -133,14 +135,16 @@ function CheckoutPage() {
           getCart(),
           getMyAddresses().catch(() => []),
           getMyPaymentMethods().catch(() => []),
-          getPaymentCapabilities().catch(() => ({ getnetQrEnabled: false })),
+          getPaymentCapabilities().catch(() => defaultPaymentCapabilities),
         ]);
+        setIsPaywayEnabled(capabilities.paywayEnabled);
         const defaultAddress = addressesData.find((address) => address.isDefault);
         const selectedAddress = defaultAddress ?? addressesData[0];
         const activePaymentMethods = paymentMethodsData.filter(
           (paymentMethod) =>
             paymentMethod.isActive !== false &&
-            (paymentMethod.method !== "getnet_qr" || capabilities.getnetQrEnabled)
+            (paymentMethod.method !== "getnet_qr" || capabilities.getnetQrEnabled) &&
+            (paymentMethod.method !== "payway" || capabilities.paywayEnabled)
         );
         const defaultPaymentMethod = activePaymentMethods.find(
           (paymentMethod) => paymentMethod.isDefault
@@ -473,14 +477,14 @@ function CheckoutPage() {
       return;
     }
 
-    const isManualGetnet =
+    const isManualCardOrQr =
       selectedPaymentMethodId === "manual:getnet_qr" ||
-      selectedPaymentMethodId === "manual:getnet";
+      selectedPaymentMethodId === "manual:payway";
 
     if (
       paymentMethods.length > 0 &&
       !getSelectedPaymentMethod() &&
-      !isManualGetnet
+      !isManualCardOrQr
     ) {
       setError("Selecciona un medio de pago guardado.");
       return;
@@ -528,11 +532,11 @@ function CheckoutPage() {
         return;
       }
 
-      if (checkoutPaymentMethod === "getnet") {
+      if (checkoutPaymentMethod === "payway") {
         setCart([]);
         window.dispatchEvent(new Event(CART_CHANGE_EVENT));
         void saveCheckoutAddressIfNeeded(shipmentResult.addressPayload);
-        navigate(`/checkout/getnet/${order.id}`);
+        navigate(`/checkout/payway/${order.id}`);
         return;
       }
 
@@ -1032,10 +1036,10 @@ function CheckoutPage() {
                       ...prev,
                       paymentMethod: "getnet_qr",
                     }));
-                  } else if (paymentMethodId === "manual:getnet") {
+                  } else if (paymentMethodId === "manual:payway") {
                     setForm((prev) => ({
                       ...prev,
-                      paymentMethod: "getnet",
+                      paymentMethod: "payway",
                     }));
                   }
                 }}
@@ -1048,7 +1052,9 @@ function CheckoutPage() {
                     {paymentMethod.isDefault ? " (predeterminado)" : ""}
                   </option>
                 ))}
-                <option value="manual:getnet">Tarjeta (Getnet)</option>
+                {isPaywayEnabled && (
+                  <option value="manual:payway">Tarjeta de crédito/débito</option>
+                )}
                 <option value="manual:getnet_qr">Pago con QR</option>
               </select>
             </label>
@@ -1064,7 +1070,9 @@ function CheckoutPage() {
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
               >
                 <option value="mercado_pago">Mercado Pago</option>
-                <option value="getnet">Tarjeta (Getnet)</option>
+                {isPaywayEnabled && (
+                  <option value="payway">Tarjeta de crédito/débito</option>
+                )}
                 <option value="getnet_qr">Pago con QR</option>
                 <option value="cash">Efectivo</option>
                 <option value="transfer">Transferencia</option>
@@ -1094,14 +1102,14 @@ function CheckoutPage() {
             ? checkoutPaymentMethod === "mercado_pago"
               ? "Abriendo Mercado Pago..."
               : checkoutPaymentMethod === "getnet_qr" ||
-                  checkoutPaymentMethod === "getnet"
+                  checkoutPaymentMethod === "payway"
                 ? "Creando orden..."
               : "Confirmando..."
             : checkoutPaymentMethod === "mercado_pago"
               ? "Pagar con Mercado Pago"
               : checkoutPaymentMethod === "getnet_qr"
                 ? "Pagar con QR"
-              : checkoutPaymentMethod === "getnet"
+              : checkoutPaymentMethod === "payway"
                 ? "Pagar con tarjeta"
               : "Confirmar compra"}
         </button>

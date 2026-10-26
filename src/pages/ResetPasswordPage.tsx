@@ -162,7 +162,7 @@ function ResetPasswordPage() {
 
     try {
       setIsSubmiting(true);
-      await resetPassword({ token, password: form.password });
+      await resetPassword({ token, newPassword: form.password });
       navigate("/login", { replace: true, state: { passwordReset: true } });
     } catch (error: unknown) {
       console.error(

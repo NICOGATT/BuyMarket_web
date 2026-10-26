@@ -13,7 +13,7 @@ import CartPage from "../../pages/CartPage";
 import CheckoutPage from "../../pages/CheckoutPage";
 import CheckoutReturnPage from "../../pages/CheckoutReturnPage";
 import GetnetQrCheckoutPage from "../../pages/GetnetQrCheckoutPage";
-import GetnetCheckoutPage from "../../pages/GetnetCheckoutPage";
+import PaywayCheckoutPage from "../../pages/PaywayCheckoutPage";
 import ProfilePage from "../../pages/ProfilePage";
 import WalletPage from "../../pages/WalletPage";
 import VerifyEmailPage from "../../pages/VerifyEmailPage";
@@ -113,10 +113,10 @@ const router = createBrowserRouter([
                 )
             },
             {
-                path : "checkout/getnet/:orderId",
+                path : "checkout/payway/:orderId",
                 element : (
                     <ProtectedRoute>
-                        <GetnetCheckoutPage/>
+                        <PaywayCheckoutPage/>
                     </ProtectedRoute>
                 )
             },
