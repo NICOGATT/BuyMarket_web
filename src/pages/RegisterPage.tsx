@@ -7,6 +7,7 @@ import AuthBrandPanel from "../features/auth/components/AuthBrandPanel";
 import GoogleAuthButton from "../features/auth/components/GoogleAuthButton";
 import TermsAndConditionsModal from "../features/auth/components/TermsAndConditionsModal";
 import { register } from "../shared/services/auth.service";
+import { refreshSession } from "../shared/utils/auth";
 
 type RegisterFieldName =
   | "firstName"
@@ -228,16 +229,14 @@ function RegisterPage() {
     try {
       setIsSubmiting(true);
 
-      const data = await register(registerPayload);
-      const token = data.access_token ?? data.accessToken;
+      await register(registerPayload);
+      // El backend setea la cookie de sesion; confirmamos con /auth/me.
+      const user = await refreshSession();
 
-      if (!token) {
+      if (!user) {
         setSubmitError("No pudimos iniciar la sesión después de crear la cuenta.");
         return;
       }
-
-      localStorage.setItem("token", token);
-      window.dispatchEvent(new Event("auth-change"));
 
       navigate("/");
     } catch (error: unknown) {

@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import AuthBrandPanel from "../features/auth/components/AuthBrandPanel";
 import GoogleAuthButton from "../features/auth/components/GoogleAuthButton";
 import { login } from "../shared/services/auth.service";
+import { refreshSession } from "../shared/utils/auth";
 
 type LoginFieldName = "email" | "password";
 type LoginForm = Record<LoginFieldName, string>;
@@ -156,21 +157,18 @@ function LoginPage() {
 
     try {
       setIsSubmiting(true);
-      const data = await login({
+      await login({
         email: form.email.trim(),
         password: form.password,
       });
-      const token = data.access_token;
+      // El backend setea la cookie de sesion; confirmamos con /auth/me.
+      const user = await refreshSession();
 
-      if (!token) {
+      if (!user) {
         setSubmitError("No pudimos iniciar sesión. Intentá nuevamente.");
         return;
       }
 
-      localStorage.setItem("token", token);
-
-      window.dispatchEvent(new Event("auth-change"));
-      console.log("LOGIN OK");
       navigate("/");
     } catch (error) {
       console.log("Login Error", error);

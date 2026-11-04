@@ -6,6 +6,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client'
 import "./App.css"
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { refreshSession } from './shared/utils/auth';
+
+// Restaura la sesion desde la cookie httpOnly (GET /auth/me).
+void refreshSession();
 
 if ("scrollRestoration" in window.history) {
   window.history.scrollRestoration = "manual";

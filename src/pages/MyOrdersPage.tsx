@@ -3,12 +3,24 @@ import { ArrowLeft, Package, ShoppingBag, Truck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getMyOrders } from "../shared/services/order.service";
 import { createMercadoPagoPreference } from "../shared/services/payment.service";
+import { getPaymentGateways } from "../shared/services/paymentGateway.service";
 import type { Order } from "../shared/types/Order";
-import { getUserFromToken } from "../shared/utils/auth";
+import type { PaymentGateway } from "../shared/types/PaymentGateway";
+import { getApiErrorMessage, getApiErrorStatus } from "../shared/utils/apiError";
+import { getCurrentUser } from "../shared/utils/auth";
+import {
+  getGatewayUnavailableMessage,
+  isPaymentMethodAvailable,
+} from "../shared/utils/paymentGateways";
 import {
   formatVariantLabel,
   getOrderItemUnitPrice,
 } from "../shared/utils/productVariants";
+import {
+  formatCurrency,
+  getOrderServiceFee,
+  SERVICE_FEE_LABEL,
+} from "../shared/utils/serviceFee";
 
 const paymentMethodLabels: Record<string, string> = {
   cash: "Efectivo",
@@ -92,9 +104,10 @@ function MyOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [payingOrderId, setPayingOrderId] = useState("");
+  const [gateways, setGateways] = useState<PaymentGateway[]>([]);
 
   useEffect(() => {
-    if (!getUserFromToken()) {
+    if (!getCurrentUser()) {
       navigate("/login");
       return;
     }
@@ -102,8 +115,12 @@ function MyOrdersPage() {
     async function loadOrders() {
       try {
         setError("");
-        const data = await getMyOrders();
+        const [data, gatewaysData] = await Promise.all([
+          getMyOrders(),
+          getPaymentGateways().catch((): PaymentGateway[] => []),
+        ]);
         setOrders(data);
+        setGateways(gatewaysData);
       } catch {
         setError("No se pudieron cargar tus compras.");
       } finally {
@@ -117,6 +134,11 @@ function MyOrdersPage() {
   async function handlePayOrder(order: Order) {
     const method = order.paymentMethod ?? "";
     const route = resumablePaymentRoutes[method];
+
+    if (!isPaymentMethodAvailable(gateways, method)) {
+      setError(getUnavailableOrderMessage(method));
+      return;
+    }
 
     if (route) {
       navigate(route(order.id));
@@ -134,10 +156,32 @@ function MyOrdersPage() {
       if (!redirectUrl) throw new Error("Missing payment link");
 
       window.location.assign(redirectUrl);
-    } catch {
-      setError("No se pudo abrir el pago. Intentalo nuevamente.");
+    } catch (payError) {
+      if (getApiErrorStatus(payError) === 400) {
+        // Puede que la pasarela se haya desactivado: refrescamos su estado.
+        const gatewaysData = await getPaymentGateways().catch(() => gateways);
+        setGateways(gatewaysData);
+        setError(
+          isPaymentMethodAvailable(gatewaysData, method)
+            ? getApiErrorMessage(payError, "No se pudo abrir el pago.")
+            : getUnavailableOrderMessage(method, gatewaysData)
+        );
+      } else {
+        setError("No se pudo abrir el pago. Intentalo nuevamente.");
+      }
       setPayingOrderId("");
     }
+  }
+
+  function getUnavailableOrderMessage(
+    method: string,
+    currentGateways: PaymentGateway[] = gateways
+  ) {
+    return `${getGatewayUnavailableMessage(
+      currentGateways,
+      method,
+      paymentMethodLabels[method]
+    )} Para pagar con otro medio, armá la compra de nuevo desde el carrito y elegí otro medio de pago.`;
   }
 
   return (
@@ -190,6 +234,10 @@ function MyOrdersPage() {
             const firstItem = order.items?.[0];
             const extraItems = Math.max((order.items?.length ?? 0) - 1, 0);
             const shipment = getOrderShipment(order);
+            const serviceFee = getOrderServiceFee(order);
+            const isPaymentBlocked =
+              canPayOrder(order, paymentStatus) &&
+              !isPaymentMethodAvailable(gateways, order.paymentMethod);
 
             return (
               <article
@@ -216,7 +264,7 @@ function MyOrdersPage() {
                   </div>
 
                   <strong className="text-2xl font-black text-[var(--brand)]">
-                    ${Number(order.total).toLocaleString("es-AR")}
+                    ${formatCurrency(order.total)}
                   </strong>
                 </div>
 
@@ -234,7 +282,11 @@ function MyOrdersPage() {
                   >
                     {paymentStatusLabels[paymentStatus] ?? paymentStatus}
                   </span>
-                  {canPayOrder(order, paymentStatus) && (
+                  {isPaymentBlocked ? (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-500">
+                      Medio de pago no disponible
+                    </span>
+                  ) : canPayOrder(order, paymentStatus) && (
                     <button
                       type="button"
                       onClick={() => handlePayOrder(order)}
@@ -255,7 +307,21 @@ function MyOrdersPage() {
                   )}
                 </div>
 
-                {order.items?.length > 0 && (
+                {isPaymentBlocked && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+                    <p className="m-0">
+                      {getUnavailableOrderMessage(order.paymentMethod ?? "")}
+                    </p>
+                    <Link
+                      to="/products"
+                      className="mt-2 inline-flex font-black text-amber-900 underline"
+                    >
+                      Elegir productos de nuevo
+                    </Link>
+                  </div>
+                )}
+
+                {(order.items?.length > 0 || serviceFee > 0) && (
                   <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3">
                     {order.items.map((item, index) => (
                       <div
@@ -280,6 +346,16 @@ function MyOrdersPage() {
                         </p>
                       </div>
                     ))}
+                    {serviceFee > 0 && (
+                      <div className="flex flex-col gap-1 border-t border-slate-200 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="font-bold text-slate-600">
+                          {SERVICE_FEE_LABEL}
+                        </p>
+                        <p className="font-black text-slate-700">
+                          ${formatCurrency(serviceFee)}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </article>

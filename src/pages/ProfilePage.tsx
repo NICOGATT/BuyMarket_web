@@ -42,7 +42,7 @@ import type { AuthUser } from "../shared/types/Auth";
 import type { CreateUserAddressPayload, UserAddress } from "../shared/types/UserAddress";
 import type { Wallet } from "../shared/types/Wallet";
 import {
-  getUserFromToken,
+  getCurrentUser,
   isEmailVerifiedFromUser,
   isEmailVerifiedLocally,
 } from "../shared/utils/auth";
@@ -120,7 +120,7 @@ function ProfilePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const navigationState = location.state as ProfileNavigationState | null;
-  const [user] = useState(() => getUserFromToken());
+  const [user] = useState(() => getCurrentUser());
   const [profileData, setProfileData] = useState<ProfileLoadState>({
     wallet: null,
     balance: 0,

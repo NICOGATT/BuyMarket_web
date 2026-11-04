@@ -5,13 +5,23 @@ import {
   createPaywayLink,
 } from "../shared/services/payment.service";
 import { getOrderById } from "../shared/services/order.service";
+import { getPaymentGateways } from "../shared/services/paymentGateway.service";
+import { getApiErrorMessage } from "../shared/utils/apiError";
+import { isPaymentMethodAvailable } from "../shared/utils/paymentGateways";
 import type { Order } from "../shared/types/Order";
 import {
   formatVariantLabel,
   getOrderItemUnitPrice,
 } from "../shared/utils/productVariants";
+import {
+  formatCurrency,
+  getOrderServiceFee,
+  SERVICE_FEE_LABEL,
+} from "../shared/utils/serviceFee";
 
 function OrderSummary({ order }: { order: Order }) {
+  const serviceFee = getOrderServiceFee(order);
+
   return (
     <aside className="h-fit rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
       <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
@@ -50,10 +60,23 @@ function OrderSummary({ order }: { order: Order }) {
         })}
       </div>
 
+      {serviceFee > 0 && (
+        <div className="mt-5 space-y-2 text-sm font-semibold text-slate-300">
+          <div className="flex items-center justify-between gap-4">
+            <span>Subtotal</span>
+            <span>${formatCurrency(Number(order.total) - serviceFee)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <span>{SERVICE_FEE_LABEL}</span>
+            <span>${formatCurrency(serviceFee)}</span>
+          </div>
+        </div>
+      )}
+
       <div className="mt-5 border-t border-white/10 pt-5">
         <p className="font-semibold text-slate-300">Total a pagar</p>
         <strong className="mt-1 block text-3xl text-white">
-          ${Number(order.total).toLocaleString("es-AR")}
+          ${formatCurrency(order.total)}
         </strong>
       </div>
     </aside>
@@ -65,7 +88,11 @@ function getLinkErrorMessage(error: unknown) {
 
   if (status === 404) return "No encontramos la orden.";
   if (status === 400) {
-    return "Esta orden ya no está pendiente de pago o no usa pago con tarjeta.";
+    // Incluye el caso de Payway desactivado desde el panel admin.
+    return getApiErrorMessage(
+      error,
+      "Esta orden ya no está pendiente de pago o no usa pago con tarjeta."
+    );
   }
 
   return "No pudimos iniciar el pago, intentá de nuevo.";
@@ -84,6 +111,7 @@ function PaywayCheckoutPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [canRetry, setCanRetry] = useState(false);
+  const [isGatewayUnavailable, setIsGatewayUnavailable] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -118,6 +146,15 @@ function PaywayCheckoutPage() {
         setError(getLinkErrorMessage(loadError));
         setCanRetry(isRetryable(loadError));
         setIsLoading(false);
+
+        if (axios.isAxiosError(loadError) && loadError.response?.status === 400) {
+          const gateways = await getPaymentGateways().catch(() => []);
+          if (!cancelled) {
+            setIsGatewayUnavailable(
+              !isPaymentMethodAvailable(gateways, "payway")
+            );
+          }
+        }
       }
     }
 
@@ -151,7 +188,21 @@ function PaywayCheckoutPage() {
           No pudimos iniciar el pago
         </h1>
         <p className="mt-3 font-semibold text-red-700">{error}</p>
+        {isGatewayUnavailable && (
+          <p className="mt-3 font-semibold text-red-700">
+            Para pagar con otro medio, armá la compra de nuevo desde el
+            carrito y elegí otro medio de pago.
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {isGatewayUnavailable && (
+            <Link
+              to="/products"
+              className="rounded-xl bg-red-700 px-5 py-3 font-bold text-white"
+            >
+              Elegir otro medio de pago
+            </Link>
+          )}
           {canRetry && (
             <button
               type="button"

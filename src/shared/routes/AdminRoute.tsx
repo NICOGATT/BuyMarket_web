@@ -1,12 +1,20 @@
 import { Navigate } from "react-router-dom";
-import { getUserFromToken } from "../utils/auth";
+import { useAuthSession } from "../utils/auth";
 
 type AdminRouteProps = {
   children: React.ReactNode;
 };
 
 function AdminRoute({ children }: AdminRouteProps) {
-  const user = getUserFromToken();
+  const { status, user } = useAuthSession();
+
+  if (status === "loading") {
+    return (
+      <p className="p-10 text-center font-semibold text-slate-500">
+        Cargando...
+      </p>
+    );
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;

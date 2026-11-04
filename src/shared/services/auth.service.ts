@@ -49,6 +49,10 @@ export async function getCurrentAuthUser(): Promise<AuthUser> {
   return response.data;
 }
 
+export async function logout(): Promise<void> {
+  await api.post("/auth/logout");
+}
+
 export async function loginWithGoogle(
   payload: GoogleAuthPayload
 ): Promise<GoogleAuthResponse> {
