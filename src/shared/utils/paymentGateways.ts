@@ -1,7 +1,5 @@
 import type { PaymentGateway } from "../types/PaymentGateway";
 
-export const GATEWAY_UNAVAILABLE_LABEL = "No disponible por el momento";
-
 export function findPaymentGateway(
   gateways: PaymentGateway[],
   method?: string | null

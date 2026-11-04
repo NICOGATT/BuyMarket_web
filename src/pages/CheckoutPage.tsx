@@ -22,7 +22,6 @@ import type { CartItem } from "../shared/types/Cart";
 import type { PaymentGateway } from "../shared/types/PaymentGateway";
 import { getApiErrorMessage, getApiErrorStatus } from "../shared/utils/apiError";
 import {
-  GATEWAY_UNAVAILABLE_LABEL,
   getGatewayUnavailableMessage,
   isPaymentMethodAvailable,
 } from "../shared/utils/paymentGateways";
@@ -74,9 +73,6 @@ function resolvePaymentMethodOption(
   return undefined;
 }
 
-function withUnavailableLabel(label: string, isAvailable: boolean) {
-  return isAvailable ? label : `${label} — ${GATEWAY_UNAVAILABLE_LABEL}`;
-}
 
 type AddressMode = "saved" | "manual";
 type CheckoutShipmentType = "local" | "national";
@@ -223,17 +219,13 @@ function CheckoutPage() {
         setGateways(gatewaysData);
         const defaultAddress = addressesData.find((address) => address.isDefault);
         const selectedAddress = defaultAddress ?? addressesData[0];
-        // Las pasarelas desactivadas desde el panel se muestran deshabilitadas
-        // (con leyenda); las que no estan configuradas se ocultan como antes.
+        // Las pasarelas desactivadas desde el panel se ocultan al renderizar
+        // (ver visibleSavedPaymentMethods), asi se reflejan tambien al recargar.
         const activePaymentMethods = paymentMethodsData.filter(
           (paymentMethod) =>
             paymentMethod.isActive !== false &&
-            (paymentMethod.method !== "getnet_qr" ||
-              capabilities.getnetQrEnabled ||
-              !isPaymentMethodAvailable(gatewaysData, "getnet_qr")) &&
-            (paymentMethod.method !== "payway" ||
-              capabilities.paywayEnabled ||
-              !isPaymentMethodAvailable(gatewaysData, "payway"))
+            (paymentMethod.method !== "getnet_qr" || capabilities.getnetQrEnabled) &&
+            (paymentMethod.method !== "payway" || capabilities.paywayEnabled)
         );
         const selectablePaymentMethods = activePaymentMethods.filter(
           (paymentMethod) =>
@@ -889,21 +881,24 @@ function CheckoutPage() {
   }
 
   const checkoutPaymentMethod = getCheckoutPaymentMethod();
-  // Payway se oculta si no esta configurado, pero si lo desactivo un admin se
-  // muestra deshabilitado con la leyenda.
-  const shouldShowPayway = isPaywayEnabled || !isMethodAvailable("payway");
+  // Las pasarelas desactivadas desde el panel admin no se muestran.
+  // Payway ademas se oculta si no esta configurado en el backend.
   const toPaymentOption = (method: PaymentMethod) => ({
     method,
     label: paymentMethodLabels[method],
-    isAvailable: isMethodAvailable(method),
   });
-  const manualPaymentMethods: PaymentMethod[] = shouldShowPayway
-    ? ["payway", "getnet_qr"]
-    : ["getnet_qr"];
+  const manualPaymentMethods = (
+    (isPaywayEnabled ? ["payway", "getnet_qr"] : ["getnet_qr"]) as PaymentMethod[]
+  ).filter(isMethodAvailable);
   const manualPaymentOptions = manualPaymentMethods.map(toPaymentOption);
   const checkoutPaymentOptions = (
     ["mercado_pago", ...manualPaymentMethods, "cash", "transfer"] as PaymentMethod[]
-  ).map(toPaymentOption);
+  )
+    .filter(isMethodAvailable)
+    .map(toPaymentOption);
+  const visibleSavedPaymentMethods = paymentMethods.filter((paymentMethod) =>
+    isMethodAvailable(paymentMethod.method)
+  );
   // Estimacion: el monto definitivo lo calcula el backend al crear la orden.
   const estimatedServiceFee =
     checkoutPaymentMethod === "payway" ? estimatePaywayServiceFee(subtotal) : 0;
@@ -1187,9 +1182,6 @@ function CheckoutPage() {
                     paymentMethods
                   );
 
-                  // Las opciones desactivadas no se pueden elegir.
-                  if (method && !isMethodAvailable(method)) return;
-
                   setSelectedPaymentMethodId(paymentMethodId);
 
                   if (method) {
@@ -1202,31 +1194,18 @@ function CheckoutPage() {
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
               >
                 <option value="">Seleccionar medio de pago</option>
-                {paymentMethods.map((paymentMethod) => {
-                  const isAvailable = isMethodAvailable(paymentMethod.method);
-
-                  return (
-                    <option
-                      key={paymentMethod.id}
-                      value={paymentMethod.id}
-                      disabled={!isAvailable}
-                    >
-                      {withUnavailableLabel(
-                        `${paymentMethod.label} - ${paymentMethodLabels[paymentMethod.method]}${
-                          paymentMethod.isDefault ? " (predeterminado)" : ""
-                        }`,
-                        isAvailable
-                      )}
-                    </option>
-                  );
-                })}
+                {visibleSavedPaymentMethods.map((paymentMethod) => (
+                  <option key={paymentMethod.id} value={paymentMethod.id}>
+                    {paymentMethod.label} - {paymentMethodLabels[paymentMethod.method]}
+                    {paymentMethod.isDefault ? " (predeterminado)" : ""}
+                  </option>
+                ))}
                 {manualPaymentOptions.map((option) => (
                   <option
                     key={option.method}
                     value={`${MANUAL_PAYMENT_METHOD_PREFIX}${option.method}`}
-                    disabled={!option.isAvailable}
                   >
-                    {withUnavailableLabel(option.label, option.isAvailable)}
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -1246,12 +1225,8 @@ function CheckoutPage() {
                   Seleccionar medio de pago
                 </option>
                 {checkoutPaymentOptions.map((option) => (
-                  <option
-                    key={option.method}
-                    value={option.method}
-                    disabled={!option.isAvailable}
-                  >
-                    {withUnavailableLabel(option.label, option.isAvailable)}
+                  <option key={option.method} value={option.method}>
+                    {option.label}
                   </option>
                 ))}
               </select>

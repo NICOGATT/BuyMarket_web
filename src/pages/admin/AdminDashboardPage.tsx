@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import PaymentGatewayToggleList from "../../features/paymentGateways/components/PaymentGatewayToggleList";
 import { getPendingCategorySuggestions } from "../../shared/services/categorySuggestion.service";
 import { getAdminOrders } from "../../shared/services/order.service";
 import { getAdminProducts } from "../../shared/services/product.service";
@@ -162,6 +164,28 @@ function AdminDashboardPage() {
           ))}
         </div>
       ) : null}
+
+      <article className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="m-0 text-xl font-black text-slate-950">
+              Pasarelas de pago
+            </h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              Las pasarelas inactivas no se pueden usar en el checkout.
+              Transferencia y efectivo siempre están disponibles.
+            </p>
+          </div>
+          <Link
+            to="/admin/payment-gateways"
+            className="shrink-0 text-sm font-bold text-[var(--brand)] hover:underline"
+          >
+            Ver sección
+          </Link>
+        </div>
+
+        <PaymentGatewayToggleList />
+      </article>
     </section>
   );
 }
