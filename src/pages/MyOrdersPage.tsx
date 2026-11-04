@@ -9,6 +9,11 @@ import {
   formatVariantLabel,
   getOrderItemUnitPrice,
 } from "../shared/utils/productVariants";
+import {
+  formatCurrency,
+  getOrderServiceFee,
+  SERVICE_FEE_LABEL,
+} from "../shared/utils/serviceFee";
 
 const paymentMethodLabels: Record<string, string> = {
   cash: "Efectivo",
@@ -190,6 +195,7 @@ function MyOrdersPage() {
             const firstItem = order.items?.[0];
             const extraItems = Math.max((order.items?.length ?? 0) - 1, 0);
             const shipment = getOrderShipment(order);
+            const serviceFee = getOrderServiceFee(order);
 
             return (
               <article
@@ -216,7 +222,7 @@ function MyOrdersPage() {
                   </div>
 
                   <strong className="text-2xl font-black text-[var(--brand)]">
-                    ${Number(order.total).toLocaleString("es-AR")}
+                    ${formatCurrency(order.total)}
                   </strong>
                 </div>
 
@@ -255,7 +261,7 @@ function MyOrdersPage() {
                   )}
                 </div>
 
-                {order.items?.length > 0 && (
+                {(order.items?.length > 0 || serviceFee > 0) && (
                   <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3">
                     {order.items.map((item, index) => (
                       <div
@@ -280,6 +286,16 @@ function MyOrdersPage() {
                         </p>
                       </div>
                     ))}
+                    {serviceFee > 0 && (
+                      <div className="flex flex-col gap-1 border-t border-slate-200 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="font-bold text-slate-600">
+                          {SERVICE_FEE_LABEL}
+                        </p>
+                        <p className="font-black text-slate-700">
+                          ${formatCurrency(serviceFee)}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </article>

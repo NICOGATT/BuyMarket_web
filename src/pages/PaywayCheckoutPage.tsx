@@ -10,8 +10,15 @@ import {
   formatVariantLabel,
   getOrderItemUnitPrice,
 } from "../shared/utils/productVariants";
+import {
+  formatCurrency,
+  getOrderServiceFee,
+  SERVICE_FEE_LABEL,
+} from "../shared/utils/serviceFee";
 
 function OrderSummary({ order }: { order: Order }) {
+  const serviceFee = getOrderServiceFee(order);
+
   return (
     <aside className="h-fit rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
       <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
@@ -50,10 +57,23 @@ function OrderSummary({ order }: { order: Order }) {
         })}
       </div>
 
+      {serviceFee > 0 && (
+        <div className="mt-5 space-y-2 text-sm font-semibold text-slate-300">
+          <div className="flex items-center justify-between gap-4">
+            <span>Subtotal</span>
+            <span>${formatCurrency(Number(order.total) - serviceFee)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <span>{SERVICE_FEE_LABEL}</span>
+            <span>${formatCurrency(serviceFee)}</span>
+          </div>
+        </div>
+      )}
+
       <div className="mt-5 border-t border-white/10 pt-5">
         <p className="font-semibold text-slate-300">Total a pagar</p>
         <strong className="mt-1 block text-3xl text-white">
-          ${Number(order.total).toLocaleString("es-AR")}
+          ${formatCurrency(order.total)}
         </strong>
       </div>
     </aside>

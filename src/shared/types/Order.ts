@@ -48,7 +48,10 @@ export type Order = {
   id: string;
   buyer?: User;
   items: OrderItem[];
+  /** Monto a cobrar. Ya incluye `serviceFee`. */
   total: number;
+  /** Costo del servicio de cobro (Payway + IVA) que paga el comprador. 0 si el medio no es Payway. */
+  serviceFee: number;
   status: OrderStatus;
   paymentMethod?: string;
   paymentStatus?: string;

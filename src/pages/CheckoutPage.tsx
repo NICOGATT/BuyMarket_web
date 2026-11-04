@@ -32,6 +32,11 @@ import type {
   UserPaymentMethod,
 } from "../shared/types/UserPaymentMethod";
 import { getUserFromToken } from "../shared/utils/auth";
+import {
+  estimatePaywayServiceFee,
+  formatCurrency,
+  SERVICE_FEE_LABEL,
+} from "../shared/utils/serviceFee";
 import { formatUserAddress } from "../shared/utils/userAddress";
 
 type CheckoutForm = {
@@ -179,7 +184,7 @@ function CheckoutPage() {
     loadCheckout();
   }, [navigate]);
 
-  const total = cart.reduce(
+  const subtotal = cart.reduce(
     (acc, item) => acc + getCartItemUnitPrice(item) * item.quantity,
     0
   );
@@ -746,6 +751,10 @@ function CheckoutPage() {
   }
 
   const checkoutPaymentMethod = getCheckoutPaymentMethod();
+  // Estimacion: el monto definitivo lo calcula el backend al crear la orden.
+  const estimatedServiceFee =
+    checkoutPaymentMethod === "payway" ? estimatePaywayServiceFee(subtotal) : 0;
+  const estimatedTotal = subtotal + estimatedServiceFee;
 
   return (
     <section className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -1142,9 +1151,28 @@ function CheckoutPage() {
           ))}
         </div>
 
+        {estimatedServiceFee > 0 && (
+          <div className="mt-5 space-y-2 text-sm font-semibold text-slate-300">
+            <div className="flex items-center justify-between gap-4">
+              <span>Subtotal</span>
+              <span>${formatCurrency(subtotal)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span>{SERVICE_FEE_LABEL}</span>
+              <span>${formatCurrency(estimatedServiceFee)}</span>
+            </div>
+          </div>
+        )}
+
         <div className="mt-5 border-t border-white/10 pt-5">
           <p className="font-semibold text-slate-300">Total</p>
-          <strong className="text-3xl">${total.toLocaleString("es-AR")}</strong>
+          <strong className="text-3xl">${formatCurrency(estimatedTotal)}</strong>
+          {estimatedServiceFee > 0 && (
+            <p className="mt-2 text-xs font-semibold text-slate-400">
+              El costo del servicio es estimado. El monto final se confirma al
+              generar la orden.
+            </p>
+          )}
         </div>
       </aside>
     </section>
