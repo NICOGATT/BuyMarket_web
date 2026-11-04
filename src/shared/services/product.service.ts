@@ -5,13 +5,13 @@ import type {
   ProductMedia,
   UpdateProductPayload,
 } from "../types/Product";
-import { getUserFromToken } from "../utils/auth";
+import { getCurrentUser } from "../utils/auth";
 
 function buildProductRequestPayload(
   payload: CreateProductPayload | UpdateProductPayload,
   includeDefaultSeller = false
 ) {
-  const user = getUserFromToken();
+  const user = getCurrentUser();
   const sellerId =
     payload.seller ??
     payload.owner ??

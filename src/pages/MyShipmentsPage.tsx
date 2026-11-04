@@ -11,7 +11,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { getMyShipments } from "../shared/services/shipment.service";
 import type { Shipment } from "../shared/types/Shipment";
-import { getUserFromToken } from "../shared/utils/auth";
+import { getCurrentUser } from "../shared/utils/auth";
 
 const statusLabels: Record<string, string> = {
   pending: "Pendiente",
@@ -101,7 +101,7 @@ function MyShipmentsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!getUserFromToken()) {
+    if (!getCurrentUser()) {
       navigate("/login");
       return;
     }

@@ -3,11 +3,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { loginWithGoogle } from "../../../shared/services/auth.service";
-import type { GoogleAuthResponse } from "../../../shared/types/Auth";
-
-function getAuthToken(response: GoogleAuthResponse) {
-  return response.access_token ?? response.accessToken ?? response.token ?? "";
-}
+import { refreshSession } from "../../../shared/utils/auth";
 
 function GoogleAuthButton() {
   const navigate = useNavigate();
@@ -26,16 +22,15 @@ function GoogleAuthButton() {
     try {
       setIsLoading(true);
       setError("");
-      const data = await loginWithGoogle({ idToken });
-      const token = getAuthToken(data);
+      await loginWithGoogle({ idToken });
+      // El backend setea la cookie de sesion; confirmamos con /auth/me.
+      const user = await refreshSession();
 
-      if (!token) {
-        setError("El backend no devolvio token.");
+      if (!user) {
+        setError("No pudimos iniciar sesion con Google.");
         return;
       }
 
-      localStorage.setItem("token", token);
-      window.dispatchEvent(new Event("auth-change"));
       navigate("/");
     } catch (authError) {
       if (axios.isAxiosError(authError)) {

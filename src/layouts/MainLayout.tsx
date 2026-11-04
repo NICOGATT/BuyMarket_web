@@ -14,7 +14,7 @@ import {
   formatVariantLabel,
   getCartItemUnitPrice,
 } from "../shared/utils/productVariants";
-import { getUserFromToken, logout } from "../shared/utils/auth";
+import { AUTH_CHANGE_EVENT, logout, useAuthSession } from "../shared/utils/auth";
 import { getCategories } from "../shared/services/category.service";
 import {
   createUserAddress,
@@ -70,7 +70,7 @@ function formatShortUserAddress(address: UserAddress) {
 }
 
 function MainLayout() {
-  const [user, setUser] = useState(getUserFromToken());
+  const { user } = useAuthSession();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isCartPreviewOpen, setIsCartPreviewOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -102,18 +102,6 @@ function MainLayout() {
     location.pathname === "/products/create" ||
     /^\/products\/[^/]+\/edit$/.test(location.pathname);
   const isProfilePage = location.pathname.startsWith("/profile");
-
-  useEffect(() => {
-    function syncAuth() {
-      setUser(getUserFromToken());
-    }
-
-    window.addEventListener("auth-change", syncAuth);
-
-    return () => {
-      window.removeEventListener("auth-change", syncAuth);
-    };
-  }, []);
 
   useEffect(() => {
     async function loadCategories() {
@@ -163,13 +151,11 @@ function MainLayout() {
 
     syncCart();
     window.addEventListener(CART_CHANGE_EVENT, syncCart);
-    window.addEventListener("auth-change", syncCart);
-    window.addEventListener("storage", syncCart);
+    window.addEventListener(AUTH_CHANGE_EVENT, syncCart);
 
     return () => {
       window.removeEventListener(CART_CHANGE_EVENT, syncCart);
-      window.removeEventListener("auth-change", syncCart);
-      window.removeEventListener("storage", syncCart);
+      window.removeEventListener(AUTH_CHANGE_EVENT, syncCart);
     };
   }, []);
 
@@ -253,10 +239,9 @@ function MainLayout() {
     });
   }, [categories]);
 
-  function handleLogout() {
-    logout();
-    setUser(null);
+  async function handleLogout() {
     setIsUserMenuOpen(false);
+    await logout();
     navigate("/login");
   }
 

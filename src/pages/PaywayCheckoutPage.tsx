@@ -5,6 +5,9 @@ import {
   createPaywayLink,
 } from "../shared/services/payment.service";
 import { getOrderById } from "../shared/services/order.service";
+import { getPaymentGateways } from "../shared/services/paymentGateway.service";
+import { getApiErrorMessage } from "../shared/utils/apiError";
+import { isPaymentMethodAvailable } from "../shared/utils/paymentGateways";
 import type { Order } from "../shared/types/Order";
 import {
   formatVariantLabel,
@@ -85,7 +88,11 @@ function getLinkErrorMessage(error: unknown) {
 
   if (status === 404) return "No encontramos la orden.";
   if (status === 400) {
-    return "Esta orden ya no está pendiente de pago o no usa pago con tarjeta.";
+    // Incluye el caso de Payway desactivado desde el panel admin.
+    return getApiErrorMessage(
+      error,
+      "Esta orden ya no está pendiente de pago o no usa pago con tarjeta."
+    );
   }
 
   return "No pudimos iniciar el pago, intentá de nuevo.";
@@ -104,6 +111,7 @@ function PaywayCheckoutPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [canRetry, setCanRetry] = useState(false);
+  const [isGatewayUnavailable, setIsGatewayUnavailable] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -138,6 +146,15 @@ function PaywayCheckoutPage() {
         setError(getLinkErrorMessage(loadError));
         setCanRetry(isRetryable(loadError));
         setIsLoading(false);
+
+        if (axios.isAxiosError(loadError) && loadError.response?.status === 400) {
+          const gateways = await getPaymentGateways().catch(() => []);
+          if (!cancelled) {
+            setIsGatewayUnavailable(
+              !isPaymentMethodAvailable(gateways, "payway")
+            );
+          }
+        }
       }
     }
 
@@ -171,7 +188,21 @@ function PaywayCheckoutPage() {
           No pudimos iniciar el pago
         </h1>
         <p className="mt-3 font-semibold text-red-700">{error}</p>
+        {isGatewayUnavailable && (
+          <p className="mt-3 font-semibold text-red-700">
+            Para pagar con otro medio, armá la compra de nuevo desde el
+            carrito y elegí otro medio de pago.
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {isGatewayUnavailable && (
+            <Link
+              to="/products"
+              className="rounded-xl bg-red-700 px-5 py-3 font-bold text-white"
+            >
+              Elegir otro medio de pago
+            </Link>
+          )}
           {canRetry && (
             <button
               type="button"

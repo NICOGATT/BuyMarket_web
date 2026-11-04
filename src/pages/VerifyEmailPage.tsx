@@ -2,7 +2,11 @@ import { useState } from "react";
 import { ArrowLeft, BadgeCheck, KeyRound, MailCheck, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { verifyEmail } from "../shared/services/auth.service";
-import { getUserFromToken, markEmailVerifiedLocally } from "../shared/utils/auth";
+import {
+  getCurrentUser,
+  markEmailVerifiedLocally,
+  refreshSession,
+} from "../shared/utils/auth";
 
 function VerifyEmailPage() {
   const navigate = useNavigate();
@@ -23,14 +27,10 @@ function VerifyEmailPage() {
 
     try {
       setIsSubmitting(true);
-      const currentUser = getUserFromToken();
-      const response = await verifyEmail({ code: trimmedCode });
-      const token = response.access_token || response.accessToken;
-
-      if (token) {
-        localStorage.setItem("token", token);
-        window.dispatchEvent(new Event("auth-change"));
-      }
+      const currentUser = getCurrentUser();
+      await verifyEmail({ code: trimmedCode });
+      // El backend reemite la cookie con el email verificado; refrescamos el usuario.
+      await refreshSession();
 
       if (currentUser) {
         markEmailVerifiedLocally(currentUser);

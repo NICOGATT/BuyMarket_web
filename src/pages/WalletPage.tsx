@@ -8,7 +8,7 @@ import {
   requestWithdrawal,
 } from "../shared/services/wallet.service";
 import type { Wallet, Withdrawal } from "../shared/types/Wallet";
-import { getUserFromToken } from "../shared/utils/auth";
+import { getCurrentUser } from "../shared/utils/auth";
 
 const emptyWithdrawalForm = {
   amount: "",
@@ -50,7 +50,7 @@ type WalletLoadState = {
 
 function WalletPage() {
   const navigate = useNavigate();
-  const [user] = useState(() => getUserFromToken());
+  const [user] = useState(() => getCurrentUser());
   const [profileData, setProfileData] = useState<WalletLoadState>({
     wallet: null,
     balance: 0,

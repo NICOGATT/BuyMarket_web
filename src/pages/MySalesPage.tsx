@@ -3,7 +3,7 @@ import { ArrowLeft, Package, ShoppingBag } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getMySales } from "../shared/services/order.service";
 import type { Sale } from "../shared/types/Order";
-import { getUserFromToken } from "../shared/utils/auth";
+import { getCurrentUser } from "../shared/utils/auth";
 import {
   formatVariantLabel,
   getSaleSubtotal,
@@ -54,7 +54,7 @@ function MySalesPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!getUserFromToken()) {
+    if (!getCurrentUser()) {
       navigate("/login");
       return;
     }

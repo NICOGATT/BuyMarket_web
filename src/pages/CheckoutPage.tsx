@@ -17,7 +17,15 @@ import {
   getMyAddresses,
 } from "../shared/services/userAddress.service";
 import { getMyPaymentMethods } from "../shared/services/userPaymentMethod.service";
+import { getPaymentGateways } from "../shared/services/paymentGateway.service";
 import type { CartItem } from "../shared/types/Cart";
+import type { PaymentGateway } from "../shared/types/PaymentGateway";
+import { getApiErrorMessage, getApiErrorStatus } from "../shared/utils/apiError";
+import {
+  GATEWAY_UNAVAILABLE_LABEL,
+  getGatewayUnavailableMessage,
+  isPaymentMethodAvailable,
+} from "../shared/utils/paymentGateways";
 import {
   formatVariantLabel,
   getCartItemUnitPrice,
@@ -31,7 +39,7 @@ import type {
   PaymentMethod,
   UserPaymentMethod,
 } from "../shared/types/UserPaymentMethod";
-import { getUserFromToken } from "../shared/utils/auth";
+import { getCurrentUser } from "../shared/utils/auth";
 import {
   estimatePaywayServiceFee,
   formatCurrency,
@@ -40,9 +48,35 @@ import {
 import { formatUserAddress } from "../shared/utils/userAddress";
 
 type CheckoutForm = {
-  paymentMethod: PaymentMethod;
+  // "" = sin seleccion (por ejemplo, si la pasarela elegida se desactivo).
+  paymentMethod: PaymentMethod | "";
   notes: string;
 };
+
+const MANUAL_PAYMENT_METHOD_PREFIX = "manual:";
+
+// Resuelve el medio de pago de una opcion del select de medios guardados:
+// puede ser un medio guardado (por id) o una opcion "manual:<metodo>".
+function resolvePaymentMethodOption(
+  optionId: string,
+  savedPaymentMethods: UserPaymentMethod[]
+): PaymentMethod | undefined {
+  const savedPaymentMethod = savedPaymentMethods.find(
+    (paymentMethod) => paymentMethod.id === optionId
+  );
+
+  if (savedPaymentMethod) return savedPaymentMethod.method;
+
+  if (optionId.startsWith(MANUAL_PAYMENT_METHOD_PREFIX)) {
+    return optionId.slice(MANUAL_PAYMENT_METHOD_PREFIX.length) as PaymentMethod;
+  }
+
+  return undefined;
+}
+
+function withUnavailableLabel(label: string, isAvailable: boolean) {
+  return isAvailable ? label : `${label} — ${GATEWAY_UNAVAILABLE_LABEL}`;
+}
 
 type AddressMode = "saved" | "manual";
 type CheckoutShipmentType = "local" | "national";
@@ -129,33 +163,87 @@ function CheckoutPage() {
   const [transferProofFile, setTransferProofFile] = useState<File | null>(null);
   const [isTransferNotified, setIsTransferNotified] = useState(false);
   const [isPaywayEnabled, setIsPaywayEnabled] = useState(false);
+  const [gateways, setGateways] = useState<PaymentGateway[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  function isMethodAvailable(method?: string | null) {
+    return isPaymentMethodAvailable(gateways, method);
+  }
+
+  // Guarda el estado de las pasarelas y limpia la seleccion si el medio
+  // elegido quedo desactivado.
+  function applyGateways(
+    nextGateways: PaymentGateway[],
+    savedPaymentMethods: UserPaymentMethod[]
+  ) {
+    setGateways(nextGateways);
+    setSelectedPaymentMethodId((currentId) => {
+      const method = resolvePaymentMethodOption(currentId, savedPaymentMethods);
+
+      return method && !isPaymentMethodAvailable(nextGateways, method)
+        ? ""
+        : currentId;
+    });
+    setForm((prev) =>
+      prev.paymentMethod &&
+      !isPaymentMethodAvailable(nextGateways, prev.paymentMethod)
+        ? { ...prev, paymentMethod: "" }
+        : prev
+    );
+  }
+
+  async function reloadGateways() {
+    try {
+      applyGateways(await getPaymentGateways(), paymentMethods);
+    } catch {
+      // Si no se puede recargar, mantenemos el ultimo estado conocido.
+    }
+  }
+
   useEffect(() => {
     async function loadCheckout() {
       try {
-        const [cartData, addressesData, paymentMethodsData, capabilities] = await Promise.all([
+        const [
+          cartData,
+          addressesData,
+          paymentMethodsData,
+          capabilities,
+          gatewaysData,
+        ] = await Promise.all([
           getCart(),
           getMyAddresses().catch(() => []),
           getMyPaymentMethods().catch(() => []),
           getPaymentCapabilities().catch(() => defaultPaymentCapabilities),
+          // Si falla, no ocultamos nada: el backend igual valida al pagar.
+          getPaymentGateways().catch((): PaymentGateway[] => []),
         ]);
         setIsPaywayEnabled(capabilities.paywayEnabled);
+        setGateways(gatewaysData);
         const defaultAddress = addressesData.find((address) => address.isDefault);
         const selectedAddress = defaultAddress ?? addressesData[0];
+        // Las pasarelas desactivadas desde el panel se muestran deshabilitadas
+        // (con leyenda); las que no estan configuradas se ocultan como antes.
         const activePaymentMethods = paymentMethodsData.filter(
           (paymentMethod) =>
             paymentMethod.isActive !== false &&
-            (paymentMethod.method !== "getnet_qr" || capabilities.getnetQrEnabled) &&
-            (paymentMethod.method !== "payway" || capabilities.paywayEnabled)
+            (paymentMethod.method !== "getnet_qr" ||
+              capabilities.getnetQrEnabled ||
+              !isPaymentMethodAvailable(gatewaysData, "getnet_qr")) &&
+            (paymentMethod.method !== "payway" ||
+              capabilities.paywayEnabled ||
+              !isPaymentMethodAvailable(gatewaysData, "payway"))
         );
-        const defaultPaymentMethod = activePaymentMethods.find(
+        const selectablePaymentMethods = activePaymentMethods.filter(
+          (paymentMethod) =>
+            isPaymentMethodAvailable(gatewaysData, paymentMethod.method)
+        );
+        const defaultPaymentMethod = selectablePaymentMethods.find(
           (paymentMethod) => paymentMethod.isDefault
         );
         const selectedPaymentMethod =
-          defaultPaymentMethod ?? activePaymentMethods[0];
+          defaultPaymentMethod ?? selectablePaymentMethods[0];
 
         setCart(cartData);
         setAddresses(addressesData);
@@ -168,6 +256,12 @@ function CheckoutPage() {
             ...prev,
             paymentMethod: selectedPaymentMethod.method,
           }));
+        } else {
+          setForm((prev) =>
+            isPaymentMethodAvailable(gatewaysData, prev.paymentMethod)
+              ? prev
+              : { ...prev, paymentMethod: "" }
+          );
         }
       } catch (loadError) {
         if (isAuthRequiredError(loadError)) {
@@ -240,7 +334,7 @@ function CheckoutPage() {
   }
 
   function getFallbackReceiverName() {
-    const user = getUserFromToken();
+    const user = getCurrentUser();
 
     return user?.name?.trim() || user?.email?.trim() || "Comprador";
   }
@@ -400,6 +494,20 @@ function CheckoutPage() {
     window.location.href = redirectUrl;
   }
 
+  // 400 = el backend rechazo el pago (por ejemplo, Mercado Pago se desactivo
+  // mientras el comprador estaba en el checkout): mostramos su mensaje.
+  function getMercadoPagoErrorMessage(paymentError: unknown) {
+    if (getApiErrorStatus(paymentError) === 400) {
+      void reloadGateways();
+      return `${getApiErrorMessage(
+        paymentError,
+        "No se pudo iniciar el pago con Mercado Pago."
+      )} Podés ver la orden en Mis compras.`;
+    }
+
+    return "No se pudo abrir Mercado Pago. Intentalo nuevamente.";
+  }
+
   async function handleRetryMercadoPago() {
     if (!mercadoPagoOrder) return;
 
@@ -407,8 +515,8 @@ function CheckoutPage() {
       setIsSubmitting(true);
       setError("");
       await redirectToMercadoPago(mercadoPagoOrder);
-    } catch {
-      setError("No se pudo abrir Mercado Pago. Intentalo nuevamente.");
+    } catch (retryError) {
+      setError(getMercadoPagoErrorMessage(retryError));
     } finally {
       setIsSubmitting(false);
     }
@@ -497,6 +605,18 @@ function CheckoutPage() {
 
     const checkoutPaymentMethod = getCheckoutPaymentMethod();
 
+    if (!checkoutPaymentMethod) {
+      setError("Selecciona un medio de pago.");
+      return;
+    }
+
+    if (!isMethodAvailable(checkoutPaymentMethod)) {
+      setError(
+        `${getGatewayUnavailableMessage(gateways, checkoutPaymentMethod)} Elegí otro medio de pago.`
+      );
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError("");
@@ -506,18 +626,38 @@ function CheckoutPage() {
       setTransferProofFile(null);
       setIsTransferNotified(false);
       const selectedPaymentMethod = getSelectedPaymentMethod();
-      const order = await checkoutOrder({
-        deliveryAddress: shipmentResult.deliveryAddress,
-        paymentMethodId: selectedPaymentMethod?.id,
-        paymentMethod: selectedPaymentMethod ? undefined : form.paymentMethod,
-        notes: form.notes.trim() || undefined,
-      });
+      let order: Order;
+
+      try {
+        order = await checkoutOrder({
+          deliveryAddress: shipmentResult.deliveryAddress,
+          paymentMethodId: selectedPaymentMethod?.id,
+          paymentMethod: selectedPaymentMethod
+            ? undefined
+            : form.paymentMethod || undefined,
+          notes: form.notes.trim() || undefined,
+        });
+      } catch (checkoutError) {
+        // 400: entre otros casos, la pasarela se desactivo mientras el
+        // comprador estaba en el checkout. Refrescamos para reflejarlo.
+        if (getApiErrorStatus(checkoutError) === 400) {
+          void reloadGateways();
+        }
+
+        throw checkoutError;
+      }
 
       if (checkoutPaymentMethod === "mercado_pago") {
         setCart([]);
         window.dispatchEvent(new Event(CART_CHANGE_EVENT));
         setMercadoPagoOrder(order);
-        await redirectToMercadoPago(order);
+
+        try {
+          await redirectToMercadoPago(order);
+        } catch (mercadoPagoError) {
+          setError(getMercadoPagoErrorMessage(mercadoPagoError));
+        }
+
         return;
       }
 
@@ -555,11 +695,9 @@ function CheckoutPage() {
       }
 
       setError(
-        checkoutPaymentMethod === "mercado_pago"
-          ? "No se pudo abrir Mercado Pago. Intentalo nuevamente."
-          : submitError instanceof Error
-            ? submitError.message
-            : "No se pudo confirmar la compra."
+        submitError instanceof Error
+          ? submitError.message
+          : "No se pudo confirmar la compra."
       );
     } finally {
       setIsSubmitting(false);
@@ -751,6 +889,21 @@ function CheckoutPage() {
   }
 
   const checkoutPaymentMethod = getCheckoutPaymentMethod();
+  // Payway se oculta si no esta configurado, pero si lo desactivo un admin se
+  // muestra deshabilitado con la leyenda.
+  const shouldShowPayway = isPaywayEnabled || !isMethodAvailable("payway");
+  const toPaymentOption = (method: PaymentMethod) => ({
+    method,
+    label: paymentMethodLabels[method],
+    isAvailable: isMethodAvailable(method),
+  });
+  const manualPaymentMethods: PaymentMethod[] = shouldShowPayway
+    ? ["payway", "getnet_qr"]
+    : ["getnet_qr"];
+  const manualPaymentOptions = manualPaymentMethods.map(toPaymentOption);
+  const checkoutPaymentOptions = (
+    ["mercado_pago", ...manualPaymentMethods, "cash", "transfer"] as PaymentMethod[]
+  ).map(toPaymentOption);
   // Estimacion: el monto definitivo lo calcula el backend al crear la orden.
   const estimatedServiceFee =
     checkoutPaymentMethod === "payway" ? estimatePaywayServiceFee(subtotal) : 0;
@@ -1029,42 +1182,53 @@ function CheckoutPage() {
                 value={selectedPaymentMethodId}
                 onChange={(event) => {
                   const paymentMethodId = event.target.value;
-                  const paymentMethod = paymentMethods.find(
-                    (item) => item.id === paymentMethodId
+                  const method = resolvePaymentMethodOption(
+                    paymentMethodId,
+                    paymentMethods
                   );
+
+                  // Las opciones desactivadas no se pueden elegir.
+                  if (method && !isMethodAvailable(method)) return;
 
                   setSelectedPaymentMethodId(paymentMethodId);
 
-                  if (paymentMethod) {
+                  if (method) {
                     setForm((prev) => ({
                       ...prev,
-                      paymentMethod: paymentMethod.method,
-                    }));
-                  } else if (paymentMethodId === "manual:getnet_qr") {
-                    setForm((prev) => ({
-                      ...prev,
-                      paymentMethod: "getnet_qr",
-                    }));
-                  } else if (paymentMethodId === "manual:payway") {
-                    setForm((prev) => ({
-                      ...prev,
-                      paymentMethod: "payway",
+                      paymentMethod: method,
                     }));
                   }
                 }}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
               >
                 <option value="">Seleccionar medio de pago</option>
-                {paymentMethods.map((paymentMethod) => (
-                  <option key={paymentMethod.id} value={paymentMethod.id}>
-                    {paymentMethod.label} - {paymentMethodLabels[paymentMethod.method]}
-                    {paymentMethod.isDefault ? " (predeterminado)" : ""}
+                {paymentMethods.map((paymentMethod) => {
+                  const isAvailable = isMethodAvailable(paymentMethod.method);
+
+                  return (
+                    <option
+                      key={paymentMethod.id}
+                      value={paymentMethod.id}
+                      disabled={!isAvailable}
+                    >
+                      {withUnavailableLabel(
+                        `${paymentMethod.label} - ${paymentMethodLabels[paymentMethod.method]}${
+                          paymentMethod.isDefault ? " (predeterminado)" : ""
+                        }`,
+                        isAvailable
+                      )}
+                    </option>
+                  );
+                })}
+                {manualPaymentOptions.map((option) => (
+                  <option
+                    key={option.method}
+                    value={`${MANUAL_PAYMENT_METHOD_PREFIX}${option.method}`}
+                    disabled={!option.isAvailable}
+                  >
+                    {withUnavailableLabel(option.label, option.isAvailable)}
                   </option>
                 ))}
-                {isPaywayEnabled && (
-                  <option value="manual:payway">Tarjeta de crédito/débito</option>
-                )}
-                <option value="manual:getnet_qr">Pago con QR</option>
               </select>
             </label>
           ) : (
@@ -1078,13 +1242,18 @@ function CheckoutPage() {
                 onChange={handleChange}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold outline-none focus:border-[var(--brand)]"
               >
-                <option value="mercado_pago">Mercado Pago</option>
-                {isPaywayEnabled && (
-                  <option value="payway">Tarjeta de crédito/débito</option>
-                )}
-                <option value="getnet_qr">Pago con QR</option>
-                <option value="cash">Efectivo</option>
-                <option value="transfer">Transferencia</option>
+                <option value="" disabled>
+                  Seleccionar medio de pago
+                </option>
+                {checkoutPaymentOptions.map((option) => (
+                  <option
+                    key={option.method}
+                    value={option.method}
+                    disabled={!option.isAvailable}
+                  >
+                    {withUnavailableLabel(option.label, option.isAvailable)}
+                  </option>
+                ))}
               </select>
             </label>
           )}

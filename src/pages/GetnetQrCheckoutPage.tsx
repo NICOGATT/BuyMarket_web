@@ -9,6 +9,13 @@ import {
 } from "../shared/services/payment.service";
 import type { GetnetQrPayment } from "../shared/services/payment.service";
 import { getOrderById } from "../shared/services/order.service";
+import { getPaymentGateways } from "../shared/services/paymentGateway.service";
+import type { PaymentGateway } from "../shared/types/PaymentGateway";
+import { getApiErrorMessage, getApiErrorStatus } from "../shared/utils/apiError";
+import {
+  getGatewayUnavailableMessage,
+  isPaymentMethodAvailable,
+} from "../shared/utils/paymentGateways";
 import type { Order } from "../shared/types/Order";
 import {
   formatVariantLabel,
@@ -98,6 +105,7 @@ function GetnetQrCheckoutPage() {
   const [proofSubmitted, setProofSubmitted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const [unavailableMessage, setUnavailableMessage] = useState("");
 
   const generateQr = useCallback(async () => {
     if (!orderId) return;
@@ -109,8 +117,12 @@ function GetnetQrCheckoutPage() {
       setQrPayment(payment);
       setQrImage(image);
       setNow(Date.now());
-    } catch {
-      setError("No se pudo generar el QR. Intentalo nuevamente.");
+    } catch (qrError) {
+      setError(
+        getApiErrorStatus(qrError) === 400
+          ? getApiErrorMessage(qrError, "No se pudo generar el QR.")
+          : "No se pudo generar el QR. Intentalo nuevamente."
+      );
     } finally {
       setIsGenerating(false);
       setIsLoading(false);
@@ -125,13 +137,23 @@ function GetnetQrCheckoutPage() {
     void Promise.all([
       getOrderById(orderId),
       getPaymentCapabilities().catch(() => defaultPaymentCapabilities),
+      getPaymentGateways().catch((): PaymentGateway[] => []),
     ])
-      .then(async ([loadedOrder, capabilities]) => {
+      .then(async ([loadedOrder, capabilities, gateways]) => {
         if (cancelled) return;
 
         setOrder(loadedOrder);
         setProofSubmitted(Boolean(loadedOrder.payment?.proofImageUrl));
         setIsDynamicQr(capabilities.getnetQrEnabled);
+
+        // Si un admin desactivo el pago con QR, no mostramos ni el QR dinamico
+        // ni el estatico de respaldo.
+        if (!isPaymentMethodAvailable(gateways, "getnet_qr")) {
+          setUnavailableMessage(
+            getGatewayUnavailableMessage(gateways, "getnet_qr", "El pago con QR")
+          );
+          return;
+        }
 
         if (capabilities.getnetQrEnabled) {
           const qrResult = await requestQr(orderId);
@@ -141,9 +163,13 @@ function GetnetQrCheckoutPage() {
           setNow(Date.now());
         }
       })
-      .catch(() => {
+      .catch((loadError) => {
         if (!cancelled) {
-          setError("No se pudo cargar el pago de esta orden.");
+          setError(
+            getApiErrorStatus(loadError) === 400
+              ? getApiErrorMessage(loadError, "No se pudo generar el QR.")
+              : "No se pudo cargar el pago de esta orden."
+          );
         }
       })
       .finally(() => {
@@ -303,6 +329,36 @@ function GetnetQrCheckoutPage() {
         >
           Ver mis compras
         </Link>
+      </section>
+    );
+  }
+
+  // Si ya subio el comprobante, la orden queda esperando aprobacion: no la bloqueamos.
+  if (unavailableMessage && !proofSubmitted) {
+    return (
+      <section className="mx-auto max-w-xl rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
+        <h1 className="m-0 text-3xl font-black text-red-900">
+          No pudimos iniciar el pago
+        </h1>
+        <p className="mt-3 font-semibold text-red-700">{unavailableMessage}</p>
+        <p className="mt-3 font-semibold text-red-700">
+          Para pagar con otro medio, armá la compra de nuevo desde el carrito y
+          elegí otro medio de pago.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link
+            to="/products"
+            className="rounded-xl bg-red-700 px-5 py-3 font-bold text-white"
+          >
+            Elegir otro medio de pago
+          </Link>
+          <Link
+            to="/profile/orders"
+            className="rounded-xl bg-white px-5 py-3 font-bold text-slate-800"
+          >
+            Ver mis compras
+          </Link>
+        </div>
       </section>
     );
   }

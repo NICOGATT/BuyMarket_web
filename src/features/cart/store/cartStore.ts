@@ -1,6 +1,6 @@
 import { api } from "../../../shared/services/api";
 import axios from "axios";
-import { getUserFromToken, logout } from "../../../shared/utils/auth";
+import { getCurrentUser } from "../../../shared/utils/auth";
 import type {
   AddProductToCartPayload,
   Cart,
@@ -21,7 +21,7 @@ function getCartItems(cart: Cart | CartItem[]): CartItem[] {
 }
 
 function ensureAuthenticated() {
-  if (!getUserFromToken()) {
+  if (!getCurrentUser()) {
     throw new Error(AUTH_REQUIRED_ERROR);
   }
 }
@@ -31,8 +31,8 @@ export function isAuthRequiredError(error: unknown) {
 }
 
 function handleCartRequestError(error: unknown): never {
+  // El interceptor de api ya limpio la sesion; aca solo traducimos el error.
   if (axios.isAxiosError(error) && error.response?.status === 401) {
-    logout();
     throw new Error(AUTH_REQUIRED_ERROR);
   }
 
@@ -40,7 +40,7 @@ function handleCartRequestError(error: unknown): never {
 }
 
 export async function getCart(): Promise<CartItem[]> {
-  if (!getUserFromToken()) {
+  if (!getCurrentUser()) {
     return [];
   }
 

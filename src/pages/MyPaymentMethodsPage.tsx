@@ -12,7 +12,7 @@ import type {
   PaymentMethod,
   UserPaymentMethod,
 } from "../shared/types/UserPaymentMethod";
-import { getUserFromToken } from "../shared/utils/auth";
+import { getCurrentUser } from "../shared/utils/auth";
 import {
   defaultPaymentCapabilities,
   getPaymentCapabilities,
@@ -70,7 +70,7 @@ function getPaymentIcon(method: PaymentMethod) {
 
 function MyPaymentMethodsPage() {
   const navigate = useNavigate();
-  const [user] = useState(() => getUserFromToken());
+  const [user] = useState(() => getCurrentUser());
   const [paymentMethods, setPaymentMethods] = useState<UserPaymentMethod[]>([]);
   const [form, setForm] = useState<CreateUserPaymentMethodPayload>(emptyForm);
   const [isLoading, setIsLoading] = useState(true);

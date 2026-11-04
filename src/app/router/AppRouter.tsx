@@ -35,6 +35,7 @@ import AdminPlansPage from "../../pages/admin/AdminPlansPage";
 import AdminWithdrawalsPage from "../../pages/admin/AdminWithdrawalsPage";
 import AdminShipmentsPage from "../../pages/admin/AdminShipmentsPage";
 import AdminColorsPage from "../../pages/admin/AdminColorsPage";
+import AdminPaymentGatewaysPage from "../../pages/admin/AdminPaymentGatewaysPage";
 const router = createBrowserRouter([
     {
         path : "/",
@@ -253,6 +254,10 @@ const router = createBrowserRouter([
             {
             path: "plans",
             element: <AdminPlansPage />,
+            },
+            {
+            path: "payment-gateways",
+            element: <AdminPaymentGatewaysPage />,
             },
             {
                 path : "categories/create", 

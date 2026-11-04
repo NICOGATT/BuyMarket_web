@@ -89,6 +89,10 @@ function AdminLayout() {
           <NavLink className={adminLinkClass} to="/admin/plans">
             Planes
           </NavLink>
+
+          <NavLink className={adminLinkClass} to="/admin/payment-gateways">
+            Pasarelas de pago
+          </NavLink>
         </nav>
       </aside>
 
